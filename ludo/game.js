@@ -728,7 +728,7 @@ async function joinRoom(code, { minEpoch = 0, resume = false } = {}) {
     if (chosen || my !== session) return;
     chosen = offers.reduce((a, b) => (b.epoch > a.epoch ? b : a));
     clients.filter((o) => o !== chosen.cl).forEach((o) => o.end(true));
-    conn = makeLink(chosen.cl, keys, myId, chosen.from, hostTopic(keys, chosen.epoch));
+    conn = makeLink(chosen.cl, keys, myId, chosen.from, hostTopic(keys, chosen.epoch), { dial: true });
     wireGuest(conn, giveUp, code, chosen.epoch);
     chosen.queue.forEach((m) => conn.receive(m));
   };

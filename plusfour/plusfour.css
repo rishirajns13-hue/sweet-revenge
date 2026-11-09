@@ -15,8 +15,6 @@
 /* paper grain over everything, and a gloss that slides across when you hover */
 .pf-card::after {
   content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .13 0 0 0 0 .25 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: .32; mix-blend-mode: multiply;
 }
 .pf-card::before {
   content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 4;
@@ -130,8 +128,7 @@
     color-mix(in srgb, var(--focus) 50%, #1b1430);
 }
 .pf-mat::before {
-  content: ''; position: absolute; inset: 0; z-index: -1; opacity: .5; mix-blend-mode: soft-light; pointer-events: none;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
 }
 .pf-centre { display: flex; align-items: center; justify-content: center; gap: clamp(36px, 6vw, 80px); }
 .pf-seat { display: grid; justify-items: center; gap: 4px; color: #fff; }
@@ -291,7 +288,7 @@ body.in-game.chat-docked main { padding-right: 410px; }
   position: absolute; width: 360px; height: 360px; margin: -180px 0 0 -180px; border-radius: 50%; left: 50%; top: 85%;
   background: radial-gradient(circle, #ffffff2e, #ffffff0d 45%, transparent 70%); transition: left .8s cubic-bezier(.4, 1.2, .5, 1), top .8s cubic-bezier(.4, 1.2, .5, 1);
 }
-.pf-drift { position: absolute; left: var(--x); bottom: -30px; width: var(--w, 5px); height: var(--h, 16px); border-radius: 999px; background: var(--c); opacity: var(--o, .25); animation: drift var(--d, 30s) linear var(--delay, 0s) infinite; }
+.pf-drift { will-change: transform; position: absolute; left: var(--x); bottom: -30px; width: var(--w, 5px); height: var(--h, 16px); border-radius: 999px; background: var(--c); opacity: var(--o, .25); animation: drift var(--d, 30s) linear var(--delay, 0s) infinite; }
 .pf-drift.dot { --w: 10px; --h: 10px; filter: blur(1px); }
 @keyframes drift {
   0% { transform: translate(0, 0) rotate(var(--r, 0deg)); }

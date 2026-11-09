@@ -49,35 +49,120 @@ function firstBroker() {
   });
 }
 
-// A conversation with one other player, shaped like a PeerJS DataConnection.
-function makeLink(client, keys, myId, peerId, sendTopic) {
+/* A conversation with one other player, shaped like a PeerJS DataConnection.
+   It starts on the broker, which is far away (every message makes two long trips). Then the guest
+   (`dial`) tries a direct WebRTC connection, offered and answered through the broker. If one opens,
+   messages go straight between the two browsers; if a network blocks it, everything stays on the
+   broker. Messages are numbered, so switching paths never delivers them out of order. */
+const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }];
+const DIRECT_MAX = 60000; // bigger messages (voice notes) stay on the broker
+function makeLink(client, keys, myId, peerId, sendTopic, { dial = false } = {}) {
   const handlers = { data: [], close: [] };
   let chain = Promise.resolve(), lastSeen = Date.now();
+  let pc = null, dc = null, lastDirect = 0;
+  let seqOut = 0, expect = 1, gapTimer = null;
+  const held = new Map();
+  const viaBroker = (msg) => {
+    chain = chain.then(() => seal(keys.key, { ...msg, from_: myId, to: peerId }))
+      .then((p) => client.publish(sendTopic, p, { qos: 1 })).catch(() => {});
+  };
   const link = {
     open: true, peerId,
+    get direct() { return !!(dc && dc.readyState === 'open'); },
     on(ev, fn) { handlers[ev].push(fn); },
     send(msg) {
       if (!link.open) return;
-      chain = chain.then(() => seal(keys.key, { ...msg, from_: myId, to: peerId }))
-        .then((p) => client.publish(sendTopic, p, { qos: 1 })).catch(() => {});
+      const out = { ...msg, n: ++seqOut };
+      if (link.direct) {
+        const text = JSON.stringify(out);
+        if (text.length < DIRECT_MAX) { try { dc.send(text); return; } catch (e) { /* fall back to the broker */ } }
+      }
+      viaBroker(out);
     },
-    receive(m) {
+    receive(m, direct = false) {
       lastSeen = Date.now();
+      if (direct) lastDirect = lastSeen;
       if (m.t === 'ping') return;
-      if (m.t === 'bye') return link.drop();
-      handlers.data.forEach((fn) => fn(m));
+      if (m.t === 'rtc') return onSignal(m);
+      if (typeof m.n !== 'number') return deliver(m);
+      // Hand messages over in the order they were sent, whichever path they took.
+      if (m.n < expect) return;
+      held.set(m.n, m);
+      flush();
+      clearTimeout(gapTimer);
+      // A message that never turns up (it shouldn't) only holds the rest back for a moment.
+      if (held.size) gapTimer = setTimeout(() => { expect = Math.min(...held.keys()); flush(); }, 1500);
     },
     drop() {
       if (!link.open) return;
       link.open = false;
       clearInterval(beat);
+      clearTimeout(gapTimer);
+      closeDirect();
       handlers.close.forEach((fn) => fn());
     },
     close() { if (link.open) { link.send({ t: 'bye' }); link.drop(); } },
   };
+  function deliver(m) {
+    if (m.t === 'bye') return link.drop();
+    handlers.data.forEach((fn) => fn(m));
+  }
+  function flush() { while (held.has(expect)) { const next = held.get(expect); held.delete(expect); expect++; deliver(next); } }
+
+  /* ---------- the direct connection ---------- */
+  function useChannel(ch) {
+    ch.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch (err) { return; } link.receive(m, true); };
+    ch.onclose = () => { if (dc === ch) dc = null; };
+    const ready = () => { dc = ch; lastDirect = Date.now(); };
+    if (ch.readyState === 'open') ready(); else ch.onopen = ready;
+  }
+  function closeDirect() {
+    const old = pc;
+    pc = null; dc = null;
+    try { old && old.close(); } catch (e) { /* already closed */ }
+  }
+  // Wait until the browser has found its network addresses, so one message carries them all.
+  const gathered = (conn) => new Promise((done) => {
+    if (conn.iceGatheringState === 'complete') return done();
+    const t = setTimeout(done, 2500);
+    conn.addEventListener('icegatheringstatechange', () => { if (conn.iceGatheringState === 'complete') { clearTimeout(t); done(); } });
+  });
+  async function startDirect() {
+    if (typeof RTCPeerConnection === 'undefined' || !link.open) return;
+    try {
+      closeDirect();
+      const conn = pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      useChannel(conn.createDataChannel('game', { ordered: true }));
+      await conn.setLocalDescription(await conn.createOffer());
+      await gathered(conn);
+      if (pc === conn && link.open) viaBroker({ t: 'rtc', sdp: conn.localDescription.toJSON() });
+    } catch (e) { closeDirect(); }
+  }
+  async function onSignal(m) {
+    if (!m.sdp || typeof m.sdp.sdp !== 'string') return;
+    try {
+      if (m.sdp.type === 'offer' && !dial) {
+        closeDirect();
+        const conn = pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+        conn.ondatachannel = (e) => useChannel(e.channel);
+        await conn.setRemoteDescription(m.sdp);
+        await conn.setLocalDescription(await conn.createAnswer());
+        await gathered(conn);
+        if (pc === conn && link.open) viaBroker({ t: 'rtc', sdp: conn.localDescription.toJSON() });
+      } else if (m.sdp.type === 'answer' && dial && pc && pc.signalingState === 'have-local-offer') {
+        await pc.setRemoteDescription(m.sdp);
+      }
+    } catch (e) { closeDirect(); }
+  }
+
   const beat = setInterval(() => {
-    if (Date.now() - lastSeen > 15000) link.drop(); else link.send({ t: 'ping' });
+    if (Date.now() - lastSeen > 15000) return link.drop();
+    viaBroker({ t: 'ping' }); // the broker stays warm in case the direct path dies
+    if (dc && dc.readyState === 'open') { try { dc.send('{"t":"ping"}'); } catch (e) { /* closing */ } }
+    // A direct path that has gone quiet is dead (a network change): fall back, and the guest tries again.
+    if (dc && Date.now() - lastDirect > 10000) { closeDirect(); if (dial) setTimeout(startDirect, 1000); }
   }, 4000);
+  if (dial) setTimeout(startDirect, 300);
   return link;
 }
 
@@ -136,7 +221,7 @@ async function knock({ code, ns, minEpoch = 0, hello, alive, onConnected }) {
     if (chosen || !alive()) return;
     chosen = offers.reduce((a, b) => (b.epoch > a.epoch ? b : a));
     clients.filter((o) => o !== chosen.cl).forEach((o) => o.end(true));
-    conn = makeLink(chosen.cl, keys, myId, chosen.from, hostTopic(keys, chosen.epoch));
+    conn = makeLink(chosen.cl, keys, myId, chosen.from, hostTopic(keys, chosen.epoch), { dial: true });
     onConnected(conn, chosen.epoch);
     chosen.queue.forEach((m) => conn.receive(m));
   };

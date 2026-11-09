@@ -130,7 +130,7 @@ function teardown() {
   if (oldRoom) oldRoom.seats.forEach((s) => { try { s.link && s.link.close(); } catch (e) {} });
   closeAllClients();
   mode = null; G = null; view = null; myK = null; hostK = null; backup = null; offline = new Set();
-  queue.length = 0; shown.gid = null; closePicker(null);
+  queue.length = 0; shown.gid = null; predicted = null; closePicker(null);
   chat.reset();
 }
 function goHome(error = '') {
@@ -258,7 +258,17 @@ function tell(k, why) {
   const s = seatOf(k);
   if (s && s.link && s.link.open) s.link.send({ t: 'nope', why });
 }
-function nope(why) { toast(NOPE[why] || 'Nope 🙅'); sfx.nope(); }
+function nope(why) {
+  toast(NOPE[why] || 'Nope 🙅');
+  sfx.nope();
+  // The host said no to a card that already flew: put the table back the way it really is.
+  if (predicted) {
+    const p = predicted;
+    predicted = null;
+    waiting = false;
+    p.done.then(() => { if (view && !running) sync(); });
+  }
+}
 
 /* ---------- bots (and stand-ins for players who dropped) ---------- */
 let botTimer = 0;
@@ -771,8 +781,18 @@ async function animStart(e) {
   ticker(`First card: ${C.label(e.card)}`);
   await wait(300);
 }
+// A guest's own card starts flying the moment they click it; when the host confirms, that
+// flight already happened, so it isn't played twice.
+let predicted = null;
 async function animPlay(e) {
-  const { k, card } = e;
+  if (e.k === myK && predicted && predicted.id === e.card.id) {
+    const p = predicted;
+    predicted = null;
+    return p.done;
+  }
+  return flyPlay(e.k, e.card, e.color);
+}
+async function flyPlay(k, card, color) {
   let el, from, last;
   if (k === myK) {
     el = handEl(card.id);
@@ -797,11 +817,11 @@ async function animPlay(e) {
   });
   placeOnPile(f, card);
   if (heavy) { sfx.slam(); retrigger($('#table'), 'thud'); } else sfx.land();
-  shown.color = e.color;
+  shown.color = color;
   renderCentre();
   if (card.c === 'w') {
-    splash(e.color);
-    ticker(`${nameOf(k)} played ${C.label(card)} → ${C.COLORS[e.color]}`);
+    splash(color);
+    ticker(`${nameOf(k)} played ${C.label(card)} → ${C.COLORS[color]}`);
     await wait(380);
   } else ticker(`${nameOf(k)} played ${C.label(card)}`);
   await wait(120);
@@ -964,6 +984,7 @@ async function tryPlay(id) {
   waiting = true;
   renderButtons();
   act({ t: 'play', id, color });
+  if (mode === 'guest') predicted = { id, done: flyPlay(myK, card, color) };
   setTimeout(() => { if (waiting) { waiting = false; renderButtons(); layoutHand(); } }, 4000);
 }
 function tryDraw() {

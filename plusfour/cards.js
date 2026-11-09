@@ -5,6 +5,24 @@
   const COLORS = { r: 'Cherry', y: 'Sunny', g: 'Mint', b: 'Sky' };
   const HEX = { r: '#ff5a5f', y: '#ffc233', g: '#2bc48a', b: '#4d9de0', w: '#2b2140' };
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Paper grain for the cards and felt for the table, baked once into small tiles. A live noise
+  // filter blended over every card looks the same but is slow to draw on laptop graphics.
+  function bake(size, pixel) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const g = c.getContext('2d'), img = g.createImageData(size, size);
+    for (let i = 0; i < img.data.length; i += 4) img.data.set(pixel(), i);
+    g.putImageData(img, 0, 0);
+    return `url(${c.toDataURL('image/png')})`;
+  }
+  // They go in a stylesheet rule, not a CSS variable: a big inherited variable slows every style update.
+  if (typeof document !== 'undefined') {
+    const css = document.createElement('style');
+    css.textContent = `.pf-card::after { background-image: ${bake(128, () => [43, 33, 64, Math.random() ** 3 * 34])}; }
+      .pf-mat::before { background-image: ${bake(160, () => { const v = Math.random() < 0.5 ? 0 : 255; return [v, v, v, Math.random() * 16]; })}; }`;
+    document.head.appendChild(css);
+  }
   const ms = (t) => (reduced() ? Math.min(t, 120) : t);
 
   /* ---------- symbols (100x100 boxes) ---------- */
