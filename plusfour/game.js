@@ -7,7 +7,6 @@ const R = window.PlusFourRules, C = window.PlusFourCards;
 const NS = 'plusfour-rr7';
 const SEAT_COLORS = ['#ff5a5f', '#4d9de0', '#2bc48a', '#ffc233'];
 const BOT_NAMES = ['Bot Bonky', 'Robo Rani', 'Chip'];
-const REACTS = ['😂', '😈', '😭', '🤡', '🫡', '💀'];
 const ORDER = { r: 0, y: 1, g: 2, b: 3, w: 4 };
 const VORDER = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'skip', 'rev', 'd2', 'wild', 'w4'];
 const LINES = {
@@ -26,52 +25,45 @@ const oneOf = (a) => a[Math.floor(Math.random() * a.length)];
 const line = (k, o = {}) => oneOf(LINES[k]).replace('{n}', o.n || '').replace('{x}', o.x || '').replace('{b}', o.b || '');
 const firstName = (name) => String(name).split(' ').pop();
 
-/* ================= sounds (WebAudio, no files) =================
-   Real-card sounds made from shaped noise: a soft slide, a papery tap as a card lands, a riffle
-   for the shuffle. Only the moments that matter make a sound, and everything stays quiet. */
+/* ================= sounds =================
+   Real recorded card sounds (shared/sounds, CC0 from Kenney): slides, places, shoves, a riffle
+   shuffle and a fan. Each play picks a random take and nudges its pitch so repeats sound natural.
+   The few non-card moments (Ouch, caught, win) are soft wooden notes. */
 const sfx = (() => {
-  let ctx = null, out = null, noise = null, muted = false;
+  const TAKES = { slide: 8, place: 4, shove: 4, fan: 2, shuffle: 1 };
+  const bufs = {};
+  let ctx = null, out = null, muted = false, loading = null;
   function ac() {
     if (!ctx) {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       out = ctx.createGain();
-      out.gain.value = 0.5;
+      out.gain.value = 0.8;
       out.connect(ctx.destination);
-      noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-      const d = noise.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
     if (ctx.state === 'suspended') ctx.resume();
     return ctx;
   }
-  // A burst of filtered noise: the paper part of every card sound.
-  function paper({ when = 0, attack = 0.003, decay = 0.06, vol = 0.15, type = 'bandpass', freq = 3000, to = 0, q = 0.7 }) {
-    if (muted) return;
-    try {
-      const c = ac(), t = c.currentTime + when, end = t + attack + decay;
-      const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-      src.buffer = noise;
-      f.type = type; f.Q.value = q; f.frequency.setValueAtTime(freq, t);
-      if (to) f.frequency.exponentialRampToValueAtTime(to, end);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol, t + attack);
-      g.gain.exponentialRampToValueAtTime(0.0001, end);
-      src.connect(f).connect(g).connect(out);
-      src.start(t, Math.random() * 0.8);
-      src.stop(end + 0.02);
-    } catch (e) { /* audio not available */ }
+  function load() {
+    if (loading) return loading;
+    const c = ac();
+    loading = Promise.all(Object.entries(TAKES).flatMap(([name, n]) => Array.from({ length: n }, (_, i) =>
+      fetch(`shared/sounds/card-${name}${n > 1 ? '-' + (i + 1) : ''}.ogg`)
+        .then((r) => r.arrayBuffer()).then((b) => c.decodeAudioData(b))
+        .then((buf) => (bufs[name] = bufs[name] || []).push(buf))
+        .catch(() => { /* missing or unsupported: that sound stays quiet */ }))));
+    return loading;
   }
-  // A low, soft knock: the table under the card.
-  function knock(freq, dur, vol, when = 0) {
+  function sample(name, { vol = 0.7, rate = 1, when = 0 } = {}) {
     if (muted) return;
     try {
-      const c = ac(), t = c.currentTime + when, o = c.createOscillator(), g = c.createGain();
-      o.frequency.setValueAtTime(freq, t);
-      o.frequency.exponentialRampToValueAtTime(freq * 0.55, t + dur);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol, t + 0.004);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g).connect(out); o.start(t); o.stop(t + dur + 0.02);
+      const c = ac(), takes = bufs[name];
+      if (!takes || !takes.length) { load(); return; }
+      const src = c.createBufferSource(), g = c.createGain();
+      src.buffer = takes[Math.floor(Math.random() * takes.length)];
+      src.playbackRate.value = rate * (0.95 + Math.random() * 0.1);
+      g.gain.value = vol * (0.85 + Math.random() * 0.15);
+      src.connect(g).connect(out);
+      src.start(c.currentTime + when);
     } catch (e) { /* audio not available */ }
   }
   // A soft wooden note, like a little marimba.
@@ -90,23 +82,20 @@ const sfx = (() => {
     } catch (e) { /* audio not available */ }
   }
   return {
-    slide() { paper({ attack: 0.025, decay: 0.11, vol: 0.06, freq: 4200, to: 1800, q: 0.5 }); },
-    land() { paper({ attack: 0.002, decay: 0.03, vol: 0.16, type: 'highpass', freq: 1400 }); knock(170, 0.05, 0.05); },
-    slam() { paper({ attack: 0.002, decay: 0.07, vol: 0.26, type: 'lowpass', freq: 3200 }); knock(105, 0.14, 0.14); },
-    draw() { paper({ attack: 0.02, decay: 0.09, vol: 0.05, freq: 3400, to: 2200, q: 0.5 }); },
-    shuffle() {
-      // a riffle: quick paper ticks that speed up, then the halves bridge together
-      let t = 0;
-      for (let i = 0; i < 26; i++) { paper({ when: t, attack: 0.001, decay: 0.012, vol: 0.05 + Math.random() * 0.03, type: 'highpass', freq: 2600 }); t += 0.03 - i * 0.0007; }
-      paper({ when: t + 0.05, attack: 0.04, decay: 0.16, vol: 0.05, freq: 3000, to: 1500, q: 0.5 });
-      paper({ when: t + 0.26, attack: 0.002, decay: 0.03, vol: 0.12, type: 'highpass', freq: 1400 });
-    },
-    skip() { knock(140, 0.09, 0.1); paper({ attack: 0.002, decay: 0.03, vol: 0.08, type: 'highpass', freq: 1600 }); },
+    load,
+    slide() { sample('slide', { vol: 0.55 }); },
+    land() { sample('place', { vol: 0.7 }); },
+    slam() { sample('shove', { vol: 0.9, rate: 0.92 }); sample('place', { vol: 0.6, when: 0.02 }); },
+    draw() { sample('slide', { vol: 0.5, rate: 1.05 }); },
+    shuffle() { sample('shuffle', { vol: 0.75 }); },
+    fan() { sample('fan', { vol: 0.6 }); },
+    skip() { sample('shove', { vol: 0.5, rate: 1.1 }); },
     ouch() { note(659); note(880, 0.08); },
-    caught() { knock(120, 0.12, 0.12); note(392, 0.06, 0.045); note(330, 0.2, 0.045); },
-    win() { [523, 659, 784, 1047].forEach((f, k) => note(f, k * 0.11, 0.06)); },
-    nope() { knock(190, 0.06, 0.06); },
-    pop() { paper({ attack: 0.001, decay: 0.018, vol: 0.05, type: 'highpass', freq: 2200 }); },
+    caught() { sample('shove', { vol: 0.6 }); note(392, 0.08, 0.045); note(330, 0.22, 0.045); },
+    win() { sample('fan', { vol: 0.6 }); [523, 659, 784, 1047].forEach((f, k) => note(f, 0.1 + k * 0.11, 0.06)); },
+    nope() { sample('place', { vol: 0.3, rate: 0.85 }); },
+    pop() { sample('place', { vol: 0.25, rate: 1.3 }); },
+    chat() { note(988, 0, 0.03); },
     toggle() { muted = !muted; return muted; },
   };
 })();
@@ -129,6 +118,7 @@ const isHost = () => mode === 'host' || mode === 'cpu';
 function show(screen) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === 'screen-' + screen));
   document.body.classList.toggle('in-game', screen === 'play');
+  chat.setInGame(screen === 'play' || screen === 'end');
 }
 function teardown() {
   session++;
@@ -141,6 +131,7 @@ function teardown() {
   closeAllClients();
   mode = null; G = null; view = null; myK = null; hostK = null; backup = null; offline = new Set();
   queue.length = 0; shown.gid = null; closePicker(null);
+  chat.reset();
 }
 function goHome(error = '') {
   teardown();
@@ -244,13 +235,13 @@ function push() {
     });
   }
   receive({ s: viewOf(myK), ev: R.eventsFor(evs, myK) });
+  botReactions(evs);
   driveBots();
 }
 
 // Everything a player can do goes through here: the host's own clicks and messages from guests.
 function hostHandle(k, m) {
   if (!G || !m) return;
-  if (m.t === 'react') return onReact(k, m.e);
   let r;
   if (m.t === 'play') r = R.play(G, k, String(m.id), m.color);
   else if (m.t === 'draw') r = R.draw(G, k);
@@ -298,11 +289,36 @@ function driveBots() {
   });
 }
 
-function onReact(k, e) {
-  if (!REACTS.includes(e)) return;
-  const fx = { kind: 'react', e, k };
-  if (room) room.seats.forEach((s) => s.link && s.link.open && s.link.send({ t: 'fx', fx }));
-  playFx(fx);
+/* ---------- chat (shared/chat.js) ---------- */
+const chat = createChat({
+  send: (m) => sendSocial(m),
+  players: () => ((view || G) ? (view || G).players.map((p, i) => ({ k: p.k, name: p.name, color: SEAT_COLORS[i] })) : []),
+  me: () => myK,
+  anchor: (k) => seatEl(k),
+  stage: () => $('#table'),
+  stickers: {
+    plus4: ['Take that +4 😈', '#ff5a5f'], ouch: ['OUCH 😵', '#ffc233'], slow: ['Any day now… ⏳', '#4d9de0'],
+    lucky: ['Lucky draw 🍀', '#2bc48a'], gg: ['GG 🤝', '#ffffff'], revenge: ['Revenge is coming', '#c9a7ff'],
+  },
+  dockAt: 1150,
+  sound: (kind) => (kind === 'in' ? sfx.chat() : sfx.pop()),
+});
+function relaySocial(m, except) {
+  if (room) room.seats.forEach((s) => s.link && s.link.open && s.link !== except && s.link.send({ t: 'social', m }));
+}
+function sendSocial(m) {
+  if (isHost()) relaySocial(m, null);
+  else if (conn && conn.open) conn.send({ t: 'social', m });
+}
+// Bots have feelings too: they gloat over a +4 and sulk when a stack lands on them.
+function botReactions(evs) {
+  const bot = (k) => { const p = G.players.find((x) => x.k === k); return p && p.bot; };
+  const say = (k, e) => later(500 + Math.random() * 700, () => { const m = { t: 'react', e, from: k }; if (chat.receive(m)) relaySocial(m, null); });
+  evs.forEach((e) => {
+    if (e.t === 'play' && e.card.v === 'w4' && bot(e.k) && Math.random() < 0.6) say(e.k, '😈');
+    else if (e.t === 'draw' && e.why === 'stack' && e.ids.length >= 4 && bot(e.k) && Math.random() < 0.7) say(e.k, '😭');
+    else if (e.t === 'caught' && bot(e.by)) say(e.by, '😂');
+  });
 }
 function act(m) {
   if (isHost()) hostHandle(myK, m);
@@ -365,6 +381,10 @@ function handlePlayer(c) {
       return;
     }
     if (state !== 'ok' || seat.link !== c || !d) return;
+    if (d.t === 'social') {
+      if (G && d.m && typeof d.m === 'object') { const m = { ...d.m, from: seat.k }; if (chat.receive(m)) relaySocial(m, c); }
+      return;
+    }
     hostHandle(seat.k, d);
   });
   c.on('close', () => {
@@ -427,7 +447,7 @@ function wireGuest(link, giveUp, code, epoch) {
       backup = d.backup || null;
       rememberRoom(code);
       receive({ s: d.s, ev: Array.isArray(d.ev) ? d.ev : [], fresh: !!d.fresh });
-    } else if (d.t === 'fx' && d.fx) playFx(d.fx);
+    } else if (d.t === 'social' && d.m) chat.receive(d.m);
     else if (d.t === 'nope') nope(d.why);
     else if (d.t === 'reject') { clearTimeout(giveUp); goHome(String(d.why || 'Could not join')); }
   });
@@ -566,7 +586,7 @@ function layoutHand() {
   const box = $('#hand'), ok = playableIds();
   const els = shown.hand.map((c) => handEl(c.id)).filter(Boolean);
   const hover = els.findIndex((el) => el.dataset.id === hoverId);
-  els.forEach((el, i) => { el.classList.toggle('ok', ok.has(el.dataset.id)); el.classList.toggle('focus', i === focusIdx); });
+  els.forEach((el, i) => { el.classList.toggle('ok', ok.has(el.dataset.id)); el.classList.toggle('focus', i === focusIdx); el.style.setProperty('--i', i); });
   box.classList.toggle('my-turn', !!(view && view.turn === myK && !view.winner && !running));
   C.fan(els, { width: Math.min(box.clientWidth - 40, 1100), cw: cssPx(box, '--cw', 104), hover: hover >= 0 ? hover : focusIdx });
 }
@@ -633,8 +653,17 @@ function sync() {
   renderDeck(v.drawN);
   renderCentre(); renderSeatsInfo(); renderStatus(); renderButtons();
 }
+// A soft spotlight glides to whoever's turn it is.
+function moveSpot(k) {
+  const el = seatEl(k), spot = $('#spot');
+  if (!el || !spot) return;
+  const r = el.getBoundingClientRect(), t = $('#table').getBoundingClientRect();
+  spot.style.left = r.left - t.left + r.width / 2 + 'px';
+  spot.style.top = r.top - t.top + r.height / 2 + 'px';
+}
 function renderSeatsInfo() {
   const v = view;
+  moveSpot(v.turn);
   v.players.forEach((p) => {
     const el = seatEl(p.k);
     if (!el) return;
@@ -729,6 +758,7 @@ async function animDeal(v) {
     }
   }
   await Promise.all(flights);
+  sfx.fan();
   ticker('');
 }
 async function animStart(e) {
@@ -797,8 +827,8 @@ async function animDraw(e) {
     targets = added.map((el) => [el, null]);
   }
   const gap = n > 4 ? 90 : 140;
-  sfx.draw();
   await Promise.all(targets.map(([target, card], i) => sleep(C.ms(i * gap)).then(() => {
+    if (i < 6) sfx.draw();
     const to = target ? C.rectOf(target) : C.rectOf(seatEl(k));
     return C.fly(C.make(null), C.rectOf(deckTop()), to, { flipTo: card, dur: 460, lift: 40, land: false }).then((f) => {
       f.remove();
@@ -911,18 +941,6 @@ function splash(c) {
   $('#table').appendChild(d);
   setTimeout(() => d.remove(), 1100);
 }
-function playFx(fx) {
-  if (fx.kind !== 'react') return;
-  const el = seatEl(fx.k);
-  if (!el) return;
-  const [x, y] = centerOf(el), d = document.createElement('div');
-  d.className = 'float-emoji';
-  d.textContent = fx.e;
-  d.style.left = x + 'px'; d.style.top = y - 20 + 'px';
-  d.style.setProperty('--dx', (Math.random() - 0.5) * 80 + 'px');
-  $('#fx').appendChild(d);
-  setTimeout(() => d.remove(), 1900);
-}
 
 /* ================= your moves ================= */
 let pickerDone = null;
@@ -978,10 +996,9 @@ $('#btn-ouch').onclick = tryOuch;
 $('#seats-layer').addEventListener('click', (e) => { const b = e.target.closest('[data-catch]'); if (b) tryCatch(b.dataset.catch); });
 $('#picker').addEventListener('click', (e) => { const b = e.target.closest('[data-c]'); if (b) closePicker(b.dataset.c); });
 $('#picker-cancel').onclick = () => closePicker(null);
-$('#reacts').innerHTML = REACTS.map((r) => `<button type="button" aria-label="React ${r}">${r}</button>`).join('');
-$('#reacts').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) act({ t: 'react', e: b.textContent }); });
+chat.mountTools($('#chat-tools'), { compact: true });
 document.addEventListener('keydown', (e) => {
-  if (!document.querySelector('#screen-play.active') || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!document.querySelector('#screen-play.active') || e.ctrlKey || e.metaKey || e.altKey || chat.typing(e)) return;
   if (pickerDone) {
     const i = '1234'.indexOf(e.key);
     if (i >= 0) closePicker('rygb'[i]);
@@ -999,6 +1016,9 @@ document.addEventListener('keydown', (e) => {
   } else if ((e.key === 'Enter' || e.key === ' ') && focusIdx >= 0 && !e.target.closest('button')) {
     e.preventDefault();
     if (shown.hand[focusIdx]) tryPlay(shown.hand[focusIdx].id);
+  } else if (e.key === 'Enter' && !e.target.closest('button')) {
+    e.preventDefault();
+    chat.open(true);
   } else if (key === 'd') tryDraw();
   else if (key === 'p') tryPass();
   else if (key === 'o') { if (!$('#btn-ouch').hidden) tryOuch(); }
@@ -1054,6 +1074,21 @@ function renderEnd() {
 }
 
 /* ================= wiring ================= */
+function ambient() {
+  const box = $('#ambient'), colors = ['#ff5a5f', '#ffc233', '#2bc48a', '#4d9de0', '#ff8fc8', '#ffffff'];
+  for (let i = 0; i < 18; i++) {
+    const d = document.createElement('i'), dur = 26 + Math.random() * 24;
+    d.className = 'pf-drift' + (i % 4 === 0 ? ' dot' : '');
+    d.style.setProperty('--x', Math.random() * 100 + '%');
+    d.style.setProperty('--c', colors[i % colors.length]);
+    d.style.setProperty('--d', dur + 's');
+    d.style.setProperty('--delay', -Math.random() * dur + 's');
+    d.style.setProperty('--r', Math.random() * 360 + 'deg');
+    d.style.setProperty('--sway', (Math.random() - 0.5) * 120 + 'px');
+    d.style.setProperty('--o', (0.12 + Math.random() * 0.18).toFixed(2));
+    box.appendChild(d);
+  }
+}
 function heroArt() {
   const art = $('#hero-art');
   [{ id: 'h1', c: 'b', v: 'rev' }, { id: 'h2', c: 'r', v: '7' }, { id: 'h3', c: 'w', v: 'w4' }, null].forEach((c) => art.appendChild(C.make(c)));
@@ -1074,7 +1109,9 @@ $('#btn-share').onclick = async () => {
   if (navigator.share) { try { await navigator.share({ title: 'Plus Four', text: `Cards are dealt. Come lose: ${code}`, url: link }); return; } catch (e) { if (e.name === 'AbortError') return; } }
   try { await navigator.clipboard.writeText(link); toast('Invite link copied 💌'); } catch (e) { prompt('Copy this link:', link); }
 };
-addEventListener('resize', () => { layoutHand(); if (view) view.players.forEach((p) => { if (p.k !== myK) setCount(p.k, shown.counts[p.k] || 0); }); });
+// The hand re-fans whenever its space changes: a resize, or the chat docking beside the table.
+new ResizeObserver(() => layoutHand()).observe($('#hand'));
+addEventListener('resize', () => { if (view) view.players.forEach((p) => { if (p.k !== myK) setCount(p.k, shown.counts[p.k] || 0); }); });
 addEventListener('pagehide', () => { if (mode) teardown(); });
 document.addEventListener('profilechange', renderHomeBits);
 
@@ -1083,6 +1120,8 @@ document.addEventListener('DOMContentLoaded', () => {
   applyPalette();
   wireProfileSheet();
   heroArt();
+  ambient();
+  sfx.load();
   requireLogin().then(() => {
     goHome();
     const code = new URLSearchParams(location.search).get('room');

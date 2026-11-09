@@ -1,0 +1,67 @@
+/* Sweet Revenge chat (shared/chat.js): toolbar buttons, the chat sheet, emoji wheel, voice notes. */
+
+/* ---------- toolbar buttons a game mounts ---------- */
+.chat-tools { display: contents; }
+.say {
+  flex: 1; min-width: 0; min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 16px; position: relative;
+  border-radius: 999px; background: var(--paper); border: 3px solid var(--ink); box-shadow: 2px 2px 0 var(--ink);
+  font-family: var(--body); font-weight: 800; font-size: 15px; color: var(--muted); text-align: left; white-space: nowrap;
+}
+.say .badge { top: -10px; right: 10px; }
+.mic.live { background: var(--red); color: #fff; transform: translate(2px, 2px) scale(1.06); box-shadow: 0 0 0 8px #ff5a5f44; }
+
+/* ---------- emoji wheel ---------- */
+.wheel {
+  position: fixed; width: 220px; height: 220px; margin: -110px 0 0 -110px; border-radius: 50%; z-index: 120;
+  background: var(--paper); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink);
+  transform: scale(0); transition: transform .18s cubic-bezier(.3, 1.5, .5, 1); pointer-events: none; touch-action: none;
+}
+.wheel.open { transform: scale(1); pointer-events: auto; }
+.wheel button { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px; border: 0; background: none; border-radius: 50%; font-size: 28px; padding: 0; transition: transform .1s, background .1s; }
+.wheel button.hot, .wheel button:hover { background: var(--yellow); transform: var(--at) scale(1.2); }
+.wheel em { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; font-family: var(--body); font-size: 12px; font-weight: 800; color: var(--muted); text-align: center; line-height: 1.2; pointer-events: none; }
+
+/* ---------- the chat sheet ---------- */
+.chat-sheet { z-index: 115; }
+.msgs { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 14px 8px; font-family: var(--body); font-size: 15px; font-weight: 700; }
+.msgs .empty { margin: auto; text-align: center; color: var(--muted); }
+.m { max-width: 80%; padding: 7px 12px; border-radius: 16px; border: 2.5px solid var(--ink); line-height: 1.3; overflow-wrap: anywhere; animation: msg-in .22s cubic-bezier(.3, 1.4, .5, 1); }
+.m small { display: block; font-size: 11px; opacity: .65; }
+.m.them { align-self: flex-start; background: #fff; border-bottom-left-radius: 4px; }
+.m.me { align-self: flex-end; background: var(--c, var(--red)); color: #fff; border-bottom-right-radius: 4px; }
+.m.me small { display: none; }
+.m.voice { display: flex; align-items: center; gap: 8px; min-width: 190px; }
+.m.voice button { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--ink); background: var(--green); color: #fff; display: grid; place-items: center; padding: 0; flex: none; }
+.m.voice button .ic { --is: 16px; }
+.m.voice .bars { flex: 1; display: flex; align-items: center; gap: 2px; height: 22px; }
+.m.voice .bars i { flex: 1; border-radius: 2px; background: currentColor; opacity: .4; }
+.m.voice .bars i.lit { opacity: 1; }
+.m.voice time { font-size: 12px; font-variant-numeric: tabular-nums; }
+.m.sticker { border: 0; background: none; padding: 0; }
+.m.sticker span { display: inline-block; }
+.m.sys { align-self: center; border: 0; background: none; padding: 2px 8px; font-size: 13px; color: var(--muted); }
+@keyframes msg-in { from { transform: translateY(8px) scale(.94); opacity: 0; } }
+.sticker-art {
+  font-family: var(--display); font-weight: 700; font-size: 22px; padding: 6px 14px; border-radius: 14px; color: var(--ink);
+  background: var(--sbg, var(--yellow)); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); transform: rotate(-4deg); white-space: nowrap;
+}
+.quick { display: flex; gap: 6px; padding: 0 14px 8px; overflow-x: auto; scrollbar-width: none; flex: none; }
+.quick::-webkit-scrollbar { display: none; }
+.quick button { flex: none; min-height: 38px; padding: 0 12px; border-radius: 999px; border: 2px solid var(--ink); background: #fff; font-family: var(--body); font-size: 14px; font-weight: 800; }
+.quick button.emo { font-size: 19px; padding: 0 9px; }
+.quick button.stk { background: var(--sbg); }
+.compose { display: flex; gap: 8px; padding: 8px 14px 14px; border-top: 2px dashed #2b214033; flex: none; }
+.compose input { flex: 1; font-family: var(--body); font-weight: 700; font-size: 16px; border-radius: 999px; min-height: 48px; }
+.compose .send { background: var(--cta); color: var(--cta-ink); }
+
+/* ---------- docked beside the game on wide screens ---------- */
+body.chat-docked main { padding-right: 410px; }
+.chat-sheet.docked {
+  left: auto; right: 16px; top: 16px; bottom: 16px; translate: none; width: 380px; height: auto; max-height: none;
+  border: 3px solid var(--ink); border-radius: 24px; box-shadow: var(--shadow); animation: none; padding-bottom: 0;
+}
+.chat-sheet.docked .grab, .chat-sheet.docked .chat-close { display: none; }
+.chat-sheet.docked header { padding-top: 12px; }
+body.chat-docked [data-chat-open] { display: none; }
+
+@media (prefers-reduced-motion: reduce) { .m { animation: none; } }

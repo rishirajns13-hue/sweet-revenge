@@ -155,6 +155,9 @@
 .dd-reacts button:hover { transform: scale(1.12) rotate(-8deg); }
 .dd-reacts button:active { transform: scale(.9); }
 
+.dd-tools { display: flex; gap: 8px; padding: 0 10px 10px; }
+.dd-tools .say { min-height: 44px; }
+.dd-tools .icon-btn { width: 44px; height: 44px; }
 .dd-feed { display: flex; flex-direction: column; min-height: 0; background: var(--paper); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 3px 3px 0 var(--ink); overflow: hidden; }
 .feed { list-style: none; margin: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; height: 170px; font-family: var(--body); font-weight: 700; font-size: 15px; }
 .feed li { overflow-wrap: anywhere; animation: msg-in .2s; line-height: 1.35; }

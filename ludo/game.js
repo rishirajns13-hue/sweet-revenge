@@ -157,8 +157,7 @@ const isBot = (color) => !!(game && game.bots && game.bots.includes(color));
 function show(screen) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === 'screen-' + screen));
   document.body.classList.toggle('in-game', screen === 'game');
-  if (screen !== 'game') { closeChat(); closeWheel(); }
-  dockChat();
+  chat.setInGame(screen === 'game');
 }
 
 /* ================= host controller (source of truth) ================= */
@@ -881,7 +880,7 @@ document.addEventListener('keydown', (e) => {
   else if (/^[1-4]$/.test(e.key)) {
     const el = tokenEl(myColors[0], +e.key - 1);
     if (el && el.classList.contains('can')) el.click();
-  } else if (e.key === 'Enter') { e.preventDefault(); openChat(); $('#chat-input').focus(); }
+  } else if (e.key === 'Enter') { e.preventDefault(); chat.open(true); }
 });
 // Closing the app: say goodbye so the others react now instead of after the 15 s heartbeat.
 // teardown() clears `room` first, so the host doesn't announce anyone as offline on the way out.

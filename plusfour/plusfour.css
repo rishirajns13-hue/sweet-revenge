@@ -161,13 +161,12 @@ kbd { display: inline-grid; place-items: center; min-width: 20px; height: 20px; 
 
 /* ================= the table (fills the window) ================= */
 body.in-game main { padding: 10px; }
+body.in-game.chat-docked main { padding-right: 410px; }
 #screen-play.active { max-width: none; height: calc(100dvh - 20px); justify-content: stretch; }
 .pf-table { flex: 1; min-height: 520px; }
 .pf-top { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 30; display: flex; align-items: center; gap: 10px; }
 .pf-chip { font-weight: 700; letter-spacing: 3px; color: #fff; background: #ffffff22; border: 2px solid #ffffff55; border-radius: 999px; padding: 2px 12px; }
-.pf-reacts { margin-left: auto; display: flex; gap: 4px; background: #ffffff1f; border: 2px solid #ffffff44; border-radius: 999px; padding: 3px; }
-.pf-reacts button { width: 38px; height: 38px; border: 0; border-radius: 50%; background: none; font-size: 21px; padding: 0; transition: transform .12s; }
-.pf-reacts button:hover { transform: scale(1.25) rotate(-8deg); background: #ffffff33; }
+.pf-tools { margin-left: auto; display: flex; gap: 8px; }
 
 /* opponents */
 .pf-seats { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
@@ -283,6 +282,34 @@ body.in-game main { padding: 10px; }
   -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill; text-shadow: 6px 6px 0 var(--ink); animation: slam 3.2s cubic-bezier(.3, 1.6, .5, 1) forwards;
 }
 
+/* ---------- background life: drifting sprinkles, colour glow, turn spotlight ---------- */
+@property --active { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+.pf-table { --active: #ffffff; transition: --active .9s ease; }
+.pf-ambient { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.pf-glow { position: absolute; inset: 0; background: radial-gradient(ellipse 46% 40% at 50% 45%, color-mix(in srgb, var(--active) 30%, transparent), transparent 70%); }
+.pf-spot {
+  position: absolute; width: 360px; height: 360px; margin: -180px 0 0 -180px; border-radius: 50%; left: 50%; top: 85%;
+  background: radial-gradient(circle, #ffffff2e, #ffffff0d 45%, transparent 70%); transition: left .8s cubic-bezier(.4, 1.2, .5, 1), top .8s cubic-bezier(.4, 1.2, .5, 1);
+}
+.pf-drift { position: absolute; left: var(--x); bottom: -30px; width: var(--w, 5px); height: var(--h, 16px); border-radius: 999px; background: var(--c); opacity: var(--o, .25); animation: drift var(--d, 30s) linear var(--delay, 0s) infinite; }
+.pf-drift.dot { --w: 10px; --h: 10px; filter: blur(1px); }
+@keyframes drift {
+  0% { transform: translate(0, 0) rotate(var(--r, 0deg)); }
+  25% { transform: translate(var(--sway, 30px), -30vh) rotate(calc(var(--r, 0deg) + 90deg)); }
+  50% { transform: translate(0, -60vh) rotate(calc(var(--r, 0deg) + 180deg)); }
+  75% { transform: translate(calc(var(--sway, 30px) * -1), -90vh) rotate(calc(var(--r, 0deg) + 270deg)); }
+  100% { transform: translate(0, -120vh) rotate(calc(var(--r, 0deg) + 360deg)); }
+}
+/* cards you can play breathe a little; the deck catches the light now and then */
+.pf-hand.my-turn .pf-card.ok { animation: breathe 2.6s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -.35s); }
+@keyframes breathe { 50% { translate: 0 -6px; } }
+.pf-deck .pf-card:last-child::before { animation: sheen 7s ease-in-out infinite; }
+@keyframes sheen { 0%, 82% { background-position: 130% 0, 0 0; } 100% { background-position: -30% 0, 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .pf-drift, .pf-hand.my-turn .pf-card.ok, .pf-deck .pf-card:last-child::before { animation: none; }
+  .pf-drift { display: none; }
+}
+
 /* ================= the end ================= */
 #screen-end.active { max-width: 1000px; justify-content: flex-start; }
 .pf-podium { display: grid; gap: 12px; }
@@ -319,8 +346,7 @@ body.in-game main { padding: 10px; }
   .pf-seat .pf-mini { --cw: 34px; width: 140px; }
   .pf-seat.pos-left { left: 12px; } .pf-seat.pos-right { right: 12px; }
   .pf-status { font-size: 15px; bottom: calc(var(--hand-h) + 66px); }
-  .pf-reacts { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-  .pf-reacts button { width: 32px; height: 32px; font-size: 17px; flex: none; }
+  .pf-tools .icon-btn { width: 40px; height: 40px; }
   .pf-picker div { grid-template-columns: repeat(2, 120px); }
 }
 @media (prefers-reduced-motion: reduce) {

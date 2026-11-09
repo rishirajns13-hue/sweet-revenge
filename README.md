@@ -10,7 +10,7 @@ Match the colour or the number and be the first to get rid of every card.
 1. **New game** makes a room. Share the code (it starts with P). 2–4 players, and you can fill empty seats with bots. **Practice against a bot** needs no friend and no internet room.
 2. On your turn, click a glowing card to play it. Can't play? Click the deck (or **Draw**) to take one. If it fits, you can play it straight away or **Keep it**.
 3. Wild cards pop up a colour picker: Cherry, Sunny, Mint or Sky.
-4. On a laptop: **← →** pick a card, **Enter** plays it, **D** draws, **P** keeps a drawn card, **O** shouts Ouch, **C** catches, **1–4** pick a wild colour.
+4. On a laptop: **← →** pick a card, **Enter** plays it (or opens the chat when no card is picked), **D** draws, **P** keeps a drawn card, **O** shouts Ouch, **C** catches, **1–4** pick a wild colour.
 
 The cards: four colours, each with 0–9, Skip, Reverse and +2, plus Wild and Wild +4 (108 cards). With two players, Reverse works like Skip.
 
@@ -43,6 +43,9 @@ Rules: you need a 6 to bring a piece out; a 6 gives another roll, but three 6s i
 ## If someone leaves
 In every game the host's browser runs the game and everyone else keeps a copy. If the host leaves, the next player in seat order takes over automatically and the others reconnect to them. In Ludo and Plus Four a bot plays for anyone who drops out, and the home screen offers **Back to your game**. In Plus Four the next player in line keeps a private backup of the game so they can take over. In Doodle Duel, the round that was being drawn is skipped and the next one starts.
 
+## Chat (every game)
+Every game has the same chat: messages, game-specific stickers, an emoji wheel (tap it, or press and slide to an emoji) and hold-to-talk voice notes. On a wide laptop screen it's docked beside the game in Ludo and Plus Four; otherwise the **Message** button opens it. In Doodle Duel, anything you type in the chat while someone is drawing counts as a guess, so nobody can spoil the word.
+
 ## Your look
 Tap your avatar to pick an avatar and a colour palette (Sunset, Lagoon or Lemonade). It applies to every game.
 
@@ -51,7 +54,7 @@ Tap your avatar to pick an avatar and a colour palette (Sunset, Lagoon or Lemona
 
 ## Project layout
 - `index.html`, `hub.js`, `hub.css`: the Sweet Revenge front door, with login and the game picker. The logo is an inline SVG in `index.html`.
-- `shared/`: design system (`base.css`), login, icons and profile (`core.js`), networking (`net.js`)
+- `shared/`: design system (`base.css`), login, icons and profile (`core.js`), networking (`net.js`), the chat every game uses (`chat.js`, `chat.css`), and card sounds (`sounds/`, CC0 from Kenney's Casino Audio)
 - `doodle.html`, `doodle/`: Doodle Duel (`logic.js` is the pure, tested part; `words.js` has the word packs)
 - `plusfour.html`, `plusfour/`: Plus Four (`rules.js` is the pure, tested part; `cards.js` draws the cards and moves them)
 - `ludo.html`, `ludo/`: Ludo (`rules.js` is the pure, tested part)

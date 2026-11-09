@@ -151,6 +151,7 @@ const PACK_LABELS = { easy: 'Easy peasy', silly: 'Silly stuff', desi: 'Desi', cu
 function show(screen) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === 'screen-' + screen));
   document.body.classList.toggle('in-game', screen === 'play');
+  chat.setInGame(screen === 'play' || screen === 'end');
 }
 function teardown() {
   session++;
@@ -162,6 +163,7 @@ function teardown() {
   closeAllClients();
   mode = null; G = null; view = null; myK = null; hostK = null;
   cancelAnimationFrame(ink.raf);
+  chat.reset();
 }
 function goHome(error = '') {
   teardown();
@@ -493,6 +495,10 @@ function handlePlayer(c) {
       return;
     }
     if (state !== 'ok' || seat.link !== c || !d) return;
+    if (d.t === 'social') {
+      if (G && d.m && typeof d.m === 'object') { const m = { ...d.m, from: seat.k }; if (chat.receive(m)) relaySocial(m, c); }
+      return;
+    }
     hostHandle(seat.k, d);
   });
   c.on('close', () => {
@@ -567,6 +573,7 @@ function wireGuest(link, giveUp, code, epoch) {
     else if (d.t === 'opsync' && Array.isArray(d.ops)) { ink.reset(TWISTS[d.twist] ? d.twist : null); ink.apply(d.ops.map(cleanOp).filter(Boolean)); }
     else if (d.t === 'feed' && d.item) addFeed(d.item);
     else if (d.t === 'fx' && d.fx) playFx(d.fx);
+    else if (d.t === 'social' && d.m) chat.receive(d.m);
     else if (d.t === 'reject') { clearTimeout(giveUp); goHome(String(d.why || 'Could not join')); }
   });
   link.on('close', () => {
@@ -644,7 +651,7 @@ function renderPlayers() {
   $('#players').innerHTML = v.players.map((p, i) => {
     const got = v.guessed.some((g) => g.k === p.k), drawing = v.drawer === p.k && v.phase !== 'reveal';
     const off = (v.offline || []).includes(p.k);
-    return `<li class="pl ${got ? 'got' : ''} ${drawing ? 'drawing' : ''} ${off ? 'off' : ''}" style="--c:${SEAT_COLORS[i]}">
+    return `<li class="pl ${got ? 'got' : ''} ${drawing ? 'drawing' : ''} ${off ? 'off' : ''}" data-k="${p.k}" style="--c:${SEAT_COLORS[i]}">
       <span class="av">${p.avatar}${v.scores[p.k] === leader && leader > 0 ? `<i class="crown">${ic('crown')}</i>` : ''}</span>
       <span class="nm">${escapeHtml(firstName(p.name))}${p.k === myK ? ' (you)' : ''}</span>
       <span class="tag">${drawing ? `${ic('pencil')}drawing` : got ? `${ic('check')}got it` : off ? 'away' : ''}</span>
@@ -844,6 +851,34 @@ function renderEnd() {
   $('#end-wait').hidden = isHost;
   $('#end-wait').textContent = `Waiting for ${firstName(nameOfK(hostK))} to start a rematch…`;
   if (lastV.phase !== 'over') { sfx.fanfare(); bigConfetti(); }
+}
+
+/* ================= chat (shared/chat.js) ================= */
+// While someone is drawing, anything typed in the chat counts as a guess, so nobody can spoil the word.
+const chat = createChat({
+  send: (m) => sendSocial(m),
+  players: () => (view ? view.players.map((p, i) => ({ k: p.k, name: p.name, color: SEAT_COLORS[i] })) : []),
+  me: () => myK,
+  anchor: (k) => document.querySelector(`#players li[data-k="${k}"]`),
+  stage: () => $('#canvas-wrap'),
+  stickers: {
+    picasso: ['Picasso who? 🎨', '#ffc233'], what: ['What even is that 🤨', '#ff8fc8'], close: ['SO close!', '#2bc48a'],
+    better: ['Draw better 😤', '#4d9de0'], gg: ['GG 🤝', '#ffffff'], revenge: ['Revenge is coming', '#c9a7ff'],
+  },
+  routeText(text) {
+    if (!view || view.phase !== 'draw') return false;
+    act({ t: 'guess', text });
+    return true;
+  },
+  sound: () => sfx.pop(),
+});
+chat.mountTools($('#chat-tools'));
+function relaySocial(m, except) {
+  if (room) room.seats.forEach((s) => s.link && s.link.open && s.link !== except && s.link.send({ t: 'social', m }));
+}
+function sendSocial(m) {
+  if (mode === 'host') relaySocial(m, null);
+  else if (conn && conn.open) conn.send({ t: 'social', m });
 }
 
 /* ================= wiring ================= */

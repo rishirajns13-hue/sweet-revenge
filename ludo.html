@@ -11,7 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/base.css?v=7">
-  <link rel="stylesheet" href="ludo/ludo.css?v=7">
+  <link rel="stylesheet" href="shared/chat.css?v=1">
+  <link rel="stylesheet" href="ludo/ludo.css?v=8">
 </head>
 <body class="pal-sunset">
   <main>
@@ -76,27 +77,11 @@
         <div class="corner right" data-corner="br"></div>
       </div>
       <div class="tools">
-        <button id="btn-chat" class="say" type="button" data-icon="chat"><span>Message…</span><b id="unread" class="badge" hidden></b></button>
-        <button id="btn-emote" class="icon-btn" type="button" aria-label="React with an emoji" data-icon="smile"></button>
-        <button id="btn-mic" class="icon-btn mic" type="button" aria-label="Hold to talk" data-icon="mic"></button>
+        <span id="chat-tools" class="chat-tools"></span>
         <p class="kbd-hint"><kbd>Space</kbd> roll · <kbd>1</kbd>–<kbd>4</kbd> move a piece · <kbd>Enter</kbd> chat</p>
       </div>
-      <div id="wheel" class="wheel" role="menu" aria-label="Reactions"></div>
     </section>
   </main>
-
-  <!-- CHAT -->
-  <div id="chat" class="sheet" hidden>
-    <div class="grab" aria-hidden="true"></div>
-    <header><b>Chat</b><button id="btn-chat-close" class="icon-btn sm" type="button" aria-label="Close chat" data-icon="x"></button></header>
-    <div id="msgs" class="msgs" aria-live="polite"></div>
-    <div id="quick" class="quick"></div>
-    <form id="chat-form" class="compose" autocomplete="off">
-      <input id="chat-input" aria-label="Message" placeholder="Message…" maxlength="300">
-      <button class="icon-btn send" type="submit" aria-label="Send" data-icon="send"></button>
-      <button id="btn-mic2" class="icon-btn mic" type="button" aria-label="Hold to talk" data-icon="mic"></button>
-    </form>
-  </div>
 
   <!-- PROFILE -->
   <div id="me-sheet" class="sheet small" hidden>
@@ -135,7 +120,8 @@
   <script src="shared/core.js?v=7"></script>
   <script src="shared/net.js?v=7"></script>
   <script src="ludo/rules.js?v=7"></script>
-  <script src="ludo/game.js?v=7"></script>
-  <script src="ludo/social.js?v=7"></script>
+  <script src="shared/chat.js?v=1"></script>
+  <script src="ludo/game.js?v=8"></script>
+  <script src="ludo/social.js?v=8"></script>
 </body>
 </html>

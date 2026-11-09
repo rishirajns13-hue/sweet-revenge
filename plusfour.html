@@ -11,7 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/base.css?v=7">
-  <link rel="stylesheet" href="plusfour/plusfour.css?v=2">
+  <link rel="stylesheet" href="shared/chat.css?v=1">
+  <link rel="stylesheet" href="plusfour/plusfour.css?v=3">
 </head>
 <body class="pal-sunset">
   <main>
@@ -63,10 +64,11 @@
     <!-- PLAY -->
     <section id="screen-play" class="screen">
       <div id="table" class="pf-mat pf-table">
+        <div id="ambient" class="pf-ambient" aria-hidden="true"><i class="pf-glow"></i><i id="spot" class="pf-spot"></i></div>
         <header class="pf-top">
           <button id="btn-leave" class="icon-btn" type="button" aria-label="Leave game" data-icon="x"></button>
           <span id="room-chip" class="pf-chip"></span>
-          <div id="reacts" class="pf-reacts" role="group" aria-label="React"></div>
+          <div id="chat-tools" class="pf-tools"></div>
           <button id="btn-mute" class="icon-btn" type="button" aria-label="Sound on or off" data-icon="volume"></button>
         </header>
         <div id="seats-layer" class="pf-seats"></div>
@@ -137,6 +139,7 @@
   <script src="shared/net.js?v=7"></script>
   <script src="plusfour/rules.js?v=1"></script>
   <script src="plusfour/cards.js?v=1"></script>
-  <script src="plusfour/game.js?v=2"></script>
+  <script src="shared/chat.js?v=1"></script>
+  <script src="plusfour/game.js?v=3"></script>
 </body>
 </html>
