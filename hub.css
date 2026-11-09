@@ -16,7 +16,7 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 }
 .resume-banner b { letter-spacing: 2px; }
 
-.games { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.games { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .game-card {
   position: relative; display: grid; grid-template-rows: auto 1fr auto; gap: 12px; padding: 14px; color: var(--ink); text-decoration: none;
   background: var(--paper); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 5px 6px 0 var(--ink);
@@ -35,6 +35,9 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .game-card .g.b { right: 5%; top: 18%; rotate: 6deg; background: var(--yellow); }
 .game-card .g.c { left: 38%; bottom: 8%; rotate: -2deg; }
 .game-card.ludo .art { background: #fff; display: grid; place-items: center; }
+.game-card.plusfour .art { background: radial-gradient(ellipse at 50% 40%, #ffffff24, transparent 62%), color-mix(in srgb, var(--focus) 50%, #1b1430); }
+.game-card.plusfour svg { position: absolute; left: 50%; top: 52%; width: 250px; translate: -50% -50%; filter: drop-shadow(0 4px 4px #0004); }
+.game-card.plusfour .g.a { left: auto; right: 6%; top: 8%; rotate: 8deg; background: var(--yellow); color: var(--red); font-family: var(--display); font-weight: 700; }
 .mini-board { position: relative; width: 150px; height: 150px; display: grid; grid-template: 1fr 1fr / 1fr 1fr; gap: 0; border: 3px solid var(--ink); border-radius: 12px; overflow: hidden; transform: rotate(-6deg); box-shadow: 4px 4px 0 var(--ink); }
 .mini-board i:nth-child(1) { background: var(--red); } .mini-board i:nth-child(2) { background: var(--green); }
 .mini-board i:nth-child(3) { background: var(--blue); } .mini-board i:nth-child(4) { background: var(--yellow); }
@@ -64,6 +67,7 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .soon-card b { font-size: 17px; }
 .soon-card small { font-family: var(--body); font-weight: 700; font-size: 13px; }
 
+@media (max-width: 980px) { .games { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) {
   .games, .soon-list { grid-template-columns: minmax(0, 1fr); }
   .brand.small svg { height: 56px; }

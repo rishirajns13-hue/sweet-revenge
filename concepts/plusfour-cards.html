@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#8f6bff">
+  <title>Plus Four Cards</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🃏</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared/base.css">
+  <link rel="stylesheet" href="../plusfour/plusfour.css">
+  <style>
+    body { padding: 24px 16px 60px; }
+    .wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 22px; }
+    h1 { margin: 0; color: #fff; font-size: 40px; text-shadow: 3px 3px 0 var(--ink); }
+    h2 { margin: 0; color: #fff; font-size: 24px; text-shadow: 2px 2px 0 var(--ink); }
+    .lede { margin: 0; color: #fff; font-family: var(--body); font-weight: 700; font-size: 17px; max-width: 70ch; text-shadow: 1px 1px 0 var(--ink); }
+    .demo { height: min(640px, 82vh); display: grid; grid-template-rows: auto 1fr auto; padding: 18px 18px 0; }
+    .demo .top { justify-self: center; }
+    .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .keys { color: #fff; font-family: var(--body); font-weight: 700; text-shadow: 1px 1px 0 var(--ink); }
+    kbd { background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 6px; padding: 0 6px; font: 700 13px var(--body); box-shadow: 1px 1px 0 var(--ink); text-shadow: none; }
+    .set { display: grid; gap: 14px; }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; }
+    .row .pf-card { --cw: 78px; }
+    .big { display: flex; gap: 22px; flex-wrap: wrap; align-items: end; }
+    .big .pf-card { --cw: 180px; }
+    .big .pf-card:nth-child(1) { rotate: -6deg; } .big .pf-card:nth-child(3) { rotate: 5deg; }
+    .picker { position: absolute; inset: 0; display: grid; place-items: center; z-index: 120; background: #2b214066; }
+    .picker div { display: grid; grid-template-columns: repeat(2, 72px); gap: 10px; padding: 14px; background: var(--paper); border: 3px solid var(--ink); border-radius: 22px; box-shadow: var(--shadow); }
+    .picker button { height: 72px; border-radius: 18px; border: 3px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); font-weight: 700; color: #fff; -webkit-text-stroke: 1.5px var(--ink); paint-order: stroke fill; font-size: 15px; }
+    .picker p { grid-column: 1 / -1; margin: 0; text-align: center; font-weight: 600; }
+  </style>
+</head>
+<body class="pal-sunset">
+  <div class="wrap">
+    <div>
+      <h1>Plus Four: the cards</h1>
+      <p class="lede">The real table look: a white border, a solid colour field with its own pattern, a chunky number in a cushion badge, corner numbers, paper grain and a gloss when you hover. Play with the mini table below. Every motion here is the one the game will use.</p>
+    </div>
+
+    <div id="table" class="pf-mat demo">
+      <div class="pf-seat top"><div id="opp" class="pf-mini"></div><div class="who"><span class="av" style="--c:#4d9de0">🥰</span>Ammu <span id="opp-count" class="count"></span></div></div>
+      <div class="pf-centre">
+        <div id="deck" class="pf-deck" role="button" tabindex="0" aria-label="Draw a card"></div>
+        <div id="pile" class="pf-pile" aria-label="Discard pile"><i class="pf-ring" id="ring"></i></div>
+      </div>
+      <div id="hand" class="pf-hand my-turn"></div>
+    </div>
+    <div class="bar">
+      <button id="btn-deal" class="btn" type="button">Deal again</button>
+      <span class="keys">Hover to lift · click a glowing card to play it · click the deck to draw · <kbd>←</kbd> <kbd>→</kbd> <kbd>Enter</kbd> <kbd>D</kbd></span>
+    </div>
+
+    <h2>Up close</h2>
+    <div id="big" class="big"></div>
+
+    <h2>The whole deck</h2>
+    <div id="set" class="set"></div>
+  </div>
+  <div id="flight" class="pf-flight"></div>
+  <div id="fx"></div>
+
+  <script src="../plusfour/cards.js"></script>
+  <script>
+    'use strict';
+    const C = window.PlusFourCards, $ = (s) => document.querySelector(s);
+    const VALUES = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'skip', 'rev', 'd2'];
+    let uid = 0;
+    const card = (c, v) => ({ id: 'x' + uid++, c, v });
+
+    // The whole deck, one of each kind
+    $('#set').innerHTML = '';
+    for (const c of ['r', 'y', 'g', 'b']) {
+      const row = document.createElement('div'); row.className = 'row';
+      VALUES.forEach((v) => row.appendChild(C.make(card(c, v))));
+      $('#set').appendChild(row);
+    }
+    const last = document.createElement('div'); last.className = 'row';
+    [card('w', 'wild'), card('w', 'w4'), null].forEach((k) => last.appendChild(C.make(k)));
+    $('#set').appendChild(last);
+    [card('r', '7'), card('w', 'w4'), card('b', 'rev'), null].forEach((k) => $('#big').appendChild(C.make(k)));
+
+    // ---------- the mini table ----------
+    const rnd = () => { const all = [...['r', 'y', 'g', 'b'].flatMap((c) => VALUES.map((v) => [c, v])), ['w', 'wild'], ['w', 'w4']]; const [c, v] = all[Math.floor(Math.random() * all.length)]; return card(c, v); };
+    let hand = [], topCard = null, color = 'r', oppN = 7, hover = -1, focus = -1, busy = false;
+    const canPlay = (k) => k.c === 'w' || k.c === color || k.v === topCard.v;
+
+    function layoutHand() {
+      const els = [...$('#hand').children];
+      els.forEach((el, i) => el.classList.toggle('ok', canPlay(hand[i])));
+      els.forEach((el, i) => el.classList.toggle('focus', i === focus));
+      C.fan(els, { width: Math.min($('#hand').clientWidth - 40, 980), cw: 104, hover: hover >= 0 ? hover : focus });
+    }
+    function layoutOpp() {
+      const box = $('#opp');
+      while (box.children.length < oppN) box.appendChild(C.make(null));
+      while (box.children.length > oppN) box.lastChild.remove();
+      C.fan([...box.children], { width: 260, cw: 46, maxSpread: 40, bend: -0.002 });
+      $('#opp-count').textContent = oppN;
+    }
+    function renderDeck() {
+      $('#deck').innerHTML = '';
+      for (let i = 0; i < 6; i++) { const b = C.make(null); b.style.setProperty('--i', i); $('#deck').appendChild(b); }
+      $('#deck').classList.toggle('can-draw', !hand.some(canPlay));
+    }
+    function setRing() { $('#ring').style.setProperty('--ring', C.HEX[color]); }
+    function toPile(el, k) {
+      const s = C.pileSpot();
+      C.settle(el); el.style.setProperty('--dx', s.dx + 'px'); el.style.setProperty('--dy', s.dy + 'px'); el.style.setProperty('--rot', s.rot + 'deg');
+      el.className = 'pf-card';
+      $('#pile').appendChild(el);
+      const cards = $('#pile').querySelectorAll('.pf-card');
+      if (cards.length > 6) cards[0].remove();
+      topCard = k;
+    }
+    function pileTarget() {
+      const r = $('#pile').getBoundingClientRect(), s = C.pileSpot();
+      return { x: r.left + r.width / 2 + s.dx, y: r.top + r.height / 2 + s.dy, w: r.width, rot: s.rot };
+    }
+    function hit(kind) {
+      if (kind === 'd2' || kind === 'w4') retrigger($('#table'), 'shake');
+    }
+    function retrigger(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+    function pickColor() {
+      return new Promise((done) => {
+        const p = document.createElement('div'); p.className = 'picker';
+        p.innerHTML = '<div><p>Pick a colour</p>' + Object.entries(C.COLORS).map(([c, n], i) => `<button type="button" data-c="${c}" style="background:${C.HEX[c]}">${i + 1} · ${n}</button>`).join('') + '</div>';
+        const choose = (c) => { p.remove(); removeEventListener('keydown', onKey); done(c); };
+        const onKey = (e) => { const i = '1234'.indexOf(e.key); if (i >= 0) choose('rygb'[i]); };
+        p.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) choose(b.dataset.c); });
+        addEventListener('keydown', onKey);
+        $('#table').appendChild(p);
+      });
+    }
+    async function play(i) {
+      if (busy || !canPlay(hand[i])) { const el = $('#hand').children[i]; if (el) retrigger(el, 'shake'); return; }
+      busy = true;
+      const k = hand[i], el = $('#hand').children[i], from = C.rectOf(el);
+      hand.splice(i, 1); hover = -1; focus = Math.min(focus, hand.length - 1);
+      el.classList.remove('lift', 'ok', 'focus');
+      const flying = await C.fly(el, from, pileTarget(), { spin: 14, dur: 480 });
+      layoutHand();
+      toPile(flying, k); hit(k.v);
+      color = k.c === 'w' ? await pickColor() : k.c;
+      setRing(); renderDeck(); layoutHand();
+      busy = false;
+      setTimeout(oppTurn, 700);
+    }
+    async function draw() {
+      if (busy) return;
+      busy = true;
+      const k = rnd(), deckTop = $('#deck').lastChild, from = C.rectOf(deckTop);
+      const el = C.make(k, { down: true });
+      hand.push(k);
+      // place an invisible copy first so we know where the new card will sit
+      const ghost = C.make(k); ghost.classList.add('ghost'); $('#hand').appendChild(ghost); layoutHand();
+      await new Promise(requestAnimationFrame);
+      const to = C.rectOf(ghost);
+      await C.fly(el, from, to, { flipTo: k, lift: 40, dur: 560 });
+      ghost.replaceWith(C.settle(el));
+      wireCard(el); layoutHand(); renderDeck();
+      busy = false;
+    }
+    async function oppTurn() {
+      const box = $('#opp'), back = box.children[Math.floor(box.children.length / 2)];
+      if (!back) return;
+      busy = true;
+      const options = [card(color, String(Math.floor(Math.random() * 10))), card(color, 'skip'), card('w', 'w4'), card(color, 'd2')];
+      const k = options[Math.floor(Math.random() * options.length)];
+      const from = C.rectOf(back);
+      back.remove(); oppN--; layoutOpp();
+      const el = C.make(null);
+      const flying = await C.fly(el, from, pileTarget(), { flipTo: k, spin: -10, dur: 560 });
+      toPile(flying, k); hit(k.v);
+      if (k.c === 'w') color = 'rygb'[Math.floor(Math.random() * 4)]; else color = k.c;
+      if (oppN < 3) { oppN = 7; layoutOpp(); }
+      setRing(); renderDeck(); layoutHand();
+      busy = false;
+    }
+    function wireCard(el) {
+      el.addEventListener('mouseenter', () => { hover = [...$('#hand').children].indexOf(el); layoutHand(); });
+      el.addEventListener('mouseleave', () => { hover = -1; layoutHand(); });
+      el.addEventListener('click', () => play([...$('#hand').children].indexOf(el)));
+    }
+    async function deal() {
+      if (busy) return;
+      busy = true;
+      $('#hand').innerHTML = ''; [...$('#pile').querySelectorAll('.pf-card')].forEach((c) => c.remove());
+      hand = []; oppN = 0; layoutOpp(); renderDeck();
+      const first = card('r', '7'); toPile(C.make(first), first); color = 'r'; setRing();
+      for (let n = 0; n < 7; n++) {
+        for (const who of ['me', 'opp']) {
+          const from = C.rectOf($('#deck').lastChild);
+          if (who === 'opp') {
+            oppN++; layoutOpp();
+            const slot = $('#opp').lastChild; slot.style.visibility = 'hidden';
+            await new Promise(requestAnimationFrame);
+            await C.fly(C.make(null), from, C.rectOf(slot), { dur: 260, lift: 30, land: false }).then((f) => f.remove());
+            slot.style.visibility = '';
+          } else {
+            const k = rnd(); hand.push(k);
+            const ghost = C.make(k); ghost.classList.add('ghost'); $('#hand').appendChild(ghost); layoutHand();
+            await new Promise(requestAnimationFrame);
+            const el = await C.fly(C.make(k, { down: true }), from, C.rectOf(ghost), { dur: 300, lift: 30, flipTo: k, land: false });
+            ghost.replaceWith(C.settle(el)); wireCard(el); layoutHand();
+          }
+        }
+      }
+      renderDeck(); layoutHand();
+      busy = false;
+    }
+
+    $('#deck').addEventListener('click', draw);
+    $('#btn-deal').addEventListener('click', deal);
+    addEventListener('resize', () => { layoutHand(); });
+    addEventListener('keydown', (e) => {
+      if ($('.picker')) return;
+      if (e.key === 'ArrowRight') { focus = Math.min(hand.length - 1, focus + 1); layoutHand(); }
+      else if (e.key === 'ArrowLeft') { focus = Math.max(0, focus - 1); layoutHand(); }
+      else if ((e.key === 'Enter' || e.key === ' ') && focus >= 0) { e.preventDefault(); play(focus); }
+      else if (e.key.toLowerCase() === 'd') draw();
+    });
+    deal();
+  </script>
+</body>
+</html>

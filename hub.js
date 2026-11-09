@@ -2,7 +2,7 @@
 /* Sweet Revenge front door: log in, pick a game, or jump in with a friend's code. */
 const sfx = { pop() {} }; // the hub stays quiet; games bring their own sounds
 
-const GAME_FOR_CODE = (code) => (code[0] === 'D' ? 'doodle.html' : 'ludo.html');
+const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html' }[code[0]] || 'ludo.html');
 
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === 'screen-' + name));
@@ -11,7 +11,7 @@ function showScreen(name) {
 // After logging in, go back to wherever a game page sent you (keeping its ?room=).
 function continueOrHub() {
   const q = new URLSearchParams(location.search), next = q.get('next');
-  if (next && /^(ludo|doodle)\.html$/.test(next)) {
+  if (next && /^(ludo|doodle|plusfour)\.html$/.test(next)) {
     q.delete('next');
     location.replace(next + (q.toString() ? '?' + q : ''));
     return;
@@ -32,7 +32,7 @@ function renderHub() {
   const top = Object.entries(rec).sort((a, b) => b[1].w + b[1].l - (a[1].w + a[1].l))[0];
   if (top) $('#ludo-meta').textContent = `You ${top[1].w} – ${top[1].l} ${top[0].split(' ').pop()} · the long one`;
   // An unfinished game you can hop back into.
-  const games = [['doodle-lastroom', 'doodle.html', 'Doodle Duel'], ['ludo-lastroom', 'ludo.html', 'Ludo']];
+  const games = [['plusfour-lastroom', 'plusfour.html', 'Plus Four'], ['doodle-lastroom', 'doodle.html', 'Doodle Duel'], ['ludo-lastroom', 'ludo.html', 'Ludo']];
   const last = games.map(([key, page, label]) => ({ ...store.get(key, {}), page, label }))
     .filter((g) => g.code && Date.now() - g.at < 3 * 3600e3).sort((a, b) => b.at - a.at)[0];
   const banner = $('#resume');

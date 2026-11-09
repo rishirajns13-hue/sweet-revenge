@@ -5,6 +5,21 @@ A private little game collection for a few friends. It's a static site (GitHub P
 ## Getting in
 Open the site and log in with your secret name and password. Ask the person who set it up for these. You stay logged in on that device. Pick a game from the home screen, or paste a friend's room code into **Got a code from a friend?** and you'll land in the right game.
 
+## 🃏 Plus Four (the mean one)
+Match the colour or the number and be the first to get rid of every card.
+1. **New game** makes a room. Share the code (it starts with P). 2–4 players, and you can fill empty seats with bots. **Practice against a bot** needs no friend and no internet room.
+2. On your turn, click a glowing card to play it. Can't play? Click the deck (or **Draw**) to take one. If it fits, you can play it straight away or **Keep it**.
+3. Wild cards pop up a colour picker: Cherry, Sunny, Mint or Sky.
+4. On a laptop: **← →** pick a card, **Enter** plays it, **D** draws, **P** keeps a drawn card, **O** shouts Ouch, **C** catches, **1–4** pick a wild colour.
+
+The cards: four colours, each with 0–9, Skip, Reverse and +2, plus Wild and Wild +4 (108 cards). With two players, Reverse works like Skip.
+
+House rules: **+2s and +4s stack.** A +2 can go on a +2, and a +4 can go on either; a +2 can't go on a +4. The pile of penalties keeps growing until someone can't stack, and they take the lot. A Wild +4 can be played any time.
+
+**Ouch!** When you're down to one card, hit Ouch (or press O) before the next player moves. You can also hit it just before playing your second-to-last card. If you forget, anyone can hit **Catch!** and you draw 2. Bots usually remember, and they will catch you.
+
+At the end: everyone's leftover cards are shown, plus awards (Card Hoarder, Stack Lord, Caught Napping, Wild Child) and a rematch button.
+
 ## 🖍️ Doodle Duel (the quick one)
 One player secretly draws a word, everyone else races to guess it.
 1. **New game** makes a room. Share the code (it starts with D). 2–4 players.
@@ -26,7 +41,7 @@ Drawing tools: 10 colours, 3 brush sizes, fill bucket, eraser, undo and clear. O
 Rules: you need a 6 to bring a piece out; a 6 gives another roll, but three 6s in a row skips your turn. Landing on an opponent sends them back to base (💥 BONK!) and gives you another roll. ★ squares are safe, and teammates never bonk each other. You need the exact number to get home. First to get all 4 pieces home wins; in teams, both partners must finish.
 
 ## If someone leaves
-In both games the host's browser runs the game and everyone else keeps a copy. If the host leaves, the next player in seat order takes over automatically and the others reconnect to them. In Ludo a bot plays for anyone who drops out, and the home screen offers **Back to your game**. In Doodle Duel, the round that was being drawn is skipped and the next one starts.
+In every game the host's browser runs the game and everyone else keeps a copy. If the host leaves, the next player in seat order takes over automatically and the others reconnect to them. In Ludo and Plus Four a bot plays for anyone who drops out, and the home screen offers **Back to your game**. In Plus Four the next player in line keeps a private backup of the game so they can take over. In Doodle Duel, the round that was being drawn is skipped and the next one starts.
 
 ## Your look
 Tap your avatar to pick an avatar and a colour palette (Sunset, Lagoon or Lemonade). It applies to every game.
@@ -38,6 +53,7 @@ Tap your avatar to pick an avatar and a colour palette (Sunset, Lagoon or Lemona
 - `index.html`, `hub.js`, `hub.css`: the Sweet Revenge front door, with login and the game picker. The logo is an inline SVG in `index.html`.
 - `shared/`: design system (`base.css`), login, icons and profile (`core.js`), networking (`net.js`)
 - `doodle.html`, `doodle/`: Doodle Duel (`logic.js` is the pure, tested part; `words.js` has the word packs)
+- `plusfour.html`, `plusfour/`: Plus Four (`rules.js` is the pure, tested part; `cards.js` draws the cards and moves them)
 - `ludo.html`, `ludo/`: Ludo (`rules.js` is the pure, tested part)
 - `concepts/`: design mockups the interface was chosen from
 

@@ -81,7 +81,7 @@ function makeLink(client, keys, myId, peerId, sendTopic) {
   return link;
 }
 
-// The first letter says which game the code is for (L = Ludo, D = Doodle Duel).
+// The first letter says which game the code is for (L = Ludo, D = Doodle Duel, P = Plus Four).
 function genCode(prefix) {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', a = new Uint8Array(5);
   crypto.getRandomValues(a);
