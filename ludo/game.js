@@ -851,7 +851,7 @@ $('#btn-share').onclick = async () => {
   const code = $('#room-code').textContent;
   const link = `${location.origin}${location.pathname}?room=${code}`;
   if (navigator.share) {
-    try { await navigator.share({ title: 'Ludo Party', text: `Join my Ludo room: ${code}`, url: link }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    try { await navigator.share({ title: 'Sweet Revenge', text: `Join my Ludo room: ${code}`, url: link }); return; } catch (e) { if (e.name === 'AbortError') return; }
   }
   try { await navigator.clipboard.writeText(link); toast('Invite link copied! Send it to your friends 💌'); }
   catch (e) { prompt('Copy this link:', link); }
