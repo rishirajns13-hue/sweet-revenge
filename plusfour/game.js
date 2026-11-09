@@ -26,45 +26,87 @@ const oneOf = (a) => a[Math.floor(Math.random() * a.length)];
 const line = (k, o = {}) => oneOf(LINES[k]).replace('{n}', o.n || '').replace('{x}', o.x || '').replace('{b}', o.b || '');
 const firstName = (name) => String(name).split(' ').pop();
 
-/* ================= sounds (WebAudio, no files) ================= */
+/* ================= sounds (WebAudio, no files) =================
+   Real-card sounds made from shaped noise: a soft slide, a papery tap as a card lands, a riffle
+   for the shuffle. Only the moments that matter make a sound, and everything stays quiet. */
 const sfx = (() => {
-  let ctx = null, muted = false;
-  const ac = () => (ctx = ctx || new (window.AudioContext || window.webkitAudioContext)());
-  function tone(freq, dur, type = 'sine', vol = 0.12, when = 0, slideTo) {
+  let ctx = null, out = null, noise = null, muted = false;
+  function ac() {
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      out = ctx.createGain();
+      out.gain.value = 0.5;
+      out.connect(ctx.destination);
+      noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const d = noise.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+  // A burst of filtered noise: the paper part of every card sound.
+  function paper({ when = 0, attack = 0.003, decay = 0.06, vol = 0.15, type = 'bandpass', freq = 3000, to = 0, q = 0.7 }) {
+    if (muted) return;
+    try {
+      const c = ac(), t = c.currentTime + when, end = t + attack + decay;
+      const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      src.buffer = noise;
+      f.type = type; f.Q.value = q; f.frequency.setValueAtTime(freq, t);
+      if (to) f.frequency.exponentialRampToValueAtTime(to, end);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, end);
+      src.connect(f).connect(g).connect(out);
+      src.start(t, Math.random() * 0.8);
+      src.stop(end + 0.02);
+    } catch (e) { /* audio not available */ }
+  }
+  // A low, soft knock: the table under the card.
+  function knock(freq, dur, vol, when = 0) {
     if (muted) return;
     try {
       const c = ac(), t = c.currentTime + when, o = c.createOscillator(), g = c.createGain();
-      o.type = type; o.frequency.setValueAtTime(freq, t);
-      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
-      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur + 0.02);
+      o.frequency.setValueAtTime(freq, t);
+      o.frequency.exponentialRampToValueAtTime(freq * 0.55, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(out); o.start(t); o.stop(t + dur + 0.02);
     } catch (e) { /* audio not available */ }
   }
-  // A burst of filtered noise: the paper sound of a card.
-  function noise(dur, vol, freq, when = 0, q = 1) {
+  // A soft wooden note, like a little marimba.
+  function note(freq, when = 0, vol = 0.05) {
     if (muted) return;
     try {
-      const c = ac(), t = c.currentTime + when, len = Math.ceil(c.sampleRate * dur);
-      const buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 2;
-      const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-      src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q; g.gain.value = vol;
-      src.connect(f).connect(g).connect(c.destination); src.start(t);
+      const c = ac(), t = c.currentTime + when;
+      [[1, 1], [4, 0.12]].forEach(([mult, level]) => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.frequency.value = freq * mult;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(vol * level, t + 0.006);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + (mult === 1 ? 0.45 : 0.12));
+        o.connect(g).connect(out); o.start(t); o.stop(t + 0.5);
+      });
     } catch (e) { /* audio not available */ }
   }
   return {
-    flick() { noise(0.07, 0.45, 3000 + Math.random() * 600, 0, 0.8); },
-    slap() { noise(0.09, 0.8, 1300, 0, 0.6); tone(130, 0.08, 'sine', 0.1, 0, 70); },
-    slam() { noise(0.18, 1, 650, 0, 0.5); tone(95, 0.3, 'sine', 0.28, 0, 40); },
-    shuffle() { for (let i = 0; i < 12; i++) noise(0.045, 0.3, 2400 + Math.random() * 1400, i * 0.032, 0.9); },
-    pop() { tone(600, 0.07, 'sine', 0.1, 0, 1100); },
-    ding() { tone(988, 0.12, 'triangle', 0.1); tone(1319, 0.25, 'triangle', 0.1, 0.1); },
-    boop() { tone(300, 0.12, 'sine', 0.08, 0, 220); },
-    boing() { tone(200, 0.28, 'sine', 0.18, 0, 720); tone(700, 0.22, 'triangle', 0.08, 0.14, 300); },
-    whoosh() { tone(220, 0.35, 'sawtooth', 0.04, 0, 900); },
-    stamp() { tone(140, 0.18, 'square', 0.12, 0, 60); },
-    trombone() { [392, 370, 349].forEach((f, k) => tone(f, 0.3, 'sawtooth', 0.07, k * 0.32)); tone(330, 0.9, 'sawtooth', 0.07, 0.96, 300); },
-    fanfare() { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, k) => tone(f, 0.22, 'square', 0.06, k * 0.13)); },
+    slide() { paper({ attack: 0.025, decay: 0.11, vol: 0.06, freq: 4200, to: 1800, q: 0.5 }); },
+    land() { paper({ attack: 0.002, decay: 0.03, vol: 0.16, type: 'highpass', freq: 1400 }); knock(170, 0.05, 0.05); },
+    slam() { paper({ attack: 0.002, decay: 0.07, vol: 0.26, type: 'lowpass', freq: 3200 }); knock(105, 0.14, 0.14); },
+    draw() { paper({ attack: 0.02, decay: 0.09, vol: 0.05, freq: 3400, to: 2200, q: 0.5 }); },
+    shuffle() {
+      // a riffle: quick paper ticks that speed up, then the halves bridge together
+      let t = 0;
+      for (let i = 0; i < 26; i++) { paper({ when: t, attack: 0.001, decay: 0.012, vol: 0.05 + Math.random() * 0.03, type: 'highpass', freq: 2600 }); t += 0.03 - i * 0.0007; }
+      paper({ when: t + 0.05, attack: 0.04, decay: 0.16, vol: 0.05, freq: 3000, to: 1500, q: 0.5 });
+      paper({ when: t + 0.26, attack: 0.002, decay: 0.03, vol: 0.12, type: 'highpass', freq: 1400 });
+    },
+    skip() { knock(140, 0.09, 0.1); paper({ attack: 0.002, decay: 0.03, vol: 0.08, type: 'highpass', freq: 1600 }); },
+    ouch() { note(659); note(880, 0.08); },
+    caught() { knock(120, 0.12, 0.12); note(392, 0.06, 0.045); note(330, 0.2, 0.045); },
+    win() { [523, 659, 784, 1047].forEach((f, k) => note(f, k * 0.11, 0.06)); },
+    nope() { knock(190, 0.06, 0.06); },
+    pop() { paper({ attack: 0.001, decay: 0.018, vol: 0.05, type: 'highpass', freq: 2200 }); },
     toggle() { muted = !muted; return muted; },
   };
 })();
@@ -225,7 +267,7 @@ function tell(k, why) {
   const s = seatOf(k);
   if (s && s.link && s.link.open) s.link.send({ t: 'nope', why });
 }
-function nope(why) { toast(NOPE[why] || 'Nope 🙅'); sfx.boop(); }
+function nope(why) { toast(NOPE[why] || 'Nope 🙅'); sfx.nope(); }
 
 /* ---------- bots (and stand-ins for players who dropped) ---------- */
 let botTimer = 0;
@@ -678,7 +720,6 @@ async function animDeal(v) {
       if (!target) continue;
       const card = p.k === myK ? mine[r] : null;
       flights.push(sleep(C.ms(n++ * 75)).then(() => {
-        sfx.flick();
         return C.fly(C.make(null), C.rectOf(deckTop()), C.rectOf(target), { dur: 420, lift: 36, land: false, flipTo: card }).then((f) => {
           f.remove();
           target.classList.remove('ghost');
@@ -691,9 +732,9 @@ async function animDeal(v) {
   ticker('');
 }
 async function animStart(e) {
-  sfx.flick();
+  sfx.slide();
   const f = await C.fly(C.make(null), C.rectOf(deckTop()), pileTarget(e.card), { flipTo: e.card, dur: 520, lift: 50 });
-  sfx.slap();
+  sfx.land();
   placeOnPile(f, e.card);
   shown.color = e.color;
   renderCentre();
@@ -718,14 +759,14 @@ async function animPlay(e) {
     el = C.make(null);
     last = !shown.counts[k];
   }
-  sfx.flick();
+  sfx.slide();
   const heavy = card.v === 'd2' || card.v === 'w4';
   const f = await C.fly(el, from, pileTarget(card), {
     flipTo: k === myK ? null : card, spin: k === myK ? 12 : -12,
     dur: last ? 1200 : heavy ? 420 : 520, lift: last ? 150 : heavy ? 90 : 60,
   });
   placeOnPile(f, card);
-  if (heavy) { sfx.slam(); retrigger($('#table'), 'thud'); } else sfx.slap();
+  if (heavy) { sfx.slam(); retrigger($('#table'), 'thud'); } else sfx.land();
   shown.color = e.color;
   renderCentre();
   if (card.c === 'w') {
@@ -756,8 +797,8 @@ async function animDraw(e) {
     targets = added.map((el) => [el, null]);
   }
   const gap = n > 4 ? 90 : 140;
+  sfx.draw();
   await Promise.all(targets.map(([target, card], i) => sleep(C.ms(i * gap)).then(() => {
-    sfx.flick();
     const to = target ? C.rectOf(target) : C.rectOf(seatEl(k));
     return C.fly(C.make(null), C.rectOf(deckTop()), to, { flipTo: card, dur: 460, lift: 40, land: false }).then((f) => {
       f.remove();
@@ -768,7 +809,7 @@ async function animDraw(e) {
 }
 async function animSkip(e) {
   stampOn(seatEl(e.k), '🚫 SKIPPED');
-  sfx.stamp();
+  sfx.skip();
   ticker(line('skip', { n: nameOf(e.k) }));
   await wait(700);
 }
@@ -776,7 +817,7 @@ async function animReverse(e) {
   shown.dir = e.dir;
   renderCentre();
   retrigger($('#dir'), 'flip');
-  sfx.whoosh();
+  sfx.slide();
   ticker(line('reverse'));
   await wait(650);
 }
@@ -789,13 +830,13 @@ async function animStack(e) {
 }
 async function animOuch(e) {
   burst(seatEl(e.k), 'OUCH!');
-  sfx.boing();
+  sfx.ouch();
   ticker(e.k === myK ? 'You shouted Ouch! Safe 😅' : `${nameOf(e.k)} shouted Ouch! 😱`);
   await wait(500);
 }
 async function animCaught(e) {
   stampOn(seatEl(e.k), 'CAUGHT! 😈', 'caught');
-  sfx.trombone();
+  sfx.caught();
   ticker(line('caught', { n: nameOf(e.k), b: nameOf(e.by) }));
   await wait(800);
 }
@@ -823,7 +864,7 @@ async function animWin(e, v) {
   $('#status').textContent = e.k === myK ? 'You did it! 🎉' : `${firstName(p ? p.name : '?')} is out of cards!`;
   ['#btn-draw', '#btn-pass', '#btn-ouch'].forEach((s) => { $(s).hidden = true; });
   $('#deck').classList.remove('can-draw');
-  sfx.fanfare();
+  sfx.win();
   bigConfetti();
   slamText(e.k === myK ? 'YOU WIN! 🏆' : line('win', { n: firstName(p ? p.name : '?') }));
   // Everyone else's cards flip face up, so you can see what they got stuck with.
@@ -925,7 +966,7 @@ function tryCatch(k) {
 $('#hand').addEventListener('mouseover', (e) => {
   const el = e.target.closest('.pf-card');
   const id = el ? el.dataset.id : null;
-  if (id !== hoverId) { hoverId = id; layoutHand(); if (id) sfx.flick(); }
+  if (id !== hoverId) { hoverId = id; layoutHand(); }
 });
 $('#hand').addEventListener('mouseleave', () => { hoverId = null; layoutHand(); });
 $('#hand').addEventListener('click', (e) => { const el = e.target.closest('.pf-card'); if (el) tryPlay(el.dataset.id); });
@@ -955,7 +996,6 @@ document.addEventListener('keydown', (e) => {
     focusIdx = focusIdx < 0 ? (e.key === 'ArrowRight' ? 0 : n - 1) : Math.max(0, Math.min(n - 1, focusIdx + (e.key === 'ArrowRight' ? 1 : -1)));
     hoverId = null;
     layoutHand();
-    sfx.flick();
   } else if ((e.key === 'Enter' || e.key === ' ') && focusIdx >= 0 && !e.target.closest('button')) {
     e.preventDefault();
     if (shown.hand[focusIdx]) tryPlay(shown.hand[focusIdx].id);
