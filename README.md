@@ -55,7 +55,7 @@ Typed chat messages, stickers and every finished game (players, winner, stats, p
 - Change the tables: edit `api/schema.sql`, then run `node api/migrate.mjs` (uses `.env.local` from `neon link`).
 - Deploy the API: `neon deploy --env .env.local`. Its URL is `RECORDS_URL` in `shared/records.js`.
 - The home screen opens with a loading screen, then three screens: **Play**, **Trophies** and **Rivals** (keys 1, 2, 3). It refreshes every 20 seconds, and the dot in the top bar turns green when the database is reachable. Levels and achievements are worked out in `api/progress.mjs`.
-- If it says the scoreboard can't be reached, the network's DNS is probably blocking it: in Edge or Chrome turn on **Settings → Privacy → Use secure DNS** (Cloudflare).
+- **Works on every network.** Some networks (Jio, for one) block `*.neon.tech` addresses. Then the browser sends its requests, encrypted, through the same public MQTT relays the games use, and a bridge (`api/bridge.ts`, woken every minute by a Neon schedule trigger) answers them. The bridge naps when nobody's around, so on those networks the first scoreboard load after a quiet spell can take up to a minute. Its private key lives only in `.env.local` as `RELAY_PRIVATE_KEY`; deploy with `neon deploy --env .env.local`.
 
 ## How logins work
 `shared/core.js` stores only `sha256(sha256(name:password))`. When a friend joins, their browser sends the inner hash, which can't be worked out from the code. The host checks it and drops anyone who can't prove they know a password.

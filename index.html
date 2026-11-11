@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&family=Gaegu:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/base.css?v=7">
-  <link rel="stylesheet" href="hub/hub.css?v=11">
+  <link rel="stylesheet" href="hub/hub.css?v=12">
 </head>
 <body class="pal-sunset">
   <!-- Sweet Revenge logo: drawn once here, shown with <use href="#logo"> -->
@@ -84,12 +84,6 @@
         <li data-step="2">Connecting to the scoreboard</li>
         <li data-step="3">Fetching your trophies</li>
       </ol>
-      <div id="load-fail" class="card load-fail" role="alert" hidden>
-        <b>The scoreboard can't be reached from this Wi-Fi 📡</b>
-        <p>Your games still work, but wins, trophies and chat won't be saved until it connects.</p>
-        <p class="fix">Quick fix: in Edge or Chrome open <b>Settings → Privacy → Use secure DNS</b> and pick <b>Cloudflare</b>. Then try again.</p>
-        <div class="row"><button id="btn-retry" class="btn" type="button">Try again</button><button id="btn-anyway" class="btn cta" type="button">Play anyway</button></div>
-      </div>
     </section>
 
     <!-- HUB: three screens you switch between like a game menu -->
@@ -225,8 +219,8 @@
   <div id="fx"></div>
 
   <script src="shared/core.js?v=7"></script>
-  <script src="shared/records.js?v=2"></script>
+  <script src="shared/records.js?v=3"></script>
   <script src="shared/sound.js?v=1"></script>
-  <script src="hub/hub.js?v=11"></script>
+  <script src="hub/hub.js?v=12"></script>
 </body>
 </html>

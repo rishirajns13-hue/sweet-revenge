@@ -4,6 +4,7 @@
     "@neon/env": "^2.1.3",
     "@neon/functions": "^0.11.0",
     "hono": "^4.13.18",
+    "mqtt": "^5.10.1",
     "pg": "^8.23.1"
   },
   "devDependencies": {

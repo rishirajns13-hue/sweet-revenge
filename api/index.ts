@@ -9,6 +9,8 @@ import { attachDatabasePool } from '@neon/functions';
 import { createHash, timingSafeEqual } from 'node:crypto';
 // @ts-ignore: plain JS module, shared with the tests
 import { progress } from './progress.mjs';
+import { parseTriggerDelivery } from '@neon/functions/triggers';
+import { runBridge } from './bridge.ts';
 
 // Same accounts as shared/core.js: only sha256(proof) is stored, never the proof itself.
 export const ACCOUNTS: Record<string, { name: string; hash: string }> = {
@@ -60,6 +62,14 @@ const app = new Hono();
 app.use('*', cors({ origin: (o) => (ORIGINS.some((r) => r.test(o)) ? o : null), allowMethods: ['GET', 'POST'] }));
 app.onError((err, c) => { console.error(err); return c.json({ error: 'server' }, 500); });
 app.get('/', (c) => c.text('Sweet Revenge API 🍦'));
+
+// Every minute Neon's schedule trigger wakes the relay bridge (api/bridge.ts), for players whose
+// network blocks this address. Only genuine trigger deliveries get through.
+app.post('/relay-tick', async (c) => {
+  const parsed = await parseTriggerDelivery(c.req.raw);
+  if (!parsed.ok) return c.text(parsed.error, parsed.error === 'invalid_body' ? 400 : 401);
+  return c.json(await runBridge(app));
+});
 
 // Every route below needs a valid login.
 const authed = (fn: (c: Context, me: Me, body: Body) => Promise<Response>) => async (c: Context) => {

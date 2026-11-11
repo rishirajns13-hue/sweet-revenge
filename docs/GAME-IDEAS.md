@@ -20,7 +20,7 @@ The home screen now shows your level (an ice-cream cone that gains a scoop each 
 ## ✅ Done: the home screen feels like a game (12 Nov 2026)
 A loading screen (scoops drop on a cone), then three screens you switch between like a game menu: **Play**, **Trophies** (flip-over medallions, NEW ribbons) and **Rivals** (versus cards and stamped match tickets). Your avatar cheers, sulks or flexes depending on what happened since you last looked, with a few quiet real sounds. Design notes: `docs/superpowers/specs/2026-11-12-home-redesign-design.md`.
 
-**If the scoreboard says offline on your Wi-Fi:** Edge or Chrome → Settings → Privacy → Use secure DNS → Cloudflare. (The JioFiber router's DNS sometimes can't find the database's address.)
+**Works on any network (12 Nov 2026):** Jio blocks the database's `*.neon.tech` addresses, so on networks like that, saving and scores go through the games' relay to a Neon bridge instead. Nobody has to change any settings.
 
 ## Levels and achievements (live now; the numbers below are what the code uses)
 

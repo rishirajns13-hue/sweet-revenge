@@ -18,7 +18,8 @@ The first home screen with levels and history felt like a website: everything cr
 - **Loading screen.**
   - Three scoops drop onto a cone as the steps finish: login, scoreboard, trophies.
   - The full version plays on the first open in a browser session and right after login. Returning from a game gets a quick version.
-  - It gives up waiting after 6 seconds. If the scoreboard can't be reached, it shows a card explaining why, with the secure-DNS fix, **Try again** and **Play anyway**.
+  - It waits at most 4 seconds for the scoreboard, then goes in anyway; the screens fill in when the answer arrives. *Update:* there's no warning card. The user asked for no unwanted messages, so being offline shows only as a small "Reconnecting" chip in the top bar.
+- **Every network.** Blocked networks reach the API through the games' MQTT relays and a Neon bridge (`api/bridge.ts`); see the README.
 - **Top bar.**
   - Logo and tab bar. Tabs dock at the bottom on phones. Keys 1, 2, 3 and ←/→ switch tabs, and the URL hash keeps the current tab.
   - Level chip (mini cone, level, thin XP bar), a live dot with a status popover, the sound toggle, and the profile avatar.

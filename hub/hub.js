@@ -88,16 +88,14 @@ async function boot({ full = false } = {}) {
   const quick = !full && sessionStorage.getItem('sr-booted');
   const minMs = quick ? 400 : 1300, started = Date.now();
   showScreen('loading');
-  $('#load-fail').hidden = true;
-  $('.load-steps').hidden = false;
   document.querySelectorAll('.load-cone .scoop').forEach((s) => s.classList.remove('in'));
   $('.load-cone').classList.remove('done');
   const steps = [...document.querySelectorAll('.load-steps li')];
   steps.forEach((li) => (li.className = ''));
-  const step = async (i, ok = true) => {
-    steps[i].className = ok ? 'ok' : 'bad';
-    if (ok) document.querySelector(`.load-cone .s${i + 1}`).classList.add('in');
-    if (steps[i + 1] && ok) steps[i + 1].className = 'now';
+  const step = async (i) => {
+    steps[i].className = 'ok';
+    document.querySelector(`.load-cone .s${i + 1}`).classList.add('in');
+    if (steps[i + 1]) steps[i + 1].className = 'now';
     if (!quick) await wait(260);
   };
 
@@ -106,26 +104,17 @@ async function boot({ full = false } = {}) {
   if (!routeAway()) return;
   await step(0);
 
-  // The scoreboard: give it up to 6 seconds, then carry on without it.
-  const p = await Promise.race([records.me(), wait(6000).then(() => null)]);
-  if (!p || !p.level) {
-    await step(1, false);
-    setLive('offline');
-    $('.load-steps').hidden = true;
-    $('#load-fail').hidden = false;
-    $('#btn-anyway').focus();
-    return;
-  }
+  // The scoreboard gets up to 4 seconds. If it's slow, go in anyway: the menu fills in
+  // by itself when it answers (it keeps trying quietly in the background).
+  const p = await Promise.race([fetchMe(), wait(4000).then(() => null)]);
   await step(1);
-  applyProfile(p, { firstLoad: true });
+  if (p && p.level) applyProfile(p, { firstLoad: true });
   await step(2);
   $('.load-cone').classList.add('done');
   await wait(Math.max(0, minMs - (Date.now() - started)));
   sessionStorage.setItem('sr-booted', '1');
   enterHub();
 }
-$('#btn-retry').onclick = () => boot();
-$('#btn-anyway').onclick = () => { sessionStorage.setItem('sr-booted', '1'); enterHub(); };
 
 // Room links and "send me back to the game I came from" skip the menu entirely.
 function routeAway() {
@@ -387,9 +376,9 @@ function stampTickets() {
 }
 
 function renderEmpty() {
-  $('#revenge').innerHTML = '<div class="empty-card">Loading your rivals…</div>';
-  $('#history').innerHTML = '<li class="empty-card">Loading your games…</li>';
-  $('#trophies').innerHTML = '';
+  $('#revenge').innerHTML = '<div class="empty-card">Your feuds show up here once the bonking starts.<a class="btn cta" href="#play">Go start one</a></div>';
+  $('#history').innerHTML = '<li class="empty-card">Your games land here as tickets after you play.<a class="btn cta" href="#play">Pick a game</a></li>';
+  $('#trophies').innerHTML = '<div class="empty-card">Trophies appear here as you play. The first one is just a win away 🍒</div>';
 }
 
 /* ================= putting a profile on screen, and celebrating what's new ================= */
@@ -436,7 +425,7 @@ function applyProfile(p, { firstLoad = false } = {}) {
 function setLive(state) {
   const btn = $('#btn-live');
   btn.dataset.state = state;
-  $('#live-label').textContent = { live: 'Live', offline: 'Offline', checking: 'Checking' }[state];
+  $('#live-label').textContent = { live: 'Live', offline: 'Reconnecting', checking: 'Checking' }[state];
   renderLivePop();
 }
 function renderLivePop() {
@@ -447,8 +436,8 @@ function renderLivePop() {
     $('#live-sub').textContent = `${plural(d.games, 'game')}, ${plural(d.messages, 'message')} and ${d.hits} bonks/bombs saved so far. Checked ${s < 5 ? 'just now' : s + 's ago'}.`;
     retry.hidden = true;
   } else if (state === 'offline') {
-    $('#live-head').textContent = "Can't reach the scoreboard 📡";
-    $('#live-sub').textContent = 'Games still work, but results won\'t be saved. Fix: Edge or Chrome → Settings → Privacy → Use secure DNS → Cloudflare.';
+    $('#live-head').textContent = 'Reconnecting to the scoreboard…';
+    $('#live-sub').textContent = 'Your games work as normal. Scores pop in here as soon as it connects.';
     retry.hidden = false;
   } else {
     $('#live-head').textContent = 'Checking the scoreboard…';
@@ -460,12 +449,17 @@ $('#btn-live').onclick = () => { const pop = $('#live-pop'); pop.hidden = !pop.h
 $('#btn-live-retry').onclick = () => refresh();
 document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#live-pop, #btn-live')) $('#live-pop').hidden = true; });
 
-let refreshing = false;
+// One profile request at a time. Through the relay an answer can take a while (the bridge may be
+// waking up), so the loading screen, the timer and tab switches all share the same pending request.
+let mePending = null;
+function fetchMe() {
+  if (!mePending) mePending = records.me().finally(() => { mePending = null; });
+  return mePending;
+}
 async function refresh() {
-  if (refreshing || !me) return;
-  refreshing = true;
-  const p = await records.me();
-  refreshing = false;
+  if (!me) return;
+  if (!profile && $('#btn-live').dataset.state !== 'live') setLive('checking');
+  const p = await fetchMe();
   if (!p || !p.level) { setLive('offline'); if (!profile) renderEmpty(); return; }
   applyProfile(p);
 }
