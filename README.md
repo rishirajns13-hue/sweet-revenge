@@ -60,13 +60,13 @@ Typed chat messages, stickers and every finished game (players, winner, stats, p
 `shared/core.js` stores only `sha256(sha256(name:password))`. When a friend joins, their browser sends the inner hash, which can't be worked out from the code. The host checks it and drops anyone who can't prove they know a password.
 
 ## Project layout
-- `index.html`, `hub.js`, `hub.css`: the Sweet Revenge front door, with login and the game picker. The logo is an inline SVG in `index.html`.
+- `index.html`, `hub/`: the Sweet Revenge front door, with login and the game picker. The logo is an inline SVG in `index.html`.
 - `api/`: the history API (a Neon Function) and the database schema
 - `shared/`: design system (`base.css`), login, icons and profile (`core.js`), networking (`net.js`), the chat every game uses (`chat.js`, `chat.css`), saving history (`records.js`), and card sounds (`sounds/`, CC0 from Kenney's Casino Audio)
 - `doodle.html`, `doodle/`: Doodle Duel (`logic.js` is the pure, tested part; `words.js` has the word packs)
 - `plusfour.html`, `plusfour/`: Plus Four (`rules.js` is the pure, tested part; `cards.js` draws the cards and moves them)
 - `ludo.html`, `ludo/`: Ludo (`rules.js` is the pure, tested part)
-- `concepts/`: design mockups the interface was chosen from
+- `docs/`: the game plan and ideas (`GAME-IDEAS.md`: what's done, what's next, levels and achievements) and `concepts/`, the design mockups the interface was chosen from
 
 ## Running locally
 Serve the folder with any static server, for example `npx serve .`, and open it in two tabs. Run the tests with `node --test`. If you add or change accounts in `shared/core.js`, copy them into `api/index.ts` too and redeploy.
