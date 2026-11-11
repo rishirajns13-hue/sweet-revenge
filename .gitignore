@@ -3,3 +3,6 @@
 .env.*
 .neon
 node_modules/
+
+# Claude Code helper worktrees
+.claude/worktrees/
