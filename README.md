@@ -54,7 +54,8 @@ Typed chat messages, stickers and every finished game (players, winner, stats, p
 
 - Change the tables: edit `api/schema.sql`, then run `node api/migrate.mjs` (uses `.env.local` from `neon link`).
 - Deploy the API: `neon deploy --env .env.local`. Its URL is `RECORDS_URL` in `shared/records.js`.
-- The home screen shows your level, record, Revenge board, match history and trophy shelf, refreshed every 20 seconds. The light on your player card turns green when the database is reachable. Levels and achievements are worked out in `api/progress.mjs`.
+- The home screen opens with a loading screen, then three screens: **Play**, **Trophies** and **Rivals** (keys 1, 2, 3). It refreshes every 20 seconds, and the dot in the top bar turns green when the database is reachable. Levels and achievements are worked out in `api/progress.mjs`.
+- If it says the scoreboard can't be reached, the network's DNS is probably blocking it: in Edge or Chrome turn on **Settings → Privacy → Use secure DNS** (Cloudflare).
 
 ## How logins work
 `shared/core.js` stores only `sha256(sha256(name:password))`. When a friend joins, their browser sends the inner hash, which can't be worked out from the code. The host checks it and drops anyone who can't prove they know a password.
@@ -62,7 +63,7 @@ Typed chat messages, stickers and every finished game (players, winner, stats, p
 ## Project layout
 - `index.html`, `hub/`: the Sweet Revenge front door, with login and the game picker. The logo is an inline SVG in `index.html`.
 - `api/`: the history API (a Neon Function) and the database schema
-- `shared/`: design system (`base.css`), login, icons and profile (`core.js`), networking (`net.js`), the chat every game uses (`chat.js`, `chat.css`), saving history (`records.js`), and card sounds (`sounds/`, CC0 from Kenney's Casino Audio)
+- `shared/`: design system (`base.css`), login, icons and profile (`core.js`), networking (`net.js`), the chat every game uses (`chat.js`, `chat.css`), saving history (`records.js`), sound clips player (`sound.js`), and card and menu sounds (`sounds/`, CC0 from Kenney)
 - `doodle.html`, `doodle/`: Doodle Duel (`logic.js` is the pure, tested part; `words.js` has the word packs)
 - `plusfour.html`, `plusfour/`: Plus Four (`rules.js` is the pure, tested part; `cards.js` draws the cards and moves them)
 - `ludo.html`, `ludo/`: Ludo (`rules.js` is the pure, tested part)

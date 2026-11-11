@@ -17,6 +17,11 @@ Everything goes into the Neon database through a small API (`api/`). Each player
 ## ✅ Done: home screen with levels, trophies and live history (12 Nov 2026)
 The home screen now shows your level (an ice-cream cone that gains a scoop each level), XP bar, wins and losses, the Revenge board (who bonked and bombed whom), your last 12 games and the trophy shelf. It checks the database every 20 seconds: a green "Live" light means saving works, and new games, trophies and level-ups pop in with confetti. Levels and achievements are worked out from the saved history (`api/progress.mjs`), and each trophy is stored with the time it unlocked.
 
+## ✅ Done: the home screen feels like a game (12 Nov 2026)
+A loading screen (scoops drop on a cone), then three screens you switch between like a game menu: **Play**, **Trophies** (flip-over medallions, NEW ribbons) and **Rivals** (versus cards and stamped match tickets). Your avatar cheers, sulks or flexes depending on what happened since you last looked, with a few quiet real sounds. Design notes: `docs/superpowers/specs/2026-11-12-home-redesign-design.md`.
+
+**If the scoreboard says offline on your Wi-Fi:** Edge or Chrome → Settings → Privacy → Use secure DNS → Cloudflare. (The JioFiber router's DNS sometimes can't find the database's address.)
+
 ## Levels and achievements (live now; the numbers below are what the code uses)
 
 ### Levels

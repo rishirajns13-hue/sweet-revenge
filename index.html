@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&family=Gaegu:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/base.css?v=7">
-  <link rel="stylesheet" href="hub/hub.css?v=10">
+  <link rel="stylesheet" href="hub/hub.css?v=11">
 </head>
 <body class="pal-sunset">
   <!-- Sweet Revenge logo: drawn once here, shown with <use href="#logo"> -->
@@ -67,120 +67,144 @@
       </form>
     </section>
 
-    <!-- HUB -->
+    <!-- LOADING: scoops drop onto a cone as each step finishes -->
+    <section id="screen-loading" class="screen loading" aria-live="polite">
+      <h1 class="brand"><svg viewBox="0 0 620 280" role="img" aria-label="Sweet Revenge"><use href="#logo"/></svg></h1>
+      <div class="load-cone" aria-hidden="true">
+        <svg viewBox="0 0 120 210">
+          <path d="M30 120L60 204L90 120z" fill="url(#waffle)" stroke="#2b2140" stroke-width="5" stroke-linejoin="round"/>
+          <g class="scoop s1"><circle cx="60" cy="112" r="30" fill="#ff71ce" stroke="#2b2140" stroke-width="5"/></g>
+          <g class="scoop s2"><circle cx="56" cy="80" r="28" fill="#7ee8d8" stroke="#2b2140" stroke-width="5"/></g>
+          <g class="scoop s3"><circle cx="62" cy="50" r="26" fill="#fff6e0" stroke="#2b2140" stroke-width="5"/>
+            <circle cx="66" cy="18" r="8" fill="#ff4d6d" stroke="#2b2140" stroke-width="4"/><path d="M68 11q4-9 12-10" fill="none" stroke="#2b2140" stroke-width="3.5" stroke-linecap="round"/></g>
+        </svg>
+      </div>
+      <ol class="load-steps">
+        <li data-step="1">Checking your login</li>
+        <li data-step="2">Connecting to the scoreboard</li>
+        <li data-step="3">Fetching your trophies</li>
+      </ol>
+      <div id="load-fail" class="card load-fail" role="alert" hidden>
+        <b>The scoreboard can't be reached from this Wi-Fi 📡</b>
+        <p>Your games still work, but wins, trophies and chat won't be saved until it connects.</p>
+        <p class="fix">Quick fix: in Edge or Chrome open <b>Settings → Privacy → Use secure DNS</b> and pick <b>Cloudflare</b>. Then try again.</p>
+        <div class="row"><button id="btn-retry" class="btn" type="button">Try again</button><button id="btn-anyway" class="btn cta" type="button">Play anyway</button></div>
+      </div>
+    </section>
+
+    <!-- HUB: three screens you switch between like a game menu -->
     <section id="screen-hub" class="screen hub">
-      <header class="hub-top">
-        <h1 class="brand small"><svg viewBox="0 0 620 280" role="img" aria-label="Sweet Revenge"><use href="#logo"/></svg></h1>
-        <button id="btn-me" class="avatar-btn" type="button" aria-label="Your profile and colours"><span id="me-avatar"></span></button>
+      <header class="topbar">
+        <a class="brand tiny" href="#play" aria-label="Sweet Revenge, back to Play"><svg viewBox="0 0 620 280" aria-hidden="true"><use href="#logo"/></svg></a>
+        <nav class="tabs" role="tablist" aria-label="Sections">
+          <button class="tab" role="tab" type="button" data-tab="play" aria-controls="tab-play"><span class="te" aria-hidden="true">🎮</span><span class="tl">Play</span><kbd>1</kbd></button>
+          <button class="tab" role="tab" type="button" data-tab="trophies" aria-controls="tab-trophies"><span class="te" aria-hidden="true">🏆</span><span class="tl">Trophies</span><kbd>2</kbd><b id="tab-badge" class="tab-badge" hidden></b></button>
+          <button class="tab" role="tab" type="button" data-tab="rivals" aria-controls="tab-rivals"><span class="te" aria-hidden="true">⚔️</span><span class="tl">Rivals</span><kbd>3</kbd></button>
+        </nav>
+        <div class="me-chip">
+          <div class="lvl" aria-label="Your level">
+            <span id="mini-cone" class="mini-cone" aria-hidden="true"></span>
+            <span class="lvl-txt"><b id="lvl-name">Lv –</b><span class="thin-xp" aria-hidden="true"><i id="mini-xp"></i></span></span>
+          </div>
+          <button id="btn-live" class="live-dot" type="button" data-state="checking" aria-haspopup="dialog" aria-controls="live-pop"><i aria-hidden="true"></i><span id="live-label">Checking</span></button>
+          <button id="btn-sound" class="icon-btn sm" type="button" aria-label="Sound on or off" data-icon="volume"></button>
+          <button id="btn-me" class="avatar-btn" type="button" aria-label="Your profile and colours"><span id="me-avatar" class="actor"></span></button>
+        </div>
+        <div id="live-pop" class="live-pop card" role="dialog" aria-label="Scoreboard status" hidden>
+          <b id="live-head"></b>
+          <p id="live-sub"></p>
+          <button id="btn-live-retry" class="btn" type="button" hidden>Try again</button>
+        </div>
       </header>
 
-      <div class="hub-grid">
-        <!-- you: level, record and whether the scoreboard (database) is live -->
-        <aside class="player card" aria-label="Your level and record">
-          <div class="who">
-            <div id="cone" class="cone" aria-hidden="true"></div>
-            <div class="who-txt">
-              <b id="p-name"></b>
-              <span id="p-title" class="title">Loading your level…</span>
-            </div>
+      <div class="panels">
+        <!-- PLAY -->
+        <section id="tab-play" class="panel play" role="tabpanel" aria-label="Play">
+          <div class="greet">
+            <span id="big-avatar" class="actor big" aria-hidden="true"></span>
+            <p id="hello" class="hello"></p>
           </div>
-          <div class="xp">
-            <div class="bar" role="progressbar" aria-label="XP to the next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="xp-fill"></i></div>
-            <small id="xp-text">&nbsp;</small>
-          </div>
-          <div class="record">
-            <div><b id="r-won">–</b><small>wins</small></div>
-            <div><b id="r-lost">–</b><small>losses</small></div>
-            <div><b id="r-played">–</b><small>games</small></div>
-          </div>
-          <div id="live" class="live" data-state="connecting" role="status">
-            <i class="dot" aria-hidden="true"></i>
-            <div><b id="live-head">Connecting to the scoreboard…</b><small id="live-sub">&nbsp;</small></div>
-          </div>
-        </aside>
-
-        <div class="hub-main">
-          <p id="hello" class="hello"></p>
           <a id="resume" class="resume-banner" hidden></a>
-
-          <div class="games">
-            <a class="game-card plusfour" href="plusfour.html">
-              <span class="badge-new">NEW</span>
-              <div class="art" aria-hidden="true">
-                <svg viewBox="0 0 240 150">
-                  <g transform="translate(64 84) rotate(-16)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#4d9de0"/><rect x="-15" y="-15" width="30" height="30" rx="8" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><text x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#4d9de0" stroke="#2b2140" stroke-width="1.5" paint-order="stroke">2</text></g>
-                  <g transform="translate(120 74) rotate(-2)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#ff5a5f"/><rect x="-15" y="-15" width="30" height="30" rx="8" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><text x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#ff5a5f" stroke="#2b2140" stroke-width="1.5" paint-order="stroke">7</text></g>
-                  <g transform="translate(176 84) rotate(14)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#2b2140"/><g stroke="#2b2140" stroke-width="2"><rect x="-19" y="-10" width="14" height="20" rx="3" fill="#4d9de0" transform="rotate(-14)"/><rect x="-9" y="-12" width="14" height="20" rx="3" fill="#2bc48a" transform="rotate(-4)"/><rect x="1" y="-12" width="14" height="20" rx="3" fill="#ffc233" transform="rotate(6)"/><rect x="10" y="-10" width="14" height="20" rx="3" fill="#ff5a5f" transform="rotate(16)"/></g><text x="-20" y="-25" font-family="Fredoka, sans-serif" font-weight="700" font-size="12" fill="#fff">+4</text></g>
-                </svg>
-                <span class="g a">OUCH!</span>
-              </div>
-              <div class="txt">
-                <h2>Plus Four</h2>
-                <p>Match colours, stack +4s, and never forget to shout Ouch.</p>
-                <span class="meta" data-kind="plusfour">2–4 players · about 10 minutes · the mean one</span>
-              </div>
-              <span class="play">Play</span>
-            </a>
-            <a class="game-card doodle" href="doodle.html">
-              <div class="art" aria-hidden="true">
-                <svg viewBox="0 0 240 150"><path d="M40 115c6-46 28-78 56-70s6 48 32 52 30-40 52-30 16 38 24 28" fill="none" stroke="#2b2140" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="62" r="5" fill="#2b2140"/><circle cx="100" cy="58" r="5" fill="#2b2140"/></svg>
-                <span class="g a">a dragon?</span><span class="g b">MY UNCLE</span><span class="g c">soup 🍜</span>
-              </div>
-              <div class="txt">
-                <h2>Doodle Duel</h2>
-                <p>Draw badly. Guess wildly. Everyone sees every wrong guess.</p>
-                <span class="meta" data-kind="doodle">2–4 players · about 5 minutes · the quick one</span>
-              </div>
-              <span class="play">Play</span>
-            </a>
-            <a class="game-card ludo" href="ludo.html">
-              <div class="art" aria-hidden="true">
-                <div class="mini-board"><i></i><i></i><i></i><i></i><b></b></div>
-              </div>
-              <div class="txt">
-                <h2>Ludo</h2>
-                <p>Roll, race and bonk each other all the way home.</p>
-                <span class="meta" data-kind="ludo">2–4 players · 20–40 minutes · the long one</span>
-              </div>
-              <span class="play">Play</span>
-            </a>
-          </div>
-
-          <div class="join card">
-            <b>Got a code from a friend?</b>
+            <div class="games">
+              <a class="game-card plusfour" href="plusfour.html" data-wipe="#6a4dd8">
+                <span class="badge-new">NEW</span>
+                <div class="art" aria-hidden="true">
+                  <svg viewBox="0 0 240 150">
+                    <g transform="translate(64 84) rotate(-16)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#4d9de0"/><rect x="-15" y="-15" width="30" height="30" rx="8" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><text x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#4d9de0" stroke="#2b2140" stroke-width="1.5" paint-order="stroke">2</text></g>
+                    <g transform="translate(120 74) rotate(-2)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#ff5a5f"/><rect x="-15" y="-15" width="30" height="30" rx="8" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><text x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#ff5a5f" stroke="#2b2140" stroke-width="1.5" paint-order="stroke">7</text></g>
+                    <g transform="translate(176 84) rotate(14)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#2b2140"/><g stroke="#2b2140" stroke-width="2"><rect x="-19" y="-10" width="14" height="20" rx="3" fill="#4d9de0" transform="rotate(-14)"/><rect x="-9" y="-12" width="14" height="20" rx="3" fill="#2bc48a" transform="rotate(-4)"/><rect x="1" y="-12" width="14" height="20" rx="3" fill="#ffc233" transform="rotate(6)"/><rect x="10" y="-10" width="14" height="20" rx="3" fill="#ff5a5f" transform="rotate(16)"/></g><text x="-20" y="-25" font-family="Fredoka, sans-serif" font-weight="700" font-size="12" fill="#fff">+4</text></g>
+                  </svg>
+                  <span class="g a">OUCH!</span>
+                </div>
+                <div class="txt">
+                  <h2>Plus Four</h2>
+                  <p>Match colours, stack +4s, and never forget to shout Ouch.</p>
+                  <span class="meta" data-kind="plusfour">2–4 players · about 10 minutes · the mean one</span>
+                </div>
+                <span class="play">Play</span>
+              </a>
+              <a class="game-card doodle" href="doodle.html" data-wipe="#ffc233">
+                <div class="art" aria-hidden="true">
+                  <svg viewBox="0 0 240 150"><path d="M40 115c6-46 28-78 56-70s6 48 32 52 30-40 52-30 16 38 24 28" fill="none" stroke="#2b2140" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="62" r="5" fill="#2b2140"/><circle cx="100" cy="58" r="5" fill="#2b2140"/></svg>
+                  <span class="g a">a dragon?</span><span class="g b">MY UNCLE</span><span class="g c">soup 🍜</span>
+                </div>
+                <div class="txt">
+                  <h2>Doodle Duel</h2>
+                  <p>Draw badly. Guess wildly. Everyone sees every wrong guess.</p>
+                  <span class="meta" data-kind="doodle">2–4 players · about 5 minutes · the quick one</span>
+                </div>
+                <span class="play">Play</span>
+              </a>
+              <a class="game-card ludo" href="ludo.html" data-wipe="#2bc48a">
+                <div class="art" aria-hidden="true">
+                  <div class="mini-board"><i></i><i></i><i></i><i></i><b></b></div>
+                </div>
+                <div class="txt">
+                  <h2>Ludo</h2>
+                  <p>Roll, race and bonk each other all the way home.</p>
+                  <span class="meta" data-kind="ludo">2–4 players · 20–40 minutes · the long one</span>
+                </div>
+                <span class="play">Play</span>
+              </a>
+            </div>
+          <div class="join ticket-join">
+            <b>Got a code?</b>
             <div class="join-row">
               <input id="join-code" placeholder="Room code" aria-label="Room code" maxlength="6" autocomplete="off" spellcheck="false">
               <button id="btn-join" class="btn cta" type="button">Join</button>
             </div>
-            <p id="hub-error" class="error" role="alert"></p>
+            <p id="hub-error" class="error light" role="alert"></p>
           </div>
+        </section>
 
-          <div class="boards">
-            <section class="card board revenge" aria-labelledby="revenge-h">
-              <h2 id="revenge-h">Revenge board</h2>
-              <p class="sub">Who bonked and bombed whom, all time.</p>
-              <div id="revenge" class="rows"></div>
-            </section>
-            <section class="card board history" aria-labelledby="history-h">
-              <h2 id="history-h">Match history</h2>
-              <p class="sub">Your last 12 games, newest first.</p>
-              <ol id="history" class="rows"></ol>
-            </section>
-          </div>
-
-          <section class="card board trophies" aria-labelledby="trophy-h">
-            <h2 id="trophy-h">Trophy shelf <small id="trophy-count"></small></h2>
-            <div id="trophies" class="shelf"></div>
-          </section>
-
-          <div class="soon">
-            <h3>In the oven 🍳</h3>
-            <div class="soon-list">
-              <div class="soon-card"><span>🐍</span><b>Snakes &amp; Ladders</b><small>Climb, slide, scream. Coming next.</small></div>
+        <!-- TROPHIES -->
+        <section id="tab-trophies" class="panel trophies" role="tabpanel" aria-label="Trophies" hidden>
+          <div class="level-card card">
+            <div id="big-cone" class="big-cone" aria-hidden="true"></div>
+            <div class="level-txt">
+              <span class="lv-num" id="lv-num">Level –</span>
+              <h2 id="lv-title">Loading…</h2>
+              <div class="xp-bar" role="progressbar" aria-label="XP to the next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="xp-fill"></i><span id="xp-num"></span></div>
+              <p id="xp-text" class="sub"></p>
             </div>
           </div>
-        </div>
+          <h2 class="shelf-title">Trophy shelf <small id="trophy-count"></small></h2>
+          <div id="trophies" class="shelf"></div>
+        </section>
+
+        <!-- RIVALS & HISTORY -->
+        <section id="tab-rivals" class="panel rivals" role="tabpanel" aria-label="Rivals and history" hidden>
+          <div class="col">
+            <h2 class="col-title">Rivals</h2>
+            <div id="revenge" class="versus-list"></div>
+          </div>
+          <div class="col">
+            <h2 class="col-title">Match history</h2>
+            <ol id="history" class="tickets"></ol>
+          </div>
+        </section>
       </div>
+      <div id="wipe" class="wipe" aria-hidden="true"></div>
     </section>
   </main>
 
@@ -202,6 +226,7 @@
 
   <script src="shared/core.js?v=7"></script>
   <script src="shared/records.js?v=2"></script>
-  <script src="hub/hub.js?v=10"></script>
+  <script src="shared/sound.js?v=1"></script>
+  <script src="hub/hub.js?v=11"></script>
 </body>
 </html>

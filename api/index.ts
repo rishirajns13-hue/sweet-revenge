@@ -146,6 +146,7 @@ app.post('/game', authed(async (c, me, b) => {
 const MINE = "players @> jsonb_build_array(jsonb_build_object('id', $1::text))";
 app.post('/me', authed(async (c, me) => {
   const q = (sql: string, args: unknown[] = [me.id]) => pool.query(sql, args).then((r) => r.rows);
+  await seen(pool, [me]); // so a visit shows up as players.last_seen, even before any game is saved
   const [games, myHits, bonked, revenge, chats, rivalry, saved, stored] = await Promise.all([
     q(`select id, kind, room, practice, started_at, ended_at, winners, players, stats -> $1 as mine from games where ${MINE} order by ended_at`),
     q(`select game_id, kind, count(*)::int as n, coalesce(sum(cards), 0)::int as cards, max(cards)::int as biggest
