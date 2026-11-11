@@ -17,8 +17,8 @@
   transform: scale(0); transition: transform .18s cubic-bezier(.3, 1.5, .5, 1); pointer-events: none; touch-action: none;
 }
 .wheel.open { transform: scale(1); pointer-events: auto; }
-.wheel button { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px; border: 0; background: none; border-radius: 50%; font-size: 28px; padding: 0; transition: transform .1s, background .1s; }
-.wheel button.hot, .wheel button:hover { background: var(--yellow); transform: var(--at) scale(1.2); }
+.wheel button { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px; border: 2.5px solid transparent; background: none; border-radius: 50%; font-size: 28px; padding: 0; transition: transform .18s cubic-bezier(.3, 1.6, .5, 1), background .1s, border-color .1s; }
+.wheel button.hot, .wheel button:hover { background: var(--yellow); border-color: var(--ink); box-shadow: 2px 3px 0 var(--ink); transform: var(--at) scale(1.25) rotate(-8deg); }
 .wheel em { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; font-family: var(--body); font-size: 12px; font-weight: 800; color: var(--muted); text-align: center; line-height: 1.2; pointer-events: none; }
 
 /* ---------- the chat sheet ---------- */

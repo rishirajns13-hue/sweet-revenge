@@ -232,12 +232,25 @@ button.seat { font-family: inherit; color: inherit; }
 #fx { position: fixed; inset: 0; pointer-events: none; z-index: 150; overflow: hidden; }
 .confetti { position: absolute; width: 10px; height: 14px; border-radius: 3px; animation: confetti 1.3s cubic-bezier(.2, .7, .4, 1) forwards; }
 @keyframes confetti { to { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; } }
-.float-emoji { position: absolute; font-size: 44px; animation: float-up 1.8s ease-out forwards; }
-@keyframes float-up {
-  0% { transform: translate(-50%, 0) scale(.4); opacity: 0; }
-  15% { transform: translate(-50%, -20px) scale(1.3); opacity: 1; }
-  100% { transform: translate(calc(-50% + var(--dx)), -180px) scale(1); opacity: 0; }
+/* reactions: a sticker coin that pops with a burst ring and wobbles up */
+.float-emoji {
+  position: absolute; width: 64px; height: 64px; display: grid; place-items: center; font-size: 36px; line-height: 1;
+  border-radius: 50%; background: #fff; border: 3px solid var(--ink); box-shadow: 3px 4px 0 var(--ink);
+  animation: float-up 1.9s cubic-bezier(.2, .7, .3, 1) forwards;
 }
+.float-emoji::before {
+  content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 4px dashed var(--yellow);
+  animation: burst .55s ease-out forwards;
+}
+@keyframes burst { from { transform: scale(.6) rotate(0); opacity: 1; } to { transform: scale(1.9) rotate(40deg); opacity: 0; } }
+@keyframes float-up {
+  0% { transform: translate(-50%, 0) scale(.3) rotate(-20deg); opacity: 0; }
+  14% { transform: translate(-50%, -26px) scale(1.25) rotate(8deg); opacity: 1; }
+  30% { transform: translate(calc(-50% + var(--dx) * .3), -60px) scale(1) rotate(-6deg); }
+  55% { transform: translate(calc(-50% + var(--dx) * .6), -110px) rotate(5deg); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), -190px) scale(.9) rotate(-4deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .float-emoji, .float-emoji::before { animation-duration: .01s; } }
 .bubble {
   position: absolute; z-index: 5; max-width: min(240px, 70vw); padding: 6px 12px; border-radius: 14px; background: #fff; border: 2.5px solid var(--ink);
   box-shadow: 2px 2px 0 var(--ink); font-family: var(--body); font-weight: 800; font-size: 14px; line-height: 1.3; overflow-wrap: anywhere;
