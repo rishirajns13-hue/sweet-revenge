@@ -8,7 +8,9 @@
   --blue: #4d9de0;
   --shadow: 4px 4px 0 var(--ink);
   --display: 'Fredoka', 'Trebuchet MS', system-ui, sans-serif;
-  --body: 'Nunito', system-ui, sans-serif;
+  --body: 'Baloo 2', 'Nunito', system-ui, sans-serif;
+  /* titles and big moments: a chunky game-poster face */
+  --title: 'Lilita One', 'Fredoka', system-ui, sans-serif;
 }
 /* Colour palettes, picked in the profile sheet */
 .pal-sunset { --bg: linear-gradient(160deg, #8f6bff 0%, #ff6fb5 55%, #ffb36b 100%); --cta: #ff5a5f; --cta-ink: #fff; --focus: #8f6bff; }
@@ -197,7 +199,8 @@ button.seat { font-family: inherit; color: inherit; }
 .me-body { padding: 4px 18px 20px; display: grid; gap: 10px; overflow-y: auto; }
 .me-body h3 { margin: 6px 0 0; font-family: var(--body); font-size: 14px; font-weight: 800; color: var(--muted); }
 .avatars { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
-.avatars button { aspect-ratio: 1; border-radius: 50%; border: 3px solid var(--ink); background: #fff; font-size: 26px; padding: 0; display: grid; place-items: center; }
+.avatars button { aspect-ratio: 1; border-radius: 50%; border: 3px solid var(--ink); background: #fff; font-size: 40px; padding: 0; display: grid; place-items: center; overflow: hidden; transition: transform .25s cubic-bezier(.3,1.6,.5,1); }
+.avatars button:hover { transform: rotate(-8deg) scale(1.08); }
 .avatars button[aria-pressed="true"] { background: var(--yellow); box-shadow: 2px 2px 0 var(--ink); }
 .palettes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .palettes button { display: grid; gap: 6px; justify-items: center; padding: 8px 4px; border: 3px solid transparent; border-radius: 18px; background: #fff; font-weight: 600; font-size: 15px; }
@@ -255,3 +258,35 @@ button.seat { font-family: inherit; color: inherit; }
   .logo span, .btn.resume { animation: none; }
   .screen.active, .sheet, .overlay { animation: none; }
 }
+
+/* ---------- type: chunky titles, friendly body ---------- */
+h1, h2, h3, .hello, .shelf-title, .col-title, .tab .tl, .game-card h2, .lv-title { font-family: var(--title); font-weight: 400; letter-spacing: .4px; }
+
+/* ---------- avatars (shared/avatars.js): sticker critters sized by font-size ---------- */
+.av-art { display: inline-block; width: 1em; height: 1em; line-height: 0; vertical-align: middle; }
+.av-art svg { width: 100%; height: 100%; overflow: visible; }
+.av-art .av-eyes { transform-box: fill-box; transform-origin: center; animation: av-blink 5s infinite; animation-delay: var(--blink, 0s); }
+@keyframes av-blink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+@media (prefers-reduced-motion: reduce) { .av-art .av-eyes { animation: none; } }
+.avatar-btn { font-size: 40px; overflow: hidden; }
+
+/* ---------- rewards strip on end screens (shared/rewards.js) ---------- */
+.rewards { display: grid; gap: 8px; width: 100%; max-width: 520px; margin: 10px auto 0; padding: 14px 16px; border: 3px solid var(--ink); border-radius: 20px; background: #fff6cf; box-shadow: 4px 5px 0 var(--ink); color: var(--ink); text-align: left; animation: pop-in .4s cubic-bezier(.3, 1.6, .5, 1); }
+.rw-wait { display: flex; align-items: center; gap: 10px; font-family: var(--body); font-weight: 800; color: var(--muted); }
+.rw-spin { display: inline-block; font-size: 22px; animation: rw-spin 1s cubic-bezier(.5, 0, .5, 1) infinite; }
+@keyframes rw-spin { 50% { transform: rotate(20deg) translateY(-3px); } }
+.rw-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.rw-xp { font-family: var(--title); font-weight: 400; font-size: 34px; line-height: 1; color: var(--red); -webkit-text-stroke: 1.5px var(--ink); animation: rw-pop .6s cubic-bezier(.3, 1.8, .5, 1); }
+@keyframes rw-pop { 0% { transform: scale(.3) rotate(-10deg); opacity: 0; } }
+.rw-lv { font-family: var(--body); font-weight: 800; color: var(--muted); }
+.rw-up { padding: 2px 10px; border-radius: 10px; background: var(--ink); color: #fff; font-weight: 600; animation: rw-pop .6s .3s cubic-bezier(.3, 1.8, .5, 1) both; }
+.rw-bar { height: 18px; border: 3px solid var(--ink); border-radius: 999px; overflow: hidden; background: #fff; }
+.rw-bar i { display: block; height: 100%; background: repeating-linear-gradient(-45deg, #ff71ce 0 10px, #ff9ad9 10px 20px); transition: width 1.2s .3s cubic-bezier(.2, .8, .2, 1); }
+.rw-next { font-family: var(--body); font-weight: 700; color: var(--muted); }
+.rw-trophies { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.rw-trophy { display: grid; justify-items: center; gap: 2px; padding: 8px 10px; min-width: 110px; border: 3px solid var(--ink); border-radius: 16px; background: #fff; text-align: center; animation: rw-trophy .7s var(--d, .6s) cubic-bezier(.3, 1.8, .5, 1) both; }
+.rw-medal { width: 54px; height: 54px; display: grid; place-items: center; font-size: 28px; border-radius: 50%; border: 3px solid var(--ink); background: radial-gradient(circle at 35% 30%, #fff 0 20%, #ffe17a 21% 60%, #ffc233 61%); }
+.rw-trophy b { font-size: 14px; line-height: 1.1; }
+.rw-trophy small { font-family: var(--body); font-weight: 800; font-size: 11px; color: var(--muted); }
+@keyframes rw-trophy { 0% { transform: scale(0) rotate(-20deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .rewards, .rw-xp, .rw-up, .rw-trophy, .rw-spin { animation: none; } .rw-bar i { transition: none; } }

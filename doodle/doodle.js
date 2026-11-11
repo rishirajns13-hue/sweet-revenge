@@ -173,7 +173,7 @@ function goHome(error = '') {
 }
 function leaveToHome() { store.del('doodle-lastroom'); goHome(); }
 function renderHomeBits() {
-  if (me) $('#me-avatar').textContent = myAvatar();
+  if (me) setAvatar($('#me-avatar'), myAvatar());
   const last = store.get('doodle-lastroom', null), fresh = last && Date.now() - last.at < 2 * 3600e3;
   $('#btn-resume').hidden = !fresh;
   if (fresh) $('#resume-code').textContent = last.code;
@@ -198,7 +198,7 @@ function renderRoom(p) {
   for (let i = 0; i < 4; i++) {
     const s = p.seats[i];
     html += s
-      ? `<div class="seat" style="--c:${SEAT_COLORS[i]}"><span class="av">${s.avatar}</span><span class="nm">${escapeHtml(s.name)}${s.name === me.name ? ' (you)' : ''}</span><span class="st">${i === 0 ? 'Host' : `${ic('check')}Joined`}</span></div>`
+      ? `<div class="seat" style="--c:${SEAT_COLORS[i]}"><span class="av">${avatarHTML(s.avatar)}</span><span class="nm">${escapeHtml(s.name)}${s.name === me.name ? ' (you)' : ''}</span><span class="st">${i === 0 ? 'Host' : `${ic('check')}Joined`}</span></div>`
       : `<div class="seat empty"><span class="av"></span><span class="nm">${i === n ? 'Waiting for a friend…' : 'Open seat'}</span></div>`;
   }
   $('#seats').innerHTML = html;
@@ -652,7 +652,7 @@ function renderPlayers() {
     const got = v.guessed.some((g) => g.k === p.k), drawing = v.drawer === p.k && v.phase !== 'reveal';
     const off = (v.offline || []).includes(p.k);
     return `<li class="pl ${got ? 'got' : ''} ${drawing ? 'drawing' : ''} ${off ? 'off' : ''}" data-k="${p.k}" style="--c:${SEAT_COLORS[i]}">
-      <span class="av">${p.avatar}${v.scores[p.k] === leader && leader > 0 ? `<i class="crown">${ic('crown')}</i>` : ''}</span>
+      <span class="av">${avatarHTML(p.avatar)}${v.scores[p.k] === leader && leader > 0 ? `<i class="crown">${ic('crown')}</i>` : ''}</span>
       <span class="nm">${escapeHtml(firstName(p.name))}${p.k === myK ? ' (you)' : ''}</span>
       <span class="tag">${drawing ? `${ic('pencil')}drawing` : got ? `${ic('check')}got it` : off ? 'away' : ''}</span>
       <b class="pts">${v.scores[p.k]}</b></li>`;
@@ -842,8 +842,9 @@ function renderEnd() {
     stats: Object.fromEntries(v.players.map((p) => [p.name, (v.stats || {})[p.k] || {}])),
     hits: [],
   });
+  if (typeof showRewards === 'function') showRewards($('#awards').parentElement, v.gid); // +XP and new trophies on the end screen
   $('#podium').innerHTML = ranked.map((p, i) => `<div class="pod p${i + 1}" style="--c:${SEAT_COLORS[v.players.indexOf(p)]}">
-    <span class="medal">${medal[i]}</span><span class="av">${p.avatar}</span><b>${escapeHtml(firstName(p.name))}</b><span class="pts">${v.scores[p.k]}</span></div>`).join('');
+    <span class="medal">${medal[i]}</span><span class="av">${avatarHTML(p.avatar)}</span><b>${escapeHtml(firstName(p.name))}</b><span class="pts">${v.scores[p.k]}</span></div>`).join('');
   $('#awards').innerHTML = (v.awards || []).map((a) => `<div class="award"><span class="icon">${a.icon}</span><div><b>${escapeHtml(a.title)}</b><span>${escapeHtml(a.who)}</span><small>${escapeHtml(a.why)}</small></div></div>`).join('');
   $('#gallery').innerHTML = (v.gallery || []).map((g) => {
     const img = localGallery[g.round];
@@ -867,7 +868,7 @@ function renderEnd() {
 const chat = createChat({
   send: (m) => sendSocial(m),
   game: 'doodle', room: () => roomCode || null,
-  players: () => (view ? view.players.map((p, i) => ({ k: p.k, name: p.name, color: SEAT_COLORS[i] })) : []),
+  players: () => (view ? view.players.map((p, i) => ({ k: p.k, name: p.name, color: SEAT_COLORS[i], avatar: p.avatar })) : []),
   me: () => myK,
   anchor: (k) => document.querySelector(`#players li[data-k="${k}"]`),
   stage: () => $('#canvas-wrap'),

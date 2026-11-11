@@ -21,11 +21,12 @@ const CHAT_STICKERS = {
    dockAt         on screens at least this wide the chat is docked beside the game (0 = never)
    routeText(t)   return true if the game used this text itself, e.g. as a guess (optional)
    sound(kind)    'in' for someone else's message, 'out' for yours (optional)
+   players() may also give each player's `avatar`, drawn beside their messages
    game           'ludo' | 'plusfour' | 'doodle': typed messages and stickers are saved under it
    room()         the room code they're saved with (optional) */
 function createChat(opts) {
   const o = { stickers: CHAT_STICKERS, dockAt: 0, sound() {}, anchor() { return null; }, stage() { return null; }, room() { return null; }, ...opts };
-  const COOLDOWN = { chat: 0, react: 500, sticker: 2500, voice: 0 };
+  const COOLDOWN = { chat: 0, react: 500, sticker: 2500, voice: 0, typing: 2500 };
   const lastSent = {};
   let unread = 0, inGame = false;
 
@@ -55,13 +56,38 @@ function createChat(opts) {
     unread = n;
     document.querySelectorAll('.chat-unread').forEach((b) => { b.hidden = !n; b.textContent = n > 9 ? '9+' : n; });
   }
+  const avatarOfK = (k) => { const p = o.players().find((x) => x.k === k); return p && p.avatar; };
+  // Each message sits in a row with the sender's critter; a run of messages from one sender shows it once.
   function addMsg(html, cls, k) {
     msgs.querySelector('.empty')?.remove();
-    msgs.insertAdjacentHTML('beforeend', `<div class="m ${cls}" style="--c:${k ? colorOf(k) : 'var(--red)'}">${html}</div>`);
+    hideTyping(k);
+    if (!k) {
+      msgs.insertAdjacentHTML('beforeend', `<div class="m ${cls}">${html}</div>`);
+    } else {
+      const last = msgs.lastElementChild, cont = !!(last && last.dataset.k === k);
+      const av = avatarOfK(k), art = av && typeof avatarHTML === 'function' ? avatarHTML(av, cls.includes('me') ? 'happy' : 'happy') : '';
+      msgs.insertAdjacentHTML('beforeend', `<div class="m-row ${cls.split(' ')[0]}${cont ? ' cont' : ''}" data-k="${k}" style="--c:${colorOf(k)}">
+        <span class="m-av" aria-hidden="true">${cont ? '' : art}</span><div class="m ${cls}" style="--c:${colorOf(k)}">${html}</div></div>`);
+    }
     while (msgs.children.length > 80) msgs.firstElementChild.remove();
     msgs.scrollTop = msgs.scrollHeight;
-    return msgs.lastElementChild;
+    const row = msgs.lastElementChild;
+    return row.classList.contains('m') ? row : row.querySelector('.m');
   }
+  // "Kunju is typing…" at the bottom of the chat, gone after a few seconds of quiet.
+  const typingTimers = {};
+  function showTyping(k) {
+    let el = msgs.querySelector(`.typing[data-k="${k}"]`);
+    if (!el) {
+      msgs.querySelector('.empty')?.remove();
+      msgs.insertAdjacentHTML('beforeend', `<div class="typing" data-k="${k}" style="--c:${colorOf(k)}">${escapeHtml(nameOf(k))} is typing<span class="dots"><i></i><i></i><i></i></span></div>`);
+      el = msgs.lastElementChild;
+      msgs.scrollTop = msgs.scrollHeight;
+    } else msgs.appendChild(el);
+    clearTimeout(typingTimers[k]);
+    typingTimers[k] = setTimeout(() => hideTyping(k), 4000);
+  }
+  function hideTyping(k) { if (k) msgs.querySelector(`.typing[data-k="${k}"]`)?.remove(); }
   function open(focus = false) {
     sheet.hidden = false;
     setUnread(0);
@@ -118,6 +144,7 @@ function createChat(opts) {
   // Check and show a social message. `mine` is true for messages this device sent.
   function receive(m, mine = false) {
     if (!m || !o.players().some((p) => p.k === m.from)) return false;
+    if (m.t === 'typing') { if (!mine) showTyping(m.from); return true; } // no sound, no unread
     const who = mine ? '' : `<small>${escapeHtml(nameOf(m.from))}</small>`, cls = mine ? 'me' : 'them';
     if (m.t === 'chat' && typeof m.text === 'string' && m.text.trim() && m.text.length <= 300) {
       addMsg(who + escapeHtml(m.text), cls, m.from);
@@ -148,7 +175,8 @@ function createChat(opts) {
     lastSent[m.t] = now;
     m.from = o.me();
     if (!receive(m, true)) return;
-    o.sound('out'); o.send(m);
+    if (m.t !== 'typing') o.sound('out');
+    o.send(m);
     // Keep typed messages and stickers (never voice notes or reactions) in the chat history.
     if (o.game && typeof records !== 'undefined' && (m.t === 'chat' || m.t === 'sticker')) {
       records.chat(o.game, o.room(), m.t, m.t === 'chat' ? m.text : o.stickers[m.id][0]);
@@ -279,6 +307,8 @@ function createChat(opts) {
     if (!b) return;
     if (b.dataset.sticker) emit({ t: 'sticker', id: b.dataset.sticker }); else emit({ t: 'chat', text: b.dataset.text });
   });
+  // Let the others see you're typing (at most every few seconds).
+  input.addEventListener('input', () => { if (input.value.trim()) emit({ t: 'typing' }); });
   sheet.querySelector('.compose').addEventListener('submit', (e) => {
     e.preventDefault();
     const text = input.value.trim().slice(0, 300);

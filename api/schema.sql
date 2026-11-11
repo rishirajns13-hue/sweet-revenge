@@ -14,7 +14,7 @@ create table if not exists players (
 -- result and only the first copy is kept.
 create table if not exists games (
   id          text primary key,
-  kind        text not null check (kind in ('ludo', 'plusfour', 'doodle')),
+  kind        text not null,
   room        text,                          -- room code, null for practice
   practice    boolean not null default false,
   started_at  timestamptz,
@@ -31,7 +31,7 @@ create index if not exists games_winners_idx on games using gin (winners);
 create table if not exists hits (
   id          bigserial primary key,
   game_id     text not null references games(id) on delete cascade,
-  kind        text not null check (kind in ('bonk', 'bomb')),
+  kind        text not null,
   by_player   text not null,
   to_player   text not null,
   cards       integer,                       -- bombs: how many cards the pile was
@@ -65,3 +65,10 @@ create table if not exists achievements (
 create or replace view rivalry as
   select kind, by_player, to_player, count(*)::int as times, coalesce(sum(cards), 0)::int as cards
   from hits group by kind, by_player, to_player;
+
+-- Allowed game and hit kinds. Kept as named constraints so new games only need these two lines changed.
+-- (Re-running is safe: each is dropped and added again.)
+alter table games drop constraint if exists games_kind_check;
+alter table games add constraint games_kind_check check (kind in ('ludo', 'plusfour', 'doodle', 'snakes', 'race'));
+alter table hits drop constraint if exists hits_kind_check;
+alter table hits add constraint hits_kind_check check (kind in ('bonk', 'bomb', 'splat'));

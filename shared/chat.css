@@ -40,6 +40,30 @@
 .m.sticker { border: 0; background: none; padding: 0; }
 .m.sticker span { display: inline-block; }
 .m.sys { align-self: center; border: 0; background: none; padding: 2px 8px; font-size: 13px; color: var(--muted); }
+
+/* message rows: the sender's critter beside comic speech bubbles */
+.m-row { display: flex; align-items: flex-end; gap: 6px; max-width: 88%; }
+.m-row.them { align-self: flex-start; }
+.m-row.me { align-self: flex-end; flex-direction: row-reverse; }
+.m-row .m { max-width: 100%; position: relative; box-shadow: 2px 3px 0 var(--ink); }
+.m-row.cont { margin-top: -2px; }
+.m-av { flex: none; width: 30px; height: 30px; font-size: 30px; line-height: 0; }
+.m-row.me .m-av { display: none; }
+.m-row.them:not(.cont) .m:not(.sticker)::before {
+  content: ''; position: absolute; left: -9px; bottom: 6px; width: 12px; height: 12px; background: inherit;
+  border-left: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: skewX(30deg) rotate(10deg); border-radius: 0 0 0 3px;
+}
+.m-row .m.sticker { box-shadow: none; }
+.m-row.them .m.sticker { rotate: -3deg; }
+.m-row.me .m.sticker { rotate: 3deg; }
+.m.them small { font-family: var(--title); font-size: 12px; letter-spacing: .3px; color: var(--ink); opacity: .75; }
+.typing { align-self: flex-start; display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #ffffffcc; border: 2px dashed var(--c, var(--ink)); font-size: 13px; color: var(--muted); animation: msg-in .22s cubic-bezier(.3, 1.4, .5, 1); }
+.typing .dots { display: inline-flex; gap: 3px; }
+.typing .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--c, var(--ink)); animation: typing-dot 1s infinite; }
+.typing .dots i:nth-child(2) { animation-delay: .15s; }
+.typing .dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes typing-dot { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-4px); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .typing .dots i { animation: none; } }
 @keyframes msg-in { from { transform: translateY(8px) scale(.94); opacity: 0; } }
 .sticker-art {
   font-family: var(--display); font-weight: 700; font-size: 22px; padding: 6px 14px; border-radius: 14px; color: var(--ink);

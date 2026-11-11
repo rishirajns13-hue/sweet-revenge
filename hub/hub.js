@@ -6,8 +6,8 @@
    - Everything comes from the database (shared/records.js) and refreshes every 20 seconds.
    Needs shared/core.js, shared/records.js and shared/sound.js. */
 
-const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html' }[code[0]] || 'ludo.html');
-const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'] };
+const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html', R: 'race.html' }[code[0]] || 'ludo.html');
+const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'], race: ['🏎️', 'Sugar Rush'] };
 const LEVEL_NAMES = ['Sprinkle', 'Single Scoop', 'Double Scoop', 'Waffle Cone', 'Sundae', 'Banana Split', 'Brain Freeze', 'Sweet Revenge Royalty'];
 const TABS = ['play', 'trophies', 'rivals'];
 const POLL_MS = 20000;
@@ -73,12 +73,15 @@ function coneSVG(level) {
 
 /* ================= avatar reactions ================= */
 // state: 'cheer' | 'sulk' | 'flex' | 'smug' | 'sweat'. One-off states clear themselves.
+// The critter's face changes with the mood too (shared/avatars.js), then goes back to happy.
+const FACE = { cheer: 'cheer', sulk: 'sulk', flex: 'cheer', smug: 'smug', sweat: 'sweat' };
 function react(el, state, ms = 2400) {
   if (!el) return;
   el.classList.remove('cheer', 'sulk', 'flex', 'smug', 'sweat', 'saying');
   void el.offsetWidth;
   el.classList.add(state, 'saying');
-  if (ms) setTimeout(() => el.classList.remove(state, 'saying'), ms);
+  if (el.dataset.av) setAvatar(el, el.dataset.av, FACE[state] || 'happy');
+  if (ms) setTimeout(() => { el.classList.remove(state, 'saying'); if (el.dataset.av) setAvatar(el, el.dataset.av); }, ms);
 }
 const reactMe = (state) => { react($('#big-avatar'), state); react($('#me-avatar'), state); };
 
@@ -119,7 +122,7 @@ async function boot({ full = false } = {}) {
 // Room links and "send me back to the game I came from" skip the menu entirely.
 function routeAway() {
   const q = new URLSearchParams(location.search), next = q.get('next');
-  if (next && /^(ludo|doodle|plusfour)\.html$/.test(next)) {
+  if (next && /^(ludo|doodle|plusfour|snakes|race)\.html$/.test(next)) {
     q.delete('next');
     location.replace(next + (q.toString() ? '?' + q : ''));
     return false;
@@ -179,8 +182,8 @@ document.addEventListener('keydown', (e) => {
 
 /* ================= PLAY ================= */
 function renderMe() {
-  $('#me-avatar').textContent = myAvatar();
-  $('#big-avatar').textContent = myAvatar();
+  setAvatar($('#me-avatar'), myAvatar());
+  setAvatar($('#big-avatar'), myAvatar());
   const first = me.name.split(' ').pop(), hour = new Date().getHours();
   const greet = hour < 5 ? 'Still awake' : hour < 12 ? 'Good morning' : hour < 17 ? 'Hey' : hour < 22 ? 'Evening' : 'Late night games';
   $('#hello').textContent = `${greet}, ${first}! What are we playing?`;
@@ -299,12 +302,13 @@ function renderRivals(p) {
   const rivals = new Map();
   for (const r of p.rivalry) {
     const mine = r.by_player === p.me.id, id = mine ? r.to_player : r.by_player;
-    const e = rivals.get(id) || { id, name: mine ? r.to_name : r.by_name, bonk: [0, 0], bomb: [0, 0], cards: [0, 0] };
+    const e = rivals.get(id) || { id, name: mine ? r.to_name : r.by_name, bonk: [0, 0], bomb: [0, 0], splat: [0, 0], cards: [0, 0] };
+    if (!e[r.kind]) continue;
     e[r.kind][mine ? 0 : 1] += r.times;
     if (r.kind === 'bomb') e.cards[mine ? 0 : 1] += r.cards;
     rivals.set(id, e);
   }
-  const total = (e) => e.bonk[0] + e.bonk[1] + e.bomb[0] + e.bomb[1];
+  const total = (e) => e.bonk[0] + e.bonk[1] + e.bomb[0] + e.bomb[1] + e.splat[0] + e.splat[1];
   const all = [...rivals.values()].sort((a, b) => total(b) - total(a));
   const humans = all.filter((e) => !isBotId(e.id)), bots = all.filter((e) => isBotId(e.id));
   const tug = ([mine, theirs], what, extra = '') => {
@@ -314,16 +318,16 @@ function renderRivals(p) {
       <small>${what}${extra}</small></div>`;
   };
   const card = (e) => {
-    const mine = e.bonk[0] + e.bomb[0], theirs = e.bonk[1] + e.bomb[1], them = escapeHtml(shortName(e.name));
+    const mine = e.bonk[0] + e.bomb[0] + e.splat[0], theirs = e.bonk[1] + e.bomb[1] + e.splat[1], them = escapeHtml(shortName(e.name));
     const lead = mine > theirs ? 'me' : theirs > mine ? 'them' : '';
     const cards = e.cards[0] || e.cards[1] ? `, ${e.cards[0]} vs ${e.cards[1]} cards` : '';
     return `<div class="vs-card">
       <div class="vs-head">
-        <div class="vs-side"><span class="crown">${lead === 'me' ? CROWN : ''}</span><span class="actor" data-mood="${lead === 'me' ? 'smug' : lead ? 'sweat' : ''}">${myAvatar()}</span>You</div>
+        <div class="vs-side"><span class="crown">${lead === 'me' ? CROWN : ''}</span><span class="actor" data-av="${myAvatar()}" data-mood="${lead === 'me' ? 'smug' : lead ? 'sweat' : ''}">${avatarHTML(myAvatar())}</span>You</div>
         <span class="vs-mid" aria-hidden="true">VS</span>
-        <div class="vs-side"><span class="crown">${lead === 'them' ? CROWN : ''}</span><span class="actor" data-mood="${lead === 'them' ? 'smug' : lead ? 'sweat' : ''}">${avatarFor(e.id)}</span>${them}</div>
+        <div class="vs-side"><span class="crown">${lead === 'them' ? CROWN : ''}</span><span class="actor" data-av="${avatarFor(e.id)}" data-mood="${lead === 'them' ? 'smug' : lead ? 'sweat' : ''}">${avatarHTML(avatarFor(e.id))}</span>${them}</div>
       </div>
-      ${tug(e.bonk, '💥 bonks')}${tug(e.bomb, '📦 bombs', cards)}</div>`;
+      ${tug(e.bonk, '💥 bonks')}${tug(e.bomb, '📦 bombs', cards)}${tug(e.splat, '🥶 freezes & splats')}</div>`;
   };
   let html = humans.length ? humans.map(card).join('')
     : `<div class="empty-card">No bonks or bombs yet. Bonk someone in Ludo or drop a +4 pile on them in Plus Four and the feud starts here.<a class="btn cta" href="#play">Go start one</a></div>`;
@@ -355,6 +359,8 @@ function renderHistory(p) {
     const m = g.mine || {}, bits = [timeAgo(g.endedAt)];
     if (g.kind === 'ludo') bits.push(plural(m.bonks || 0, 'bonk'));
     if (g.kind === 'plusfour') bits.push(plural(m.bombs || 0, 'bomb'));
+    if (g.kind === 'race') bits.push(plural(m.splats || 0, 'splat'));
+    if (g.kind === 'snakes') bits.push(plural(m.bonks || 0, 'bonk'));
     if (g.kind === 'doodle' && mine.score != null) bits.push(`${mine.score} points`);
     if (g.startedAt) bits.push(`${Math.max(1, Math.round((new Date(g.endedAt) - new Date(g.startedAt)) / 60000))} min`);
     const fresh = !first && !seenGames.has(g.id);
@@ -395,6 +401,7 @@ function applyProfile(p, { firstLoad = false } = {}) {
   const newest = p.recent[0];
   const newGame = !!(seen && newest && seen.lastGame !== undefined && seen.lastGame !== newest.id);
 
+  if (typeof rememberProgress === 'function') rememberProgress(p);
   renderLevel(p); renderRecordRibbons(p); renderTrophies(p, freshTrophies); renderRivals(p); renderHistory(p);
   if (before) retrigger($('#btn-live'), 'blink');
 

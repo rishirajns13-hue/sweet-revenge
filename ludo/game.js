@@ -264,7 +264,7 @@ function renderPlayers() {
     const tag = offline.has(c) ? 'offline' : isBot(c) ? 'bot' : c === partner ? 'partner' : `${home}/4 home`;
     const slot = document.querySelector(`.corner[data-corner="${cornerOf(c)}"]`);
     if (slot) slot.insertAdjacentHTML('beforeend', `<div class="chip ${active ? 'active' : ''} ${offline.has(c) ? 'offline' : ''}" data-c="${c}" style="--c:${COLORS[c]}">
-      <span class="av">${avatarOf(c)}</span><span class="tx"><span class="nm">${escapeHtml(shortName(c))}</span><small>${tag}</small></span></div>`);
+      <span class="av">${avatarHTML(avatarOf(c))}</span><span class="tx"><span class="nm">${escapeHtml(shortName(c))}</span><small>${tag}</small></span></div>`);
   }
 }
 
@@ -333,6 +333,7 @@ function saveGame(s) {
     stats: Object.fromEntries(s.players.map((c) => [nm(c), { ...s.stats[c], color: c, home: s.tokens[c].filter((p) => p === R.HOME).length, turns: s.turns }])),
     hits: (s.hits || []).map(([by, to]) => ({ kind: 'bonk', by: nm(by), to: nm(to) })),
   });
+  if (typeof showRewards === 'function') showRewards($('#win-stats').parentElement, s.gid); // +XP and new trophies on the end screen
 }
 
 function renderAll() {
@@ -531,7 +532,7 @@ function renderRoom(p) {
     if (s) {
       const you = s.name === me.name && !s.bot;
       const status = i === 0 ? 'Host' : s.bot ? '' : `${ic('check')}Joined`;
-      html += `<div class="seat" style="--c:${COLORS[colors[i]]}"><span class="av">${s.avatar}</span><span class="nm">${escapeHtml(s.name)}${you ? ' (you)' : ''}</span>`
+      html += `<div class="seat" style="--c:${COLORS[colors[i]]}"><span class="av">${avatarHTML(s.avatar)}</span><span class="nm">${escapeHtml(s.name)}${you ? ' (you)' : ''}</span>`
         + (teams ? `<span class="team">Team ${i % 2 ? 'B' : 'A'}</span>` : '')
         + (s.bot && amHost ? `<button class="rm" type="button" data-rmbot="${i}" aria-label="Remove ${escapeHtml(s.name)}">${ic('x')}</button>` : `<span class="st">${s.bot ? 'Bot' : status}</span>`)
         + '</div>';

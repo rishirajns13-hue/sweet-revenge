@@ -82,7 +82,8 @@ function applyPalette(p = store.get('ludo-palette', 'sunset')) {
 }
 function renderMeSheet() {
   const mine = myAvatar(), pal = store.get('ludo-palette', 'sunset');
-  $('#avatars').innerHTML = AVATARS.map((a) => `<button type="button" aria-pressed="${a === mine}" aria-label="Avatar ${a}">${a}</button>`).join('');
+  const art = (a) => (typeof avatarHTML === 'function' ? avatarHTML(a) : a);
+  $('#avatars').innerHTML = AVATARS.map((a) => `<button type="button" data-av="${a}" aria-pressed="${a === mine}" aria-label="Avatar ${typeof AVATAR_ART !== 'undefined' ? AVATAR_ART.name(a) : a}">${art(a)}</button>`).join('');
   $('#palettes').innerHTML = PALETTES.map(([k, label]) => `<button type="button" class="pal-${k}" data-pal="${k}" aria-pressed="${k === pal}"><span></span>${label}</button>`).join('');
 }
 /* ================= login session (shared by every page) ================= */
@@ -147,7 +148,7 @@ function wireProfileSheet() {
   const pop = () => typeof sfx !== 'undefined' && sfx.pop();
   $('#avatars').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b || !me) return;
-    store.set('ludo-avatar:' + me.name.toLowerCase(), b.textContent);
+    store.set('ludo-avatar:' + me.name.toLowerCase(), b.dataset.av);
     renderMeSheet(); pop();
     document.dispatchEvent(new Event('profilechange'));
   });

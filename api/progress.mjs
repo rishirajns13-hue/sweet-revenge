@@ -7,14 +7,14 @@ export const LEVELS = [
   [0, 'Sprinkle'], [100, 'Single Scoop'], [250, 'Double Scoop'], [500, 'Waffle Cone'],
   [900, 'Sundae'], [1400, 'Banana Split'], [2100, 'Brain Freeze'], [3000, 'Sweet Revenge Royalty'],
 ];
-const KINDS = ['ludo', 'plusfour', 'doodle'];
+export const KINDS = ['ludo', 'plusfour', 'doodle', 'snakes', 'race'];
 
 /* facts = {
-     games: [{ kind, practice, won, bonks, bombs, bombCards, score, fastest }]  oldest first, this player's view
+     games: [{ kind, practice, won, bonks, bombs, bombCards, splats, score, fastest, snakesSlid, longestLadder, margin }]  oldest first
      bigBomb, maxBonkedInGame, revengeBonk, revengeBomb, chats } */
 export function xpFor(f) {
   return f.games.reduce((sum, g) => {
-    const xp = 10 + (g.won ? 25 : 0) + g.bonks * 3 + g.bombCards + Math.floor((g.score || 0) / 20);
+    const xp = 10 + (g.won ? 25 : 0) + g.bonks * 3 + g.bombCards + (g.splats || 0) * 2 + Math.floor((g.score || 0) / 20);
     return sum + (g.practice ? Math.floor(xp / 2) : xp);
   }, 0);
 }
@@ -47,6 +47,10 @@ export const ACHIEVEMENTS = [
   ['punching_bag', '🫠', 'Punching Bag', 'Get bonked 10 times in one game', (f) => [Math.min(f.maxBonkedInGame, 10), 10]],
   ['chatterbox', '🗣️', 'Chatterbox', 'Send 100 chat messages', (f) => [f.chats, 100]],
   ['mind_reader', '🧠', 'Mind Reader', 'Guess a Doodle in under 5 seconds', (f) => [f.games.some((g) => g.kind === 'doodle' && g.fastest > 0 && g.fastest < 5000) ? 1 : 0, 1]],
+  ['slippery_slope', '🐍', 'Slippery Slope', 'Slide down 3 snakes in one game', (f) => [Math.min(Math.max(0, ...f.games.map((g) => g.snakesSlid || 0)), 3), 3]],
+  ['sky_high', '🪜', 'Sky High', 'Climb a ladder 30+ squares long', (f) => [Math.max(0, ...f.games.map((g) => g.longestLadder || 0)) >= 30 ? 1 : 0, 1]],
+  ['photo_finish', '🏁', 'Photo Finish', 'Win a Sugar Rush race by under half a second', (f) => [f.games.some((g) => g.kind === 'race' && g.won && g.margin != null && g.margin < 500) ? 1 : 0, 1]],
+  ['brain_freezer', '🥶', 'Brain Freezer', 'Land 10 freezes or splats in Sugar Rush', (f) => [sum(f.games, 'splats'), 10]],
 ];
 
 export function progress(f) {

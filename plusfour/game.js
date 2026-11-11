@@ -95,7 +95,7 @@ function goHome(error = '') {
 }
 function leaveToHome() { store.del('plusfour-lastroom'); goHome(); }
 function renderHomeBits() {
-  if (me) $('#me-avatar').textContent = myAvatar();
+  if (me) setAvatar($('#me-avatar'), myAvatar());
   const last = store.get('plusfour-lastroom', null), fresh = last && Date.now() - last.at < 3 * 3600e3;
   $('#btn-resume').hidden = !fresh;
   if (fresh) $('#resume-code').textContent = last.code;
@@ -123,7 +123,7 @@ function renderRoom(p) {
       const right = s.bot && amHost
         ? `<button class="rm" type="button" data-rmbot="${i}" aria-label="Remove ${escapeHtml(s.name)}">${ic('x')}</button>`
         : `<span class="st">${i === 0 ? 'Host' : s.bot ? `${ic('bot')}Bot` : `${ic('check')}Joined`}</span>`;
-      html += `<div class="seat" style="--c:${SEAT_COLORS[i]}"><span class="av">${s.avatar}</span><span class="nm">${escapeHtml(s.name)}${s.name === me.name && !s.bot ? ' (you)' : ''}</span>${right}</div>`;
+      html += `<div class="seat" style="--c:${SEAT_COLORS[i]}"><span class="av">${avatarHTML(s.avatar)}</span><span class="nm">${escapeHtml(s.name)}${s.name === me.name && !s.bot ? ' (you)' : ''}</span>${right}</div>`;
     } else if (amHost && i === n) {
       html += `<button class="seat empty" type="button" data-addbot><span class="av">${ic('plus')}</span><span class="nm">Add a bot</span><span class="st">or wait for a friend</span></button>`;
     } else html += `<div class="seat empty"><span class="av"></span><span class="nm">Open seat</span></div>`;
@@ -258,7 +258,7 @@ function driveBots() {
 const chat = createChat({
   send: (m) => sendSocial(m),
   game: 'plusfour', room: () => roomCode || null,
-  players: () => ((view || G) ? (view || G).players.map((p, i) => ({ k: p.k, name: p.name, color: SEAT_COLORS[i] })) : []),
+  players: () => ((view || G) ? (view || G).players.map((p, i) => ({ k: p.k, name: p.name, color: SEAT_COLORS[i], avatar: p.avatar })) : []),
   me: () => myK,
   anchor: (k) => seatEl(k),
   stage: () => $('#table'),
@@ -495,12 +495,12 @@ function buildSeats(v) {
   const col = (k) => SEAT_COLORS[v.players.findIndex((p) => p.k === k)];
   $('#seats-layer').innerHTML = others.map((p, i) => `<div class="pf-seat pos-${spots[i]}" data-k="${p.k}" style="--c:${col(p.k)}">
       <div class="pf-mini"></div>
-      <div class="who"><span class="av">${p.avatar}</span><span class="nm">${escapeHtml(firstName(p.name))}</span><span class="count">0</span><span class="tag"></span></div>
+      <div class="who"><span class="av">${avatarHTML(p.avatar)}</span><span class="nm">${escapeHtml(firstName(p.name))}</span><span class="count">0</span><span class="tag"></span></div>
       <button class="pf-catch" type="button" data-catch="${p.k}" hidden>Catch! <kbd>C</kbd></button>
     </div>`).join('');
   const mine = v.players.find((p) => p.k === myK);
   $('#me-seat').style.setProperty('--c', col(myK));
-  $('#me-seat').innerHTML = mine ? `<div class="who"><span class="av">${mine.avatar}</span><span class="nm">You</span><span class="count">0</span></div>` : '';
+  $('#me-seat').innerHTML = mine ? `<div class="who"><span class="av">${avatarHTML(mine.avatar)}</span><span class="nm">You</span><span class="count">0</span></div>` : '';
   shown.counts = {};
 }
 const seatEl = (k) => (k === myK ? $('#me-seat') : $(`.pf-seat[data-k="${k}"]`));
@@ -1027,6 +1027,7 @@ function saveGame(v, ranked) {
     stats: Object.fromEntries(v.players.map((p) => [p.name, { ...(v.stats || {})[p.k], left: (hands[p.k] || []).length }])),
     hits: (v.hits || []).map((h) => ({ kind: 'bomb', by: nm(h.by), to: nm(h.to), cards: h.n })),
   });
+  if (typeof showRewards === 'function') showRewards($('#awards').parentElement, v.gid); // +XP and new trophies on the end screen
 }
 function renderEnd() {
   const v = view, hands = v.hands || {}, stats = v.stats || {};
@@ -1038,7 +1039,7 @@ function renderEnd() {
   $('#podium').innerHTML = ranked.map((p, i) => {
     const left = hands[p.k] || [];
     return `<div class="pf-pod p${i + 1}" style="--c:${SEAT_COLORS[v.players.indexOf(p)]}">
-      <span class="medal">${medal[i]}</span><span class="av">${p.avatar}</span><b>${escapeHtml(firstName(p.name))}${p.k === myK ? ' (you)' : ''}</b>
+      <span class="medal">${medal[i]}</span><span class="av">${avatarHTML(p.avatar)}</span><b>${escapeHtml(firstName(p.name))}${p.k === myK ? ' (you)' : ''}</b>
       <span class="left">${left.length ? `${left.length} card${left.length > 1 ? 's' : ''} left` : 'Out of cards!'}</span>
       <div class="pf-leftovers" data-k="${p.k}"></div></div>`;
   }).join('');

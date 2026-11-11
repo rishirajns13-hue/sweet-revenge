@@ -8,7 +8,7 @@ import { Pool, type PoolClient } from 'pg';
 import { attachDatabasePool } from '@neon/functions';
 import { createHash, timingSafeEqual } from 'node:crypto';
 // @ts-ignore: plain JS module, shared with the tests
-import { progress } from './progress.mjs';
+import { progress, KINDS } from './progress.mjs';
 import { parseTriggerDelivery } from '@neon/functions/triggers';
 import { runBridge } from './bridge.ts';
 
@@ -17,7 +17,6 @@ export const ACCOUNTS: Record<string, { name: string; hash: string }> = {
   'panchara kunju': { name: 'Panchara Kunju', hash: '1c760216a90d9924ba7ea7afe921cce796b25e5a6e4ba08a27dcb8d39ddab814' },
   ammu: { name: 'Ammu', hash: 'be56b7ac72bc7a13c0c7134ac0275310dd0c56a004adc0975a72623c2cc35210' },
 };
-const KINDS = ['ludo', 'plusfour', 'doodle'];
 const ORIGINS = [/^https:\/\/rishirajns13-hue\.github\.io$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 5 });
@@ -131,7 +130,7 @@ app.post('/game', authed(async (c, me, b) => {
   const stats: Record<string, unknown> = {};
   if (g.stats && typeof g.stats === 'object') for (const [n, v] of Object.entries(g.stats)) { const id = idOf(n); if (id) stats[id] = v; }
   const hits = (Array.isArray(g.hits) ? (g.hits as Body[]) : []).slice(0, 500).map((h) => ({
-    kind: h && (h.kind === 'bonk' || h.kind === 'bomb') ? h.kind : null, by: idOf(h && h.by), to: idOf(h && h.to), cards: int(h && h.cards),
+    kind: h && ['bonk', 'bomb', 'splat'].includes(h.kind as string) ? h.kind : null, by: idOf(h && h.by), to: idOf(h && h.to), cards: int(h && h.cards),
   })).filter((h) => h.kind && h.by && h.to && h.by !== h.to);
   const started = typeof g.startedAt === 'number' && g.startedAt > 1.7e12 && g.startedAt <= Date.now() ? new Date(g.startedAt) : null;
 
@@ -153,6 +152,15 @@ app.post('/game', authed(async (c, me, b) => {
 
 /* ---------- your profile: level, achievements, revenge board, recent games, and proof the DB is live ----------
    Achievements are worked out from the history (api/progress.mjs); new ones are stored with the time they unlocked. */
+const num = (o: Record<string, unknown> | null, keys: string[]) => {
+  for (const k of keys) if (o && typeof o[k] === 'number') return o[k] as number;
+  return 0;
+};
+// How far ahead the winner of a race finished (ms), from each player's total time (score).
+const raceMargin = (players: Body[], id: string) => {
+  const mine = players.find((p) => p.id === id), times = players.filter((p) => p.id !== id && typeof p.score === 'number').map((p) => p.score as number);
+  return mine && typeof mine.score === 'number' && times.length ? Math.min(...times) - (mine.score as number) : null;
+};
 const MINE = "players @> jsonb_build_array(jsonb_build_object('id', $1::text))";
 app.post('/me', authed(async (c, me) => {
   const q = (sql: string, args: unknown[] = [me.id]) => pool.query(sql, args).then((r) => r.rows);
@@ -173,18 +181,25 @@ app.post('/me', authed(async (c, me) => {
     q('select achievement, unlocked_at from achievements where player_id = $1'),
   ]);
 
-  const hitsBy = new Map<string, { bonks: number; bombs: number; bombCards: number }>();
+  type Hits = { bonks: number; bombs: number; bombCards: number; splats: number };
+  const hitsBy = new Map<string, Hits>();
+  const none = (): Hits => ({ bonks: 0, bombs: 0, bombCards: 0, splats: 0 });
   let bigBomb = 0;
   for (const h of myHits) {
-    const e = hitsBy.get(h.game_id) || { bonks: 0, bombs: 0, bombCards: 0 };
-    if (h.kind === 'bonk') e.bonks += h.n; else { e.bombs += h.n; e.bombCards += h.cards; bigBomb = Math.max(bigBomb, h.biggest || 0); }
+    const e = hitsBy.get(h.game_id) || none();
+    if (h.kind === 'bonk') e.bonks += h.n;
+    else if (h.kind === 'splat') e.splats += h.n;
+    else { e.bombs += h.n; e.bombCards += h.cards; bigBomb = Math.max(bigBomb, h.biggest || 0); }
     hitsBy.set(h.game_id, e);
   }
   const facts = {
     games: games.map((g) => ({
-      kind: g.kind, practice: g.practice, won: g.winners.includes(me.id), ...(hitsBy.get(g.id) || { bonks: 0, bombs: 0, bombCards: 0 }),
+      kind: g.kind, practice: g.practice, won: g.winners.includes(me.id), ...(hitsBy.get(g.id) || none()),
       score: g.kind === 'doodle' ? (g.players.find((p: Body) => p.id === me.id) || {}).score || 0 : 0,
       fastest: (g.mine && g.mine.fastest) || 0,
+      // Snakes & Ladders and Sugar Rush stats (names kept flexible: the games' own stat keys)
+      snakesSlid: num(g.mine, ['snakes', 'snakesSlid', 'slid']), longestLadder: num(g.mine, ['longestLadder', 'longest']),
+      margin: g.kind === 'race' && g.winners.includes(me.id) ? raceMargin(g.players, me.id) : null,
     })),
     bigBomb, maxBonkedInGame: bonked[0].m, chats: chats[0].n,
     revengeBonk: revenge.some((r) => r.kind === 'bonk'), revengeBomb: revenge.some((r) => r.kind === 'bomb'),
@@ -212,7 +227,7 @@ app.post('/me', authed(async (c, me) => {
   return c.json({
     me, level: { level: prog.level, title: prog.title, xp: prog.xp, from: prog.from, to: prog.to },
     record: { played: played().length, won: played().filter((g) => g.won).length,
-      byKind: Object.fromEntries(['ludo', 'plusfour', 'doodle'].map((k) => [k, { played: played(k).length, won: played(k).filter((g) => g.won).length }])) },
+      byKind: Object.fromEntries(KINDS.map((k: string) => [k, { played: played(k).length, won: played(k).filter((g) => g.won).length }])) },
     achievements: prog.achievements.map((a) => ({ ...a, unlockedAt: when.get(a.id) || null })),
     rivalry, recent, db: { ...saved[0], at: new Date() },
   });

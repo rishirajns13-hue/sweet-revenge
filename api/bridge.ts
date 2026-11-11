@@ -20,7 +20,7 @@ const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884
 const PATHS = new Set(['/chat', '/chat/history', '/game', '/me']);
 const FIRST_WAIT_MS = 5_000;   // nothing queued after this long: nobody's around, go back to sleep
 const IDLE_MS = 4 * 60_000;    // stay awake this long after the last request
-const MAX_MS = 13 * 60_000;    // well inside the 15-minute limit
+const MAX_MS = 8 * 60_000;     // cap each awake period (free-plan budget); the next tick picks up
 
 const te = new TextEncoder(), td = new TextDecoder();
 const b64 = (b: ArrayBuffer | Uint8Array) => Buffer.from(b instanceof Uint8Array ? b : new Uint8Array(b)).toString('base64');
@@ -84,9 +84,10 @@ export function runBridge(app: Hono): Promise<{ handled: number; already?: boole
       const cl = mqtt.connect(url, { clientId: `sr-bridge-7c1e93-${i}`, clean: false, reconnectPeriod: 0, connectTimeout: 8000, keepalive: 30 });
       cl.on('connect', () => cl.subscribe(`${RELAY_TOPIC}/req`, { qos: 1 }));
       cl.on('message', (_topic, payload) => {
-        last = Date.now();
+        if (payload.length > 64_000) return; // nothing real is this big
         handle(app, payload).then((r) => {
-          if (r) { handled++; cl.publish(`${RELAY_TOPIC}/res/${r.id}`, r.out, { qos: 1 }); }
+          // Only real, decryptable requests keep the bridge awake, so junk can't burn the free hours.
+          if (r) { last = Date.now(); handled++; cl.publish(`${RELAY_TOPIC}/res/${r.id}`, r.out, { qos: 1 }); }
         }).catch((e) => console.error('[relay]', e));
       });
       cl.on('error', (e) => console.error('[relay]', url, e.message));

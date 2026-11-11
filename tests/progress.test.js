@@ -39,7 +39,7 @@ test('On Fire needs 3 wins in a row, not just 3 wins', () => {
 test('All-Rounder needs a win in every mini-game', () => {
   const games = [g({ kind: 'ludo', won: true }), g({ kind: 'plusfour', won: true })];
   assert.equal(ach(facts({ games }), 'all_rounder').have, 2);
-  assert.equal(ach(facts({ games: games.concat(g({ kind: 'doodle', won: true })) }), 'all_rounder').done, true);
+  assert.equal(ach(facts({ games: games.concat(g({ kind: 'doodle', won: true })) }), 'all_rounder').have, 3);
 });
 
 test('one-off feats: big bomb, revenge, punching bag, mind reader', () => {
@@ -50,4 +50,22 @@ test('one-off feats: big bomb, revenge, punching bag, mind reader', () => {
   assert.equal(ach(facts({ maxBonkedInGame: 10 }), 'punching_bag').done, true);
   assert.equal(ach(facts({ games: [g({ kind: 'doodle', fastest: 4200 })] }), 'mind_reader').done, true);
   assert.equal(ach(facts({ games: [g({ kind: 'doodle', fastest: 0 })] }), 'mind_reader').done, false);
+});
+
+test('new games: snake slides, long ladders, photo finishes and splats unlock trophies', () => {
+  const sn = (o) => g({ kind: 'snakes', ...o }), rc = (o) => g({ kind: 'race', ...o });
+  assert.equal(ach(facts({ games: [sn({ snakesSlid: 2 }), sn({ snakesSlid: 2 })] }), 'slippery_slope').done, false);
+  assert.equal(ach(facts({ games: [sn({ snakesSlid: 3 })] }), 'slippery_slope').done, true);
+  assert.equal(ach(facts({ games: [sn({ longestLadder: 29 })] }), 'sky_high').done, false);
+  assert.equal(ach(facts({ games: [sn({ longestLadder: 30 })] }), 'sky_high').done, true);
+  assert.equal(ach(facts({ games: [rc({ won: true, margin: 400 })] }), 'photo_finish').done, true);
+  assert.equal(ach(facts({ games: [rc({ won: true, margin: 900 })] }), 'photo_finish').done, false);
+  assert.equal(ach(facts({ games: [rc({ splats: 6 }), rc({ splats: 4 })] }), 'brain_freezer').done, true);
+});
+
+test('splats give XP and All-Rounder now needs all five games', () => {
+  assert.equal(P.xpFor(facts({ games: [g({ kind: 'race', splats: 3 })] })), 16);
+  const four = ['ludo', 'plusfour', 'doodle', 'snakes'].map((kind) => g({ kind, won: true }));
+  assert.equal(ach(facts({ games: four }), 'all_rounder').done, false);
+  assert.equal(ach(facts({ games: four.concat(g({ kind: 'race', won: true })) }), 'all_rounder').done, true);
 });

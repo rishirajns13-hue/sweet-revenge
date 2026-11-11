@@ -40,7 +40,7 @@ function rivalLine(name) {
 function renderHome() {
   if (!me) return;
   const av = myAvatar(), first = me.name.split(' ').pop();
-  $('#me-avatar').textContent = av;
+  setAvatar($('#me-avatar'), av);
   const best = mainRival();
   if (!best) {
     $('#hello').textContent = `Hey ${first}! Ready to roll?`;
@@ -54,9 +54,9 @@ function renderHome() {
     : r.streak === 1 ? 'You won the last game' : `${escapeHtml(them)} won the last game`;
   $('#rival').className = 'card rival';
   $('#rival').innerHTML = `<div class="row">
-      <div class="rface" style="--c:var(--red)">${r.w > r.l ? `<span class="crown">${ic('crown')}</span>` : ''}<span class="av">${av}</span><span>You</span></div>
+      <div class="rface" style="--c:var(--red)">${r.w > r.l ? `<span class="crown">${ic('crown')}</span>` : ''}<span class="av">${avatarHTML(av)}</span><span>You</span></div>
       <div class="score" aria-label="${r.w} to ${r.l}"><span>${r.w}</span><i>–</i><span>${r.l}</span></div>
-      <div class="rface" style="--c:var(--yellow)">${r.l > r.w ? `<span class="crown">${ic('crown')}</span>` : ''}<span class="av">${r.avatar || '🙂'}</span><span>${escapeHtml(them)}</span></div>
+      <div class="rface" style="--c:var(--yellow)">${r.l > r.w ? `<span class="crown">${ic('crown')}</span>` : ''}<span class="av">${avatarHTML(r.avatar || '🙂')}</span><span>${escapeHtml(them)}</span></div>
     </div><p>${streak}</p>`;
 }
 
@@ -66,7 +66,7 @@ function chipFor(color) { return document.querySelector(`.chip[data-c="${color}"
 const chat = createChat({
   send: (m) => sendSocial(m),
   game: 'ludo', room: () => roomCode || null,
-  players: () => (game ? game.players.map((c) => ({ k: c, name: nameOf(c), color: COLORS[c] })) : []),
+  players: () => (game ? game.players.map((c) => ({ k: c, name: nameOf(c), color: COLORS[c], avatar: avatarOf(c) })) : []),
   me: () => myColors[0],
   anchor: (c) => (isMine(c) ? $('#dice') : chipFor(c)),
   stage: () => $('#board-wrap'),

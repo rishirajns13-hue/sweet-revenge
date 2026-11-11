@@ -20,6 +20,7 @@ const records = (() => {
   const te = new TextEncoder(), td = new TextDecoder();
   const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
   const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  const cid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   const hex = (n) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, '0')).join('');
 
   let viaRelay = false;
@@ -84,7 +85,7 @@ const records = (() => {
         try {
           const a = JSON.parse(msg.toString());
           const out = JSON.parse(td.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(a.iv) }, key, unb64(a.ct))));
-          finish(out.status < 300 ? out.data : null);
+          finish({ status: out.status, data: out.data });
         } catch (e) { /* not a valid answer */ }
       };
       cl.on('message', onMsg);
@@ -96,14 +97,15 @@ const records = (() => {
   }
 
   /* ---------- one request, whichever way works ---------- */
+  // Resolves { status, data } once the server answered, or null if it couldn't be reached.
   // text/plain keeps the direct request "simple": no CORS preflight, and keepalive works on page close.
-  async function post(path, body, waitMs = 90000) {
+  async function send(path, body, waitMs) {
     if (!me) return null;
     const payload = { ...body, user: me.user || me.name, proof: me.proof };
     if (!viaRelay) {
       try {
         const r = await fetch(RECORDS_URL + path, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
-        return r.ok ? r.json() : null;
+        return { status: r.status, data: await r.json().catch(() => null) };
       } catch (e) {
         // The network can't reach the API (blocked or offline): use the relay for the rest of this visit.
         viaRelay = true;
@@ -112,13 +114,40 @@ const records = (() => {
     }
     try { return await relay(path, payload, waitMs); } catch (e) { return null; }
   }
+  async function post(path, body, waitMs = 90000) {
+    const r = await send(path, body, waitMs);
+    return r && r.status < 300 ? r.data : null;
+  }
 
-  const cid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  /* ---------- outbox: saves wait on this device until the server has them ---------- */
+  // Chat and finished games go in first and leave once the server answers (even with an error,
+  // which won't get better by retrying). Anything left over, e.g. the tab closed on a slow relay,
+  // is sent again the next time any page opens. The server ignores duplicates.
+  const OUTBOX = 'sr-outbox';
+  const readBox = () => { const b = store.get(OUTBOX, []); return Array.isArray(b) ? b : []; };
+  function save(path, body) {
+    const item = { id: cid(), path, body, at: Date.now() };
+    store.set(OUTBOX, readBox().concat(item).slice(-60));
+    deliver(item);
+  }
+  async function deliver(item) {
+    const r = await send(item.path, item.body, 300000);
+    if (r) store.set(OUTBOX, readBox().filter((x) => x.id !== item.id));
+  }
+  function flush() {
+    const week = Date.now() - 7 * 864e5, box = readBox().filter((x) => x.at > week);
+    store.set(OUTBOX, box);
+    box.forEach((item, i) => setTimeout(() => deliver(item), i * 400));
+  }
+  // Once the login is loaded (core.js sets `me` shortly after the page starts), send any leftovers.
+  const waitForMe = setInterval(() => { if (me) { clearInterval(waitForMe); flush(); } }, 1500);
+  setTimeout(() => clearInterval(waitForMe), 60000);
+
   const sent = new Set();
   return {
     // A message this player just sent. `text` is the message, or the sticker's words.
     chat(game, room, kind, text) {
-      if ((kind === 'chat' || kind === 'sticker') && text) post('/chat', { game, room: room || null, kind, body: String(text).slice(0, 300), cid: cid() }, 300000);
+      if ((kind === 'chat' || kind === 'sticker') && text) save('/chat', { game, room: room || null, kind, body: String(text).slice(0, 300), cid: cid() });
     },
     /* A finished game, sent by every human player's browser; the server keeps the first copy.
        { kind, gid, room, practice, startedAt, players: [{ name, bot, place, score, team }],
@@ -127,7 +156,7 @@ const records = (() => {
       const key = g.kind + ':' + g.gid;
       if (!g.gid || sent.has(key)) return;
       sent.add(key);
-      post('/game', { game: g }, 300000);
+      save('/game', { game: g });
     },
     me: () => post('/me', {}),
     chatHistory: (room, limit) => post('/chat/history', { room, limit }),
