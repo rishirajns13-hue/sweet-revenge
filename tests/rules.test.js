@@ -100,3 +100,13 @@ test('turns are counted', () => {
   s = R.roll(s, 2); s = R.roll(s, 3);
   assert.equal(s.turns, 2);
 });
+
+test('every bonk is logged as [bonker, victim] so the history knows who bonked whom', () => {
+  const s = game(['red', 'yellow'], {}, (g) => {
+    g.tokens.red[0] = 2;      // abs 2
+    g.tokens.yellow[0] = 31;  // abs 5
+    g.phase = 'move'; g.dice = 3;
+  });
+  assert.deepEqual(R.newGame(['red', 'yellow'], names(['red', 'yellow'])).hits, []);
+  assert.deepEqual(R.move(s, 0).hits, [['red', 'yellow']]);
+});

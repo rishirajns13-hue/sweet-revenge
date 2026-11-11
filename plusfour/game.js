@@ -209,6 +209,7 @@ function startGame() {
   if (seats.length < 2) return toast('You need at least 2 players 🙂');
   G = R.newGame(seats.map((s) => ({ k: s.k, name: s.name, avatar: s.avatar, bot: !!s.bot })), (Math.random() * 2 ** 31) | 0);
   G.gid = Math.random().toString(36).slice(2, 10);
+  G.at = Date.now();
   G.v = 0;
   room.started = true;
   offline = new Set();
@@ -216,7 +217,7 @@ function startGame() {
   push();
 }
 // The view each player gets, plus the bits only the room knows.
-const viewOf = (k) => ({ ...R.viewFor(G, k), gid: G.gid, v: G.v, offline: [...offline] });
+const viewOf = (k) => ({ ...R.viewFor(G, k), gid: G.gid, at: G.at, v: G.v, offline: [...offline] });
 // The first human after the host takes over if the host leaves. Guests work this out the same way.
 const successor = () => (G.players.find((p) => !p.bot && p.k !== myK && !offline.has(p.k) && connected(p.k)) || {}).k;
 
@@ -302,6 +303,7 @@ function driveBots() {
 /* ---------- chat (shared/chat.js) ---------- */
 const chat = createChat({
   send: (m) => sendSocial(m),
+  game: 'plusfour', room: () => roomCode || null,
   players: () => ((view || G) ? (view || G).players.map((p, i) => ({ k: p.k, name: p.name, color: SEAT_COLORS[i] })) : []),
   me: () => myK,
   anchor: (k) => seatEl(k),
@@ -1060,10 +1062,23 @@ function recordResult(v) {
   });
   store.set(key, rec);
 }
+// Send the finished game to the shared history (shared/records.js). A bomb is a stacked +2/+4 pile
+// that someone had to take, credited to whoever stacked last.
+function saveGame(v, ranked) {
+  const nm = (k) => playerOf(k).name, hands = v.hands || {};
+  records.game({
+    kind: 'plusfour', gid: v.gid, room: roomCode || null, practice: mode === 'cpu', startedAt: v.at,
+    players: v.players.map((p) => ({ name: p.name, bot: !!p.bot, place: ranked.indexOf(p) + 1, score: (hands[p.k] || []).length })),
+    winners: [nm(v.winner)],
+    stats: Object.fromEntries(v.players.map((p) => [p.name, { ...(v.stats || {})[p.k], left: (hands[p.k] || []).length }])),
+    hits: (v.hits || []).map((h) => ({ kind: 'bomb', by: nm(h.by), to: nm(h.to), cards: h.n })),
+  });
+}
 function renderEnd() {
   const v = view, hands = v.hands || {}, stats = v.stats || {};
   recordResult(v);
   const ranked = v.players.slice().sort((a, b) => (a.k === v.winner ? -1 : b.k === v.winner ? 1 : (hands[a.k] || []).length - (hands[b.k] || []).length));
+  saveGame(v, ranked);
   const medal = ['🏆', '🥈', '🥉', '🫠'];
   $('#end-title').textContent = v.winner === myK ? 'You won! 🎉' : `${firstName(playerOf(v.winner).name)} won`;
   $('#podium').innerHTML = ranked.map((p, i) => {

@@ -267,7 +267,7 @@ function startGame() {
   if (players.length < 2) return toast('You need at least 2 players 🙂');
   const st = { ...room.settings };
   G = {
-    gid: Math.random().toString(36).slice(2, 10), v: 0, phase: 'pick', players, settings: st, words: wordList(st), used: [],
+    gid: Math.random().toString(36).slice(2, 10), at: Date.now(), v: 0, phase: 'pick', players, settings: st, words: wordList(st), used: [],
     scores: Object.fromEntries(players.map((p) => [p.k, 0])), round: 0, total: players.length * st.rounds,
     drawer: null, choices: [], word: null, twist: null, lastTwist: null, deadline: 0, hints: [], guessed: [], wrongs: [],
     ops: [], reveal: null, gallery: [], stats: freshStats(players), awards: null,
@@ -399,7 +399,7 @@ function viewFor(k) {
   const playing = G.phase === 'pick' || G.phase === 'draw';
   const knows = k === G.drawer || G.guessed.some((g) => g.k === k);
   return {
-    gid: G.gid, v: G.v, phase: G.phase, players: G.players, scores: G.scores, round: G.round, total: G.total,
+    gid: G.gid, at: G.at, v: G.v, phase: G.phase, players: G.players, scores: G.scores, round: G.round, total: G.total,
     drawer: G.drawer, twist: G.twist, settings: G.settings, left: Math.max(0, G.deadline - Date.now()), hints: G.hints,
     mask: G.word ? DL.mask(G.word, G.hints) : '', word: !playing || knows ? G.word : null,
     choices: k === G.drawer && G.phase === 'pick' ? G.choices : null, guessed: G.guessed, reveal: G.reveal,
@@ -524,7 +524,7 @@ function takeOver(code, epoch, v) {
   mode = 'host'; myK = mine; hostK = mine; roomCode = code;
   room = { code, epoch, settings: v.settings, started: true, seats: v.players.map((p) => ({ k: p.k, name: p.name, avatar: p.avatar })) };
   G = {
-    gid: v.gid, v: v.v, phase: 'reveal', players: v.players, settings: v.settings, words: wordList(v.settings), used: v.usedBefore || [],
+    gid: v.gid, at: v.at, v: v.v, phase: 'reveal', players: v.players, settings: v.settings, words: wordList(v.settings), used: v.usedBefore || [],
     scores: v.scores, round: v.phase === 'reveal' ? v.round : v.round - 1, total: v.total, drawer: null, choices: [], word: null,
     twist: null, lastTwist: v.twist, deadline: 0, hints: [], guessed: [], wrongs: [], ops: [], reveal: null,
     gallery: v.gallery || [], stats: v.stats || freshStats(v.players), awards: null,
@@ -833,6 +833,15 @@ document.addEventListener('keydown', (e) => {
 function renderEnd() {
   const v = view, ranked = v.players.slice().sort((a, b) => v.scores[b.k] - v.scores[a.k]);
   const medal = ['🥇', '🥈', '🥉', '🎗️'];
+  // Save to the shared history (shared/records.js); the server keeps one copy per game.
+  const best = v.scores[ranked[0].k];
+  records.game({
+    kind: 'doodle', gid: v.gid, room: roomCode || null, practice: false, startedAt: v.at,
+    players: v.players.map((p) => ({ name: p.name, bot: false, place: ranked.indexOf(p) + 1, score: v.scores[p.k] })),
+    winners: ranked.filter((p) => v.scores[p.k] === best && best > 0).map((p) => p.name),
+    stats: Object.fromEntries(v.players.map((p) => [p.name, (v.stats || {})[p.k] || {}])),
+    hits: [],
+  });
   $('#podium').innerHTML = ranked.map((p, i) => `<div class="pod p${i + 1}" style="--c:${SEAT_COLORS[v.players.indexOf(p)]}">
     <span class="medal">${medal[i]}</span><span class="av">${p.avatar}</span><b>${escapeHtml(firstName(p.name))}</b><span class="pts">${v.scores[p.k]}</span></div>`).join('');
   $('#awards').innerHTML = (v.awards || []).map((a) => `<div class="award"><span class="icon">${a.icon}</span><div><b>${escapeHtml(a.title)}</b><span>${escapeHtml(a.who)}</span><small>${escapeHtml(a.why)}</small></div></div>`).join('');
@@ -857,6 +866,7 @@ function renderEnd() {
 // While someone is drawing, anything typed in the chat counts as a guess, so nobody can spoil the word.
 const chat = createChat({
   send: (m) => sendSocial(m),
+  game: 'doodle', room: () => roomCode || null,
   players: () => (view ? view.players.map((p, i) => ({ k: p.k, name: p.name, color: SEAT_COLORS[i] })) : []),
   me: () => myK,
   anchor: (k) => document.querySelector(`#players li[data-k="${k}"]`),

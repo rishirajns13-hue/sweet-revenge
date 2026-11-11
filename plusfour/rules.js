@@ -43,8 +43,9 @@
     const G = {
       players: players.map((p) => ({ k: p.k, name: p.name, avatar: p.avatar, bot: !!p.bot })),
       hands: {}, draw: [], discard: [], color: 'r', dir: 1, turn: 0,
-      pending: 0, pendingKind: null, drawn: null, ouch: null, preShout: null, winner: null,
+      pending: 0, pendingKind: null, pendingBy: null, drawn: null, ouch: null, preShout: null, winner: null,
       seed: seed | 0, events: [],
+      hits: [], // bombs: a stacked pile someone had to take, credited to whoever stacked last
       stats: Object.fromEntries(players.map((p) => [p.k, { drawn: 0, stacked: 0, caught: 0, played: 0, wilds: 0 }])),
     };
     G.draw = shuffle(G, newDeck());
@@ -136,6 +137,7 @@
       if (G.pending) G.stats[k].stacked++;
       G.pending += card.v === 'd2' ? 2 : 4;
       G.pendingKind = card.v;
+      G.pendingBy = k;
       step(G);
       emit(G, { t: 'stack', total: G.pending, k: cur(G) });
     } else step(G);
@@ -150,8 +152,9 @@
     acted(G, k);
     G.preShout = null;
     if (G.pending) {
-      const n = G.pending;
-      G.pending = 0; G.pendingKind = null;
+      const n = G.pending, by = G.pendingBy;
+      G.pending = 0; G.pendingKind = null; G.pendingBy = null;
+      if (by && by !== k) G.hits.push({ by, to: k, n });
       give(G, k, n, 'stack');
       step(G);
       return { ok: true };
@@ -219,6 +222,7 @@
       ouch: G.ouch, preShout: G.preShout, winner: G.winner,
       hands: G.winner ? G.hands : null,
       stats: G.winner ? G.stats : null,
+      hits: G.winner ? G.hits || [] : null,
     };
   }
   // Events as one player may see them: drawn cards stay secret from everyone but the drawer.

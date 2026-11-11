@@ -20,9 +20,11 @@ const CHAT_STICKERS = {
    stickers       { id: [text, colour] } for this game (optional)
    dockAt         on screens at least this wide the chat is docked beside the game (0 = never)
    routeText(t)   return true if the game used this text itself, e.g. as a guess (optional)
-   sound(kind)    'in' for someone else's message, 'out' for yours (optional) */
+   sound(kind)    'in' for someone else's message, 'out' for yours (optional)
+   game           'ludo' | 'plusfour' | 'doodle': typed messages and stickers are saved under it
+   room()         the room code they're saved with (optional) */
 function createChat(opts) {
-  const o = { stickers: CHAT_STICKERS, dockAt: 0, sound() {}, anchor() { return null; }, stage() { return null; }, ...opts };
+  const o = { stickers: CHAT_STICKERS, dockAt: 0, sound() {}, anchor() { return null; }, stage() { return null; }, room() { return null; }, ...opts };
   const COOLDOWN = { chat: 0, react: 500, sticker: 2500, voice: 0 };
   const lastSent = {};
   let unread = 0, inGame = false;
@@ -145,7 +147,12 @@ function createChat(opts) {
     if (now - (lastSent[m.t] || 0) < COOLDOWN[m.t]) return;
     lastSent[m.t] = now;
     m.from = o.me();
-    if (receive(m, true)) { o.sound('out'); o.send(m); }
+    if (!receive(m, true)) return;
+    o.sound('out'); o.send(m);
+    // Keep typed messages and stickers (never voice notes or reactions) in the chat history.
+    if (o.game && typeof records !== 'undefined' && (m.t === 'chat' || m.t === 'sticker')) {
+      records.chat(o.game, o.room(), m.t, m.t === 'chat' ? m.text : o.stickers[m.id][0]);
+    }
   }
 
   /* ---------- voice notes ---------- */

@@ -49,16 +49,24 @@ Every game has the same chat: messages, game-specific stickers, an emoji wheel (
 ## Your look
 Tap your avatar to pick an avatar and a colour palette (Sunset, Lagoon or Lemonade). It applies to every game.
 
+## History (saved to the database)
+Typed chat messages, stickers and every finished game (players, winner, stats, plus every Ludo bonk and Plus Four bomb) are saved in a Neon Postgres database. Voice notes and emoji reactions are never saved. The site stays static: browsers send these to a small Neon Function (`api/index.ts`). It checks the same login proof the games use before it writes anything, and the database password never reaches the browser. If the API can't be reached, the games work as before; that bit just isn't saved.
+
+- Change the tables: edit `api/schema.sql`, then run `node api/migrate.mjs` (uses `.env.local` from `neon link`).
+- Deploy the API: `neon deploy --env .env.local`. Its URL is `RECORDS_URL` in `shared/records.js`.
+- Read your own history: `records.me()` in the browser console on any game page.
+
 ## How logins work
 `shared/core.js` stores only `sha256(sha256(name:password))`. When a friend joins, their browser sends the inner hash, which can't be worked out from the code. The host checks it and drops anyone who can't prove they know a password.
 
 ## Project layout
 - `index.html`, `hub.js`, `hub.css`: the Sweet Revenge front door, with login and the game picker. The logo is an inline SVG in `index.html`.
-- `shared/`: design system (`base.css`), login, icons and profile (`core.js`), networking (`net.js`), the chat every game uses (`chat.js`, `chat.css`), and card sounds (`sounds/`, CC0 from Kenney's Casino Audio)
+- `api/`: the history API (a Neon Function) and the database schema
+- `shared/`: design system (`base.css`), login, icons and profile (`core.js`), networking (`net.js`), the chat every game uses (`chat.js`, `chat.css`), saving history (`records.js`), and card sounds (`sounds/`, CC0 from Kenney's Casino Audio)
 - `doodle.html`, `doodle/`: Doodle Duel (`logic.js` is the pure, tested part; `words.js` has the word packs)
 - `plusfour.html`, `plusfour/`: Plus Four (`rules.js` is the pure, tested part; `cards.js` draws the cards and moves them)
 - `ludo.html`, `ludo/`: Ludo (`rules.js` is the pure, tested part)
 - `concepts/`: design mockups the interface was chosen from
 
 ## Running locally
-Serve the folder with any static server, for example `npx serve .`, and open it in two tabs. Run the tests with `node --test`.
+Serve the folder with any static server, for example `npx serve .`, and open it in two tabs. Run the tests with `node --test`. If you add or change accounts in `shared/core.js`, copy them into `api/index.ts` too and redeploy.

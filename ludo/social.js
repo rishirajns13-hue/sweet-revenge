@@ -65,6 +65,7 @@ function renderHome() {
 function chipFor(color) { return document.querySelector(`.chip[data-c="${color}"]`); }
 const chat = createChat({
   send: (m) => sendSocial(m),
+  game: 'ludo', room: () => roomCode || null,
   players: () => (game ? game.players.map((c) => ({ k: c, name: nameOf(c), color: COLORS[c] })) : []),
   me: () => myColors[0],
   anchor: (c) => (isMine(c) ? $('#dice') : chipFor(c)),

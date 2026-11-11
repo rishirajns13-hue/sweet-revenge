@@ -138,6 +138,7 @@ let myColors = [];
 let conn = null;          // guest: link to the host
 let room = null;          // host: { code, seats: [{ name, avatar, bot, link, color }], teams, started }
 let hostName = '';        // guest: whose room this is
+let roomCode = '';        // the room this game is in, for the saved history ('' in practice)
 let game = null;          // last fully-rendered state
 let display = null;       // token positions currently drawn (lags game during animations)
 let busy = false;
@@ -168,7 +169,7 @@ const host = {
   start(cfg) {
     this.cfg = cfg;
     const s = R.newGame(cfg.players, cfg.names, { teams: cfg.teams });
-    s.avatars = cfg.avatars; s.bots = cfg.bots;
+    s.avatars = cfg.avatars; s.bots = cfg.bots; s.at = Date.now();
     this.state = s;
     this.push();
   },
@@ -302,6 +303,7 @@ function renderWin() {
   const win = $('#win');
   if (game.phase !== 'over') { win.hidden = true; return; }
   recordResult(game);
+  saveGame(game);
   const winners = game.winners || [game.winner], iWon = winners.some(isMine);
   $('#win-title').textContent = iWon ? (winners.length > 1 ? 'Your team wins!' : 'You win!')
     : `${winners.map(shortName).join(' & ')} ${winners.length > 1 ? 'win' : 'wins'}!`;
@@ -317,6 +319,20 @@ function renderWin() {
   $('#win-wait').hidden = isHost;
   $('#win-wait').textContent = `Waiting for ${hostName ? hostName.split(' ').pop() : 'the host'} to start a rematch…`;
   win.hidden = false;
+}
+
+// Send the finished game to the shared history (shared/records.js). Every player's browser sends it;
+// the server keeps one copy per game id.
+function saveGame(s) {
+  if (!s.winners) return;
+  const nm = (c) => s.names[c], bots = s.bots || [];
+  records.game({
+    kind: 'ludo', gid: s.gid, room: roomCode || null, practice: mode === 'cpu', startedAt: s.at,
+    players: s.players.map((c) => ({ name: nm(c), bot: bots.includes(c), place: s.winners.includes(c) ? 1 : null, team: s.teams ? s.teams.findIndex((t) => t.includes(c)) : null })),
+    winners: s.winners.map(nm),
+    stats: Object.fromEntries(s.players.map((c) => [nm(c), { ...s.stats[c], color: c, home: s.tokens[c].filter((p) => p === R.HOME).length, turns: s.turns }])),
+    hits: (s.hits || []).map(([by, to]) => ({ kind: 'bonk', by: nm(by), to: nm(to) })),
+  });
 }
 
 function renderAll() {
@@ -473,7 +489,7 @@ function teardown() {
   const old = clients;
   setTimeout(() => old.forEach((cl) => { try { cl.end(true); } catch (e) {} }), 400);
   clients = [];
-  conn = null; mode = null; game = null; host.state = null; room = null; hostName = ''; hostColor = null; latest = null;
+  conn = null; mode = null; game = null; host.state = null; room = null; hostName = ''; hostColor = null; latest = null; roomCode = '';
   queue = Promise.resolve(); busy = false; offline = new Set();
   $('#win').hidden = true;
   $('#toast').classList.remove('show');
@@ -796,7 +812,7 @@ function handOver(code, epoch, s) {
 }
 
 /* ---------- getting back into a game after closing the app ---------- */
-function rememberRoom(code) { store.set('ludo-lastroom', { code, at: Date.now() }); }
+function rememberRoom(code) { roomCode = code; store.set('ludo-lastroom', { code, at: Date.now() }); }
 function forgetRoom() { store.del('ludo-lastroom'); }
 function renderResume() {
   const last = store.get('ludo-lastroom', null), fresh = last && Date.now() - last.at < 3 * 3600e3;

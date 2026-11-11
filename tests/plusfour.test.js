@@ -191,3 +191,31 @@ test('bots always make a legal move and games end', () => {
     assert.equal(total, 108);
   }
 });
+
+test('a stacked pile that lands on someone is a bomb from the last stacker', () => {
+  const G = table(3, [['rd2a', 'r1a'], ['bd2a', 'b1a'], ['g1a', 'g2a']], 'r7a');
+  assert.deepEqual(G.hits, []);
+  R.play(G, 'ann', 'rd2a');
+  R.play(G, 'ben', 'bd2a');
+  R.draw(G, 'cat');
+  assert.deepEqual(G.hits, [{ by: 'ben', to: 'cat', n: 4 }]);
+  // an ordinary draw is not a bomb
+  R.play(G, 'ann', 'r1a');
+  R.draw(G, 'ben');
+  assert.equal(G.hits.length, 1);
+});
+
+test('a +2 flipped at the start is nobody\'s bomb', () => {
+  const G = table(2, [['r1a'], ['b1a']], 'r7a', { pending: 2, pendingKind: 'd2', pendingBy: null });
+  R.draw(G, 'ann');
+  assert.deepEqual(G.hits, []);
+});
+
+test('the final view shares the bomb log, never before', () => {
+  const G = table(2, [['rd2a', 'r1a'], ['b1a', 'b2a']], 'r7a');
+  R.play(G, 'ann', 'rd2a');
+  R.draw(G, 'ben');
+  assert.equal(R.viewFor(G, 'ben').hits, null);
+  R.play(G, 'ann', 'r1a');
+  assert.deepEqual(R.viewFor(G, 'ben').hits, [{ by: 'ann', to: 'ben', n: 2 }]);
+});

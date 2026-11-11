@@ -20,7 +20,7 @@
     const teams = opts.teams && players.length === 4 ? [[players[0], players[2]], [players[1], players[3]]] : null;
     return {
       gid: Math.random().toString(36).slice(2, 10),
-      v: 0, players, names, tokens, teams, stats, turns: 0,
+      v: 0, players, names, tokens, teams, stats, turns: 0, hits: [], // hits: [[bonker, victim], ...]
       turn: 0, phase: 'roll', dice: null, sixes: 0, winner: null, winners: null, events: [],
     };
   }
@@ -93,6 +93,7 @@
     }
     if (to === HOME) ev.home = true;
     if (s.stats) s.stats[color].bonks += ev.captured.length;
+    if (s.hits) ev.captured.forEach((c) => s.hits.push([color, c.color]));
     s.events = [ev];
 
     if (finished(s, color)) {
