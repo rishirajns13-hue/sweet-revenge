@@ -7,6 +7,8 @@ import { cors } from 'hono/cors';
 import { Pool, type PoolClient } from 'pg';
 import { attachDatabasePool } from '@neon/functions';
 import { createHash, timingSafeEqual } from 'node:crypto';
+// @ts-ignore: plain JS module, shared with the tests
+import { progress } from './progress.mjs';
 
 // Same accounts as shared/core.js: only sha256(proof) is stored, never the proof itself.
 export const ACCOUNTS: Record<string, { name: string; hash: string }> = {
@@ -139,19 +141,70 @@ app.post('/game', authed(async (c, me, b) => {
   return c.json({ ok: true, saved });
 }));
 
-/* ---------- your history: totals per game, who you've bonked/bombed, recent games ---------- */
+/* ---------- your profile: level, achievements, revenge board, recent games, and proof the DB is live ----------
+   Achievements are worked out from the history (api/progress.mjs); new ones are stored with the time they unlocked. */
+const MINE = "players @> jsonb_build_array(jsonb_build_object('id', $1::text))";
 app.post('/me', authed(async (c, me) => {
-  const [totals, rivalry, recent, achievements] = await Promise.all([
-    pool.query(
-      `select kind, count(*)::int as played, count(*) filter (where $1 = any(winners))::int as won
-       from games where players @> jsonb_build_array(jsonb_build_object('id', $1::text)) group by kind`, [me.id]),
-    pool.query('select * from rivalry where by_player = $1 or to_player = $1 order by times desc', [me.id]),
-    pool.query(
-      `select id, kind, room, practice, ended_at, winners, players from games
-       where players @> jsonb_build_array(jsonb_build_object('id', $1::text)) order by ended_at desc limit 10`, [me.id]),
-    pool.query('select achievement, unlocked_at from achievements where player_id = $1 order by unlocked_at', [me.id]),
+  const q = (sql: string, args: unknown[] = [me.id]) => pool.query(sql, args).then((r) => r.rows);
+  const [games, myHits, bonked, revenge, chats, rivalry, saved, stored] = await Promise.all([
+    q(`select id, kind, room, practice, started_at, ended_at, winners, players, stats -> $1 as mine from games where ${MINE} order by ended_at`),
+    q(`select game_id, kind, count(*)::int as n, coalesce(sum(cards), 0)::int as cards, max(cards)::int as biggest
+       from hits where by_player = $1 group by game_id, kind`),
+    q(`select coalesce(max(n), 0)::int as m from (select count(*) as n from hits where kind = 'bonk' and to_player = $1 group by game_id) t`),
+    q(`select distinct a.kind from hits a where a.to_player = $1 and exists (
+         select 1 from hits b where b.game_id = a.game_id and b.kind = a.kind and b.by_player = $1 and b.to_player = a.by_player and b.id > a.id)`),
+    q('select count(*)::int as n from chat_messages where sender = $1'),
+    q(`select r.*, coalesce(pb.name, replace(r.by_player, 'bot:', '')) as by_name, coalesce(pt.name, replace(r.to_player, 'bot:', '')) as to_name
+       from rivalry r left join players pb on pb.id = r.by_player left join players pt on pt.id = r.to_player
+       where r.by_player = $1 or r.to_player = $1 order by r.times desc`),
+    q(`select (select count(*) from games)::int as games, (select count(*) from chat_messages)::int as messages,
+              (select count(*) from hits)::int as hits, (select max(ended_at) from games) as last_game`, []),
+    q('select achievement, unlocked_at from achievements where player_id = $1'),
   ]);
-  return c.json({ me, totals: totals.rows, rivalry: rivalry.rows, recent: recent.rows, achievements: achievements.rows });
+
+  const hitsBy = new Map<string, { bonks: number; bombs: number; bombCards: number }>();
+  let bigBomb = 0;
+  for (const h of myHits) {
+    const e = hitsBy.get(h.game_id) || { bonks: 0, bombs: 0, bombCards: 0 };
+    if (h.kind === 'bonk') e.bonks += h.n; else { e.bombs += h.n; e.bombCards += h.cards; bigBomb = Math.max(bigBomb, h.biggest || 0); }
+    hitsBy.set(h.game_id, e);
+  }
+  const facts = {
+    games: games.map((g) => ({
+      kind: g.kind, practice: g.practice, won: g.winners.includes(me.id), ...(hitsBy.get(g.id) || { bonks: 0, bombs: 0, bombCards: 0 }),
+      score: g.kind === 'doodle' ? (g.players.find((p: Body) => p.id === me.id) || {}).score || 0 : 0,
+      fastest: (g.mine && g.mine.fastest) || 0,
+    })),
+    bigBomb, maxBonkedInGame: bonked[0].m, chats: chats[0].n,
+    revengeBonk: revenge.some((r) => r.kind === 'bonk'), revengeBomb: revenge.some((r) => r.kind === 'bomb'),
+  };
+  type Ach = { id: string; icon: string; name: string; how: string; have: number; need: number; done: boolean };
+  const prog: { level: number; title: string; xp: number; from: number; to: number | null; achievements: Ach[] } = progress(facts);
+
+  // Store any achievement that just unlocked, so it keeps its unlock time.
+  const when = new Map(stored.map((r) => [r.achievement, r.unlocked_at]));
+  const fresh = prog.achievements.filter((a) => a.done && !when.has(a.id));
+  if (fresh.length) {
+    await pool.query(
+      `insert into achievements (player_id, achievement) select $1, unnest($2::text[]) on conflict do nothing`, [me.id, fresh.map((a) => a.id)]);
+    fresh.forEach((a) => when.set(a.id, new Date()));
+  }
+  await pool.query('update players set xp = $2, last_seen = now() where id = $1', [me.id, prog.xp]);
+
+  const recent = games.slice(-12).reverse().map((g) => ({
+    id: g.id, kind: g.kind, room: g.room, practice: g.practice, startedAt: g.started_at, endedAt: g.ended_at,
+    won: g.winners.includes(me.id), winners: g.winners,
+    players: g.players.map((p: Body) => ({ id: p.id, name: p.name, bot: p.bot, place: p.place, score: p.score })),
+    mine: { ...(g.mine || {}), ...(hitsBy.get(g.id) || {}) },
+  }));
+  const played = (k?: string) => facts.games.filter((g) => !k || g.kind === k);
+  return c.json({
+    me, level: { level: prog.level, title: prog.title, xp: prog.xp, from: prog.from, to: prog.to },
+    record: { played: played().length, won: played().filter((g) => g.won).length,
+      byKind: Object.fromEntries(['ludo', 'plusfour', 'doodle'].map((k) => [k, { played: played(k).length, won: played(k).filter((g) => g.won).length }])) },
+    achievements: prog.achievements.map((a) => ({ ...a, unlockedAt: when.get(a.id) || null })),
+    rivalry, recent, db: { ...saved[0], at: new Date() },
+  });
 }));
 
 export default app;

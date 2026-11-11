@@ -54,7 +54,7 @@ Typed chat messages, stickers and every finished game (players, winner, stats, p
 
 - Change the tables: edit `api/schema.sql`, then run `node api/migrate.mjs` (uses `.env.local` from `neon link`).
 - Deploy the API: `neon deploy --env .env.local`. Its URL is `RECORDS_URL` in `shared/records.js`.
-- Read your own history: `records.me()` in the browser console on any game page.
+- The home screen shows your level, record, Revenge board, match history and trophy shelf, refreshed every 20 seconds. The light on your player card turns green when the database is reachable. Levels and achievements are worked out in `api/progress.mjs`.
 
 ## How logins work
 `shared/core.js` stores only `sha256(sha256(name:password))`. When a friend joins, their browser sends the inner hash, which can't be worked out from the code. The host checks it and drops anyone who can't prove they know a password.

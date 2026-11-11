@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&family=Gaegu:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/base.css?v=7">
-  <link rel="stylesheet" href="hub/hub.css?v=9">
+  <link rel="stylesheet" href="hub/hub.css?v=10">
 </head>
 <body class="pal-sunset">
   <!-- Sweet Revenge logo: drawn once here, shown with <use href="#logo"> -->
@@ -73,65 +73,112 @@
         <h1 class="brand small"><svg viewBox="0 0 620 280" role="img" aria-label="Sweet Revenge"><use href="#logo"/></svg></h1>
         <button id="btn-me" class="avatar-btn" type="button" aria-label="Your profile and colours"><span id="me-avatar"></span></button>
       </header>
-      <p id="hello" class="hello"></p>
-      <a id="resume" class="resume-banner" hidden></a>
 
-      <div class="games">
-        <a class="game-card plusfour" href="plusfour.html">
-          <span class="badge-new">NEW</span>
-          <div class="art" aria-hidden="true">
-            <svg viewBox="0 0 240 150">
-              <g transform="translate(64 84) rotate(-16)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#4d9de0"/><rect x="-15" y="-15" width="30" height="30" rx="8" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><text x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#4d9de0" stroke="#2b2140" stroke-width="1.5" paint-order="stroke">2</text></g>
-              <g transform="translate(120 74) rotate(-2)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#ff5a5f"/><rect x="-15" y="-15" width="30" height="30" rx="8" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><text x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#ff5a5f" stroke="#2b2140" stroke-width="1.5" paint-order="stroke">7</text></g>
-              <g transform="translate(176 84) rotate(14)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#2b2140"/><g stroke="#2b2140" stroke-width="2"><rect x="-19" y="-10" width="14" height="20" rx="3" fill="#4d9de0" transform="rotate(-14)"/><rect x="-9" y="-12" width="14" height="20" rx="3" fill="#2bc48a" transform="rotate(-4)"/><rect x="1" y="-12" width="14" height="20" rx="3" fill="#ffc233" transform="rotate(6)"/><rect x="10" y="-10" width="14" height="20" rx="3" fill="#ff5a5f" transform="rotate(16)"/></g><text x="-20" y="-25" font-family="Fredoka, sans-serif" font-weight="700" font-size="12" fill="#fff">+4</text></g>
-            </svg>
-            <span class="g a">OUCH!</span>
+      <div class="hub-grid">
+        <!-- you: level, record and whether the scoreboard (database) is live -->
+        <aside class="player card" aria-label="Your level and record">
+          <div class="who">
+            <div id="cone" class="cone" aria-hidden="true"></div>
+            <div class="who-txt">
+              <b id="p-name"></b>
+              <span id="p-title" class="title">Loading your level…</span>
+            </div>
           </div>
-          <div class="txt">
-            <h2>Plus Four</h2>
-            <p>Match colours, stack +4s, and never forget to shout Ouch.</p>
-            <span class="meta" id="plusfour-meta">2–4 players · about 10 minutes · the mean one</span>
+          <div class="xp">
+            <div class="bar" role="progressbar" aria-label="XP to the next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="xp-fill"></i></div>
+            <small id="xp-text">&nbsp;</small>
           </div>
-          <span class="play">Play</span>
-        </a>
-        <a class="game-card doodle" href="doodle.html">
-          <div class="art" aria-hidden="true">
-            <svg viewBox="0 0 240 150"><path d="M40 115c6-46 28-78 56-70s6 48 32 52 30-40 52-30 16 38 24 28" fill="none" stroke="#2b2140" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="62" r="5" fill="#2b2140"/><circle cx="100" cy="58" r="5" fill="#2b2140"/></svg>
-            <span class="g a">a dragon?</span><span class="g b">MY UNCLE</span><span class="g c">soup 🍜</span>
+          <div class="record">
+            <div><b id="r-won">–</b><small>wins</small></div>
+            <div><b id="r-lost">–</b><small>losses</small></div>
+            <div><b id="r-played">–</b><small>games</small></div>
           </div>
-          <div class="txt">
-            <h2>Doodle Duel</h2>
-            <p>Draw badly. Guess wildly. Everyone sees every wrong guess.</p>
-            <span class="meta">2–4 players · about 5 minutes · the quick one</span>
+          <div id="live" class="live" data-state="connecting" role="status">
+            <i class="dot" aria-hidden="true"></i>
+            <div><b id="live-head">Connecting to the scoreboard…</b><small id="live-sub">&nbsp;</small></div>
           </div>
-          <span class="play">Play</span>
-        </a>
-        <a class="game-card ludo" href="ludo.html">
-          <div class="art" aria-hidden="true">
-            <div class="mini-board"><i></i><i></i><i></i><i></i><b></b></div>
-          </div>
-          <div class="txt">
-            <h2>Ludo</h2>
-            <p>Roll, race and bonk each other all the way home.</p>
-            <span class="meta" id="ludo-meta">2–4 players · 20–40 minutes · the long one</span>
-          </div>
-          <span class="play">Play</span>
-        </a>
-      </div>
+        </aside>
 
-      <div class="join card">
-        <b>Got a code from a friend?</b>
-        <div class="join-row">
-          <input id="join-code" placeholder="Room code" aria-label="Room code" maxlength="6" autocomplete="off" spellcheck="false">
-          <button id="btn-join" class="btn cta" type="button">Join</button>
-        </div>
-        <p id="hub-error" class="error" role="alert"></p>
-      </div>
+        <div class="hub-main">
+          <p id="hello" class="hello"></p>
+          <a id="resume" class="resume-banner" hidden></a>
 
-      <div class="soon">
-        <h3>In the oven 🍳</h3>
-        <div class="soon-list">
-          <div class="soon-card"><span>🐍</span><b>Snakes &amp; Ladders</b><small>Climb, slide, scream. Coming next.</small></div>
+          <div class="games">
+            <a class="game-card plusfour" href="plusfour.html">
+              <span class="badge-new">NEW</span>
+              <div class="art" aria-hidden="true">
+                <svg viewBox="0 0 240 150">
+                  <g transform="translate(64 84) rotate(-16)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#4d9de0"/><rect x="-15" y="-15" width="30" height="30" rx="8" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><text x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#4d9de0" stroke="#2b2140" stroke-width="1.5" paint-order="stroke">2</text></g>
+                  <g transform="translate(120 74) rotate(-2)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#ff5a5f"/><rect x="-15" y="-15" width="30" height="30" rx="8" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><text x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#ff5a5f" stroke="#2b2140" stroke-width="1.5" paint-order="stroke">7</text></g>
+                  <g transform="translate(176 84) rotate(14)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#2b2140"/><g stroke="#2b2140" stroke-width="2"><rect x="-19" y="-10" width="14" height="20" rx="3" fill="#4d9de0" transform="rotate(-14)"/><rect x="-9" y="-12" width="14" height="20" rx="3" fill="#2bc48a" transform="rotate(-4)"/><rect x="1" y="-12" width="14" height="20" rx="3" fill="#ffc233" transform="rotate(6)"/><rect x="10" y="-10" width="14" height="20" rx="3" fill="#ff5a5f" transform="rotate(16)"/></g><text x="-20" y="-25" font-family="Fredoka, sans-serif" font-weight="700" font-size="12" fill="#fff">+4</text></g>
+                </svg>
+                <span class="g a">OUCH!</span>
+              </div>
+              <div class="txt">
+                <h2>Plus Four</h2>
+                <p>Match colours, stack +4s, and never forget to shout Ouch.</p>
+                <span class="meta" data-kind="plusfour">2–4 players · about 10 minutes · the mean one</span>
+              </div>
+              <span class="play">Play</span>
+            </a>
+            <a class="game-card doodle" href="doodle.html">
+              <div class="art" aria-hidden="true">
+                <svg viewBox="0 0 240 150"><path d="M40 115c6-46 28-78 56-70s6 48 32 52 30-40 52-30 16 38 24 28" fill="none" stroke="#2b2140" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="62" r="5" fill="#2b2140"/><circle cx="100" cy="58" r="5" fill="#2b2140"/></svg>
+                <span class="g a">a dragon?</span><span class="g b">MY UNCLE</span><span class="g c">soup 🍜</span>
+              </div>
+              <div class="txt">
+                <h2>Doodle Duel</h2>
+                <p>Draw badly. Guess wildly. Everyone sees every wrong guess.</p>
+                <span class="meta" data-kind="doodle">2–4 players · about 5 minutes · the quick one</span>
+              </div>
+              <span class="play">Play</span>
+            </a>
+            <a class="game-card ludo" href="ludo.html">
+              <div class="art" aria-hidden="true">
+                <div class="mini-board"><i></i><i></i><i></i><i></i><b></b></div>
+              </div>
+              <div class="txt">
+                <h2>Ludo</h2>
+                <p>Roll, race and bonk each other all the way home.</p>
+                <span class="meta" data-kind="ludo">2–4 players · 20–40 minutes · the long one</span>
+              </div>
+              <span class="play">Play</span>
+            </a>
+          </div>
+
+          <div class="join card">
+            <b>Got a code from a friend?</b>
+            <div class="join-row">
+              <input id="join-code" placeholder="Room code" aria-label="Room code" maxlength="6" autocomplete="off" spellcheck="false">
+              <button id="btn-join" class="btn cta" type="button">Join</button>
+            </div>
+            <p id="hub-error" class="error" role="alert"></p>
+          </div>
+
+          <div class="boards">
+            <section class="card board revenge" aria-labelledby="revenge-h">
+              <h2 id="revenge-h">Revenge board</h2>
+              <p class="sub">Who bonked and bombed whom, all time.</p>
+              <div id="revenge" class="rows"></div>
+            </section>
+            <section class="card board history" aria-labelledby="history-h">
+              <h2 id="history-h">Match history</h2>
+              <p class="sub">Your last 12 games, newest first.</p>
+              <ol id="history" class="rows"></ol>
+            </section>
+          </div>
+
+          <section class="card board trophies" aria-labelledby="trophy-h">
+            <h2 id="trophy-h">Trophy shelf <small id="trophy-count"></small></h2>
+            <div id="trophies" class="shelf"></div>
+          </section>
+
+          <div class="soon">
+            <h3>In the oven 🍳</h3>
+            <div class="soon-list">
+              <div class="soon-card"><span>🐍</span><b>Snakes &amp; Ladders</b><small>Climb, slide, scream. Coming next.</small></div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -154,6 +201,7 @@
   <div id="fx"></div>
 
   <script src="shared/core.js?v=7"></script>
-  <script src="hub/hub.js?v=9"></script>
+  <script src="shared/records.js?v=2"></script>
+  <script src="hub/hub.js?v=10"></script>
 </body>
 </html>

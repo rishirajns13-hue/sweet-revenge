@@ -14,13 +14,16 @@ Everything goes into the Neon database through a small API (`api/`). Each player
 - **Bombs (Plus Four):** every stacked +2/+4 pile someone had to take, credited to whoever stacked last, with how many cards it was.
 - **Achievements:** the table is ready. Nothing unlocks yet; that's the next step.
 
-## 🔜 Next: levels and achievements (across every mini-game)
+## ✅ Done: home screen with levels, trophies and live history (12 Nov 2026)
+The home screen now shows your level (an ice-cream cone that gains a scoop each level), XP bar, wins and losses, the Revenge board (who bonked and bombed whom), your last 12 games and the trophy shelf. It checks the database every 20 seconds: a green "Live" light means saving works, and new games, trophies and level-ups pop in with confetti. Levels and achievements are worked out from the saved history (`api/progress.mjs`), and each trophy is stored with the time it unlocked.
+
+## Levels and achievements (live now; the numbers below are what the code uses)
 
 ### Levels
 You earn XP in every mini-game, and it all adds up to one Sweet Revenge level. The level shows next to your avatar everywhere.
 - **XP ideas:** play a game +10 · win +25 · each bonk +3 · each bomb +1 per card · Doodle: each correct guess +5. Practice games vs bots give half XP.
 - **Level titles (ice-cream themed):** Sprinkle → Single Scoop → Double Scoop → Waffle Cone → Sundae → Banana Split → Brain Freeze 🥶 → Sweet Revenge Royalty 👑
-- A level-up gets a big moment: confetti, a sound, and a toast everyone in the room sees ("Ammu is now a Banana Split 🍌").
+- A level-up gets a big moment: confetti and a toast on the home screen. _Still to do: show it to everyone in the room, and a "+25 XP" on each end screen._
 
 ### Achievements (first list; all of these can be worked out from what's already saved)
 | | Name | How you get it |
@@ -36,9 +39,11 @@ You earn XP in every mini-game, and it all adds up to one Sweet Revenge level. T
 | 🫠 | Punching Bag | Get bonked 10 times in one game (a funny one, not a shameful one) |
 | 🗣️ | Chatterbox | Send 100 chat messages |
 | 🧠 | Mind Reader | Guess a Doodle in under 5 seconds |
+| 🍒 | Sweet Victory | Win any game |
+| 🎟️ | Regular | Play 10 games |
 
 ### To decide together
-- Do bonks and bombs against bots count, or only against each other?
+- Do bonks and bombs against bots count, or only against each other? (For now everything counts, practice included; practice gives half XP.)
 - Where it shows: a profile page with level, trophy shelf and "who bonked whom" all-time scores, plus a little "+25 XP" on every end screen.
 
 ## 💡 Old ideas list
