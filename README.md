@@ -82,7 +82,7 @@ In a game room, the host checks each friend who joins by asking Supabase who the
 - `doodle.html`, `doodle/`: Doodle Duel (`logic.js` is the pure, tested part; `words.js` has the word packs)
 - `plusfour.html`, `plusfour/`: Plus Four (`rules.js` is the pure, tested part; `cards.js` draws the cards and moves them)
 - `ludo.html`, `ludo/`: Ludo (`rules.js` is the pure, tested part)
-- `docs/`: `PROGRESS.md` (the games, levels and trophies), `IDEAS.md` (ideas to pick from together), `DATABASE.md` and `concepts/`, the design mockups the interface was chosen from
+- `docs/`: `PROGRESS.md` (the games, levels and trophies), `IDEAS.md` (ideas and what we picked), `CO-OP-RESEARCH.md` (research for the next game), `DATABASE.md` and `concepts/`, the design mockups the interface was chosen from
 
 ## Running locally
 Serve the folder with any static server, for example `python -m http.server 8765`, and open it in two tabs. Run the tests with `node --test tests/*.test.js`. Nothing needs installing.
