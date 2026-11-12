@@ -39,6 +39,9 @@ Roll (Space or tap the die), climb ladders, slide down snakes, exact roll to fin
 ## 🏎️ Sugar Rush (the fast one)
 A candy kart race: 3 laps, arrow keys or WASD to drive, Space for your item: 🍦 Brain Freeze (slows whoever's just ahead), 🍬 Jelly Splat (sticky puddle behind you), ✨ Sprinkle Boost. Last place gets better items. Room codes start with R. 2–4 racers plus bots, practice mode. On phones it accelerates for you and shows touch buttons.
 
+## 🍦 Scoop Stack (the twitchy one)
+A scoop swings over your cone: press **Space** (or tap) to drop it. Only the part that lands on the scoop below stays, so miss by too much and it splats (3 lives). Drop it dead centre for a **Perfect!**; 3 in a row charge a **Wobble** (W) that sends your rival's swing haywire for 4 seconds. Tallest tower after 90 seconds wins. Room codes start with K. 2–4 players, bots, practice mode.
+
 ## 🎲 Ludo (the long one)
 1. **New game**, share the code, and fill empty seats with bots if you like. 2–4 players; with 4 you can play **Teams (2 v 2)**.
 2. Tap the dice to roll, then tap a glowing piece. On a laptop: **Space** rolls, **1–4** moves a piece, **Enter** jumps to the chat.

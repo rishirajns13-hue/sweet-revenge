@@ -60,8 +60,32 @@ What happened while you slept. Everything listed as **live** is on the site and 
 - **Not checked:** two real devices racing online.
 - **Known gaps:** if the host leaves mid-race, the race ends. Karts pass through each other (no bumping).
 
+### 🍦 Scoop Stack (the surprise third game)
+- A scoop swings over your cone and you drop it with Space or a tap. Only the overlap stays, and a bad miss splats (3 lives).
+- Dead-centre drops are **Perfect!** and grow the scoop back. 3 in a row charge a **Wobble** that sends the tallest rival's swing haywire for 4 seconds.
+- A 90-second round; the tallest tower wins.
+- **Lag-proof:** everyone plays their own tower, and only heights are shared.
+- End screen awards: Tower Boss, Perfectionist, Wobble Master, Floor Dessert. There's a new 🍦 **Tower Boss** trophy for stacking 20 in one round.
+- **Checked:** practice in a real browser at laptop and phone size, and a two-player online round.
+
+## Online play: tested with two browsers
+I ran two separate headless browsers on this laptop, one logged in as Ammu (host) and one as Panchara Kunju (guest). They connected through the real public relay, like two homes would:
+- **Snakes & Ladders:** room created, guest joined, turns alternated, and both screens showed the same board (Ammu on 7, Kunju on 14, a snake slide included). No errors.
+- **Sugar Rush:** each saw the other's kart racing beside them in real time. No errors.
+- **Scoop Stack:** a full round with both players dropping scoops, the host ending it, and podium, awards and rewards on both screens. No errors.
+
+## Also improved
+- **Sugar Rush bumper karts:** karts now bump off each other instead of driving through. Each player's own kart gets nudged, so it stays lag-free.
+- The game cards on the home screen centre their last row; Plus Four no longer says NEW; small text and plural fixes.
+
 ## Not done / rough
-_(filled in at the end)_
+- **No host handover in Sugar Rush or Scoop Stack.** If the host closes their tab mid-round, the round ends for everyone; a rematch starts a fresh one. Ludo, Plus Four and Snakes do hand over.
+- **No joining mid-round** in Sugar Rush or Scoop Stack: a late player waits for the next round.
+- **Sugar Rush trusts each player's own finish time**, which is fine between friends.
+- **Not tested on real phones or real touch screens:** I checked phone-sized layouts in an emulated browser, but no actual device.
+- **The new sounds were chosen by name, not by listening.**
+- **Network/database decision is still open:** see `docs/NETWORK-AND-DATABASE.md`. On Jio, scores may take up to a minute to appear after a quiet spell.
+- **Storage:** you mentioned your disk filling up. I've noted it for next session (it's in my memory). Likely suspects are the helper copies of the project in `.claude/worktrees/` and `node_modules`. I didn't delete anything of yours.
 
 ## Things to look at first in the morning
 1. Open the site and play a quick practice round of each new game.

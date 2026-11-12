@@ -327,7 +327,7 @@ function renderRivals(p) {
         <span class="vs-mid" aria-hidden="true">VS</span>
         <div class="vs-side"><span class="crown">${lead === 'them' ? CROWN : ''}</span><span class="actor" data-av="${avatarFor(e.id)}" data-mood="${lead === 'them' ? 'smug' : lead ? 'sweat' : ''}">${avatarHTML(avatarFor(e.id))}</span>${them}</div>
       </div>
-      ${tug(e.bonk, '💥 bonks')}${tug(e.bomb, '📦 bombs', cards)}${tug(e.splat, '🥶 freezes & splats')}</div>`;
+      ${tug(e.bonk, '💥 bonks')}${tug(e.bomb, '📦 bombs', cards)}${tug(e.splat, '🥶 freezes, splats & wobbles')}</div>`;
   };
   let html = humans.length ? humans.map(card).join('')
     : `<div class="empty-card">No bonks or bombs yet. Bonk someone in Ludo or drop a +4 pile on them in Plus Four and the feud starts here.<a class="btn cta" href="#play">Go start one</a></div>`;

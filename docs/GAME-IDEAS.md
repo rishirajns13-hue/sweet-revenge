@@ -2,8 +2,8 @@
 
 **Sweet Revenge is one game with mini-games inside it.** One login, one profile, one level and one trophy shelf that follow you from game to game. Every mini-game feeds the same history: who won, who bonked whom, who bombed whom.
 
-**Mini-games now:** 🎲 Ludo (the long one) · 🃏 Plus Four (the mean one) · 🖍️ Doodle Duel (the quick one)
-**Next mini-game:** 🐍 Snakes & Ladders
+**Mini-games now:** 🎲 Ludo (the long one) · 🃏 Plus Four (the mean one) · 🖍️ Doodle Duel (the quick one) · 🐍 Snakes & Ladders (the screamy one) · 🏎️ Sugar Rush (the fast one) · 🍦 Scoop Stack (the twitchy one)
+**Next mini-game:** your pick
 
 ## ✅ Done: history is saved (11 Nov 2026)
 Everything goes into the Neon database through a small API (`api/`). Each player's browser sends the finished game, and the database keeps one copy.
