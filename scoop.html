@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#8f6bff">
+  <title>Scoop Stack · Sweet Revenge</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍦</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&family=Baloo+2:wght@500;600;700;800&family=Lilita+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared/base.css?v=8">
+  <link rel="stylesheet" href="shared/chat.css?v=2">
+  <link rel="stylesheet" href="scoop/scoop.css?v=1">
+</head>
+<body class="pal-sunset">
+  <main>
+    <!-- HOME -->
+    <section id="screen-home" class="screen active">
+      <header class="topbar">
+        <a class="icon-btn" href="index.html" aria-label="Back to Sweet Revenge" data-icon="back"></a>
+        <h1 class="sc-logo">Scoop <span>Stack</span></h1>
+        <button id="btn-me" class="avatar-btn" type="button" aria-label="Your profile and colours"><span id="me-avatar"></span></button>
+      </header>
+      <div class="card sc-hero">
+        <canvas id="hero-art" class="sc-hero-art" width="240" height="200" aria-hidden="true"></canvas>
+        <p class="sc-pitch">A scoop swings over your cone. <b>Drop it</b> (Space, click or tap) and only the part that lands stays. Miss and it goes <b>SPLAT</b>. Three perfects in a row charge a <b>Wobble</b> to throw at the leader. Tallest tower in 90 seconds wins.</p>
+      </div>
+      <button id="btn-resume" class="btn big resume" type="button" data-icon="play" hidden>Back to your room · <span id="resume-code"></span></button>
+      <button id="btn-create" class="btn big cta" type="button" data-icon="plus">New game</button>
+      <div class="join-row">
+        <input id="join-code" placeholder="Got a code?" aria-label="Room code" maxlength="6" autocomplete="off" spellcheck="false">
+        <button id="btn-join" class="btn" type="button">Join</button>
+      </div>
+      <button id="btn-cpu" class="link" type="button">Practice against a bot</button>
+      <p id="home-error" class="error light" role="alert"></p>
+    </section>
+
+    <!-- ROOM -->
+    <section id="screen-room" class="screen">
+      <header class="topbar">
+        <button id="btn-room-back" class="icon-btn" type="button" aria-label="Leave room" data-icon="back"></button>
+        <h2 id="room-title" class="title">Your room</h2>
+      </header>
+      <div id="code-card" class="card code-card">
+        <p id="code-hint">Send this code to your friends</p>
+        <div class="code-row"><div id="room-code" class="code"></div><button id="btn-share" class="icon-btn" type="button" aria-label="Share invite link" data-icon="share"></button></div>
+      </div>
+      <div id="seats" class="seats" aria-live="polite"></div>
+      <div class="card sc-rules">
+        <b>House rules</b>
+        <ul>
+          <li><span>🍨</span><p>Only the overlap stays. Overhang too far and the whole scoop falls off. 3 splats and you're out.</p></li>
+          <li><span>🤌</span><p>Dead centre is a Perfect: it snaps on and grows back a little.</p></li>
+          <li><span>🌀</span><p>3 perfects in a row charge a Wobble (W). It makes the leader's scoop go wild for 4 seconds.</p></li>
+        </ul>
+      </div>
+      <button id="btn-start" class="btn big cta" type="button">Start scooping</button>
+      <p id="room-wait" class="room-wait" hidden></p>
+      <p id="room-error" class="error light" role="alert"></p>
+    </section>
+
+    <!-- PLAY -->
+    <section id="screen-play" class="screen">
+      <div id="stage" class="sc-stage">
+        <header class="sc-top">
+          <button id="btn-leave" class="icon-btn" type="button" aria-label="Leave game" data-icon="x"></button>
+          <span id="room-chip" class="sc-chip"></span>
+          <b id="clock" class="sc-clock">1:30</b>
+          <div id="chat-tools" class="sc-tools"></div>
+          <button id="btn-mute" class="icon-btn" type="button" aria-label="Sound on or off" data-icon="volume"></button>
+        </header>
+        <div class="sc-body">
+          <div id="field" class="sc-field" aria-label="Your tower. Press Space or tap to drop the scoop.">
+            <canvas id="canvas"></canvas>
+            <div class="sc-hud">
+              <span id="lives" class="sc-lives" aria-label="Lives"></span>
+              <b id="height" class="sc-height">0</b>
+              <span id="streak" class="sc-streak" aria-label="Perfect streak"></span>
+            </div>
+            <p id="banner" class="sc-banner" aria-live="polite"></p>
+            <p id="count" class="sc-count" hidden></p>
+            <div id="out-note" class="sc-out" hidden><b>You're out!</b><span>Cheer on the others…</span></div>
+            <button id="btn-wobble" class="sc-wobble" type="button" disabled>🌀 Wobble <kbd>W</kbd></button>
+            <p class="sc-hint">Space / tap to drop</p>
+          </div>
+          <aside id="board" class="sc-board" aria-label="Towers"></aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- END -->
+    <section id="screen-end" class="screen">
+      <header class="topbar"><h2 id="end-title" class="title">Round over</h2></header>
+      <div id="podium" class="sc-podium"></div>
+      <div id="awards" class="sc-awards"></div>
+      <div class="sc-end-actions">
+        <button id="btn-again" class="btn big cta" type="button">Rematch</button>
+        <button id="btn-end-home" class="btn big" type="button">Done</button>
+      </div>
+      <p id="end-wait" class="room-wait" hidden></p>
+    </section>
+  </main>
+
+  <!-- PROFILE -->
+  <div id="me-sheet" class="sheet small" hidden>
+    <div class="grab" aria-hidden="true"></div>
+    <header><b>You</b><button id="btn-me-close" class="icon-btn sm" type="button" aria-label="Close" data-icon="x"></button></header>
+    <div class="me-body">
+      <h3>Avatar</h3>
+      <div id="avatars" class="avatars" role="group" aria-label="Avatar"></div>
+      <h3>Colours</h3>
+      <div id="palettes" class="palettes" role="group" aria-label="Colours"></div>
+      <button id="btn-logout" class="btn ghost" type="button">Log out</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+  <div id="fx"></div>
+
+  <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+  <script src="shared/core.js?v=8"></script>
+  <script src="shared/avatars.js?v=1"></script>
+  <script src="shared/net.js?v=8"></script>
+  <script src="shared/sound.js?v=1"></script>
+  <script src="shared/records.js?v=4"></script>
+  <script src="shared/rewards.js?v=1"></script>
+  <script src="shared/chat.js?v=3"></script>
+  <script src="scoop/rules.js?v=1"></script>
+  <script src="scoop/game.js?v=1"></script>
+</body>
+</html>
