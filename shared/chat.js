@@ -27,7 +27,7 @@ const CHAT_STICKERS = {
    room()         the room code they're saved with (optional) */
 function createChat(opts) {
   const o = { stickers: CHAT_STICKERS, dockAt: 0, sound() {}, anchor() { return null; }, stage() { return null; }, room() { return null; }, ...opts };
-  const COOLDOWN = { chat: 0, react: 500, sticker: 2500, voice: 0, typing: 2500, poke: 8000, msgreact: 250 };
+  const COOLDOWN = { chat: 0, react: 500, sticker: 2500, voice: 0, typing: 2500, poke: 8000, msgreact: 250, walkie: 0 };
   const lastSent = {};
   let unread = 0, inGame = false;
 
@@ -149,6 +149,7 @@ function createChat(opts) {
     if (!m || !o.players().some((p) => p.k === m.from)) return false;
     if (m.t === 'typing') { if (!mine) showTyping(m.from); return true; } // no sound, no unread
     const who = mine ? '' : `<small>${escapeHtml(nameOf(m.from))}</small>`, cls = mine ? 'me' : 'them';
+    if (m.t === 'walkie') { if (!mine) hearWalkie(m); return true; } // live audio: never in the chat, never unread
     if (m.t === 'msgreact') {
       // Someone stuck an emoji on a message: show it as a little chip under that message.
       const el = typeof m.mid === 'string' && m.mid.length <= 24 && CHAT_TAPBACKS.includes(m.e) && msgs.querySelector(`.m[data-mid="${CSS.escape(m.mid)}"]`);
@@ -203,7 +204,7 @@ function createChat(opts) {
     m.from = o.me();
     if (m.t === 'chat' || m.t === 'sticker') m.mid = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     if (!receive(m, true)) return;
-    if (m.t !== 'typing') o.sound('out');
+    if (m.t !== 'typing' && m.t !== 'walkie') o.sound('out');
     o.send(m);
     // Keep typed messages and stickers (never voice notes or reactions) in the chat history.
     if (o.game && typeof records !== 'undefined' && (m.t === 'chat' || m.t === 'sticker')) {
@@ -288,6 +289,127 @@ function createChat(opts) {
     btn.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); startTalk(btn); } });
     btn.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') stopTalk(); });
   }
+
+  /* ---------- walkie-talkie: hold to talk, heard live (about half a second behind) ----------
+     Audio is recorded in 200 ms slices and each slice travels through the room like any other
+     message, so it works on every network (no call setup, no extra servers). The listener's browser
+     plays the slices as they arrive. */
+  const WALKIE_MIME = 'audio/webm;codecs=opus';
+  const walkie = { rec: null, stream: null, sid: '', seq: 0, wanted: false, timer: 0, btns: [] };
+  const canStream = () => typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported(WALKIE_MIME);
+  const toB64 = (buf) => { let s = ''; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
+  const fromB64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  async function startWalkie() {
+    if (!inGame || walkie.rec || !o.players().length) return;
+    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported(WALKIE_MIME) || !navigator.mediaDevices) {
+      return toast('Live walkie-talkie needs Chrome or Edge. Voice notes still work 🎙️', 3000);
+    }
+    walkie.wanted = true;
+    try {
+      walkie.stream = walkie.stream || await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    } catch (e) { walkie.wanted = false; return toast('Allow the microphone to use the walkie-talkie 📻', 3000); }
+    if (!walkie.wanted) return;
+    walkie.sid = Math.random().toString(36).slice(2, 10);
+    walkie.seq = 0;
+    const rec = new MediaRecorder(walkie.stream, { mimeType: WALKIE_MIME, audioBitsPerSecond: 24000 });
+    walkie.rec = rec;
+    const sid = walkie.sid;
+    rec.ondataavailable = async (e) => {
+      if (!e.data.size) return;
+      const i = walkie.seq++;
+      emit({ t: 'walkie', sid, i, d: toB64(await e.data.arrayBuffer()) });
+    };
+    rec.onstop = () => {
+      // Let the last slice go out first, then say we're done.
+      setTimeout(() => emit({ t: 'walkie', sid, end: true, n: walkie.seq }), 120);
+      walkie.rec = null;
+      walkie.btns.forEach((b) => b.classList.remove('live'));
+      $('#rec').classList.remove('on', 'walkie-on');
+      walkie.stream?.getTracks().forEach((t) => t.stop()); walkie.stream = null;
+    };
+    rec.start(200);
+    walkie.btns.forEach((b) => b.classList.add('live'));
+    $('#rec').classList.add('on', 'walkie-on');
+    walkie.timer = setTimeout(stopWalkie, 30000); // 30 s at a time, like a real walkie-talkie
+  }
+  function stopWalkie() {
+    walkie.wanted = false;
+    clearTimeout(walkie.timer);
+    if (walkie.rec && walkie.rec.state === 'recording') walkie.rec.stop();
+  }
+  // Listening: one MediaSource per transmission, fed slices in order.
+  const airwaves = new Map();
+  function onAir(from, on) {
+    let pill = document.getElementById('walkie-pill');
+    if (on) {
+      if (!pill) { document.body.insertAdjacentHTML('beforeend', '<div id="walkie-pill" class="walkie-pill" aria-live="polite"></div>'); pill = document.getElementById('walkie-pill'); }
+      pill.innerHTML = `<span class="waves" aria-hidden="true"><i></i><i></i><i></i></span>📻 <b>${escapeHtml(nameOf(from))}</b> is talking`;
+      pill.classList.add('on');
+    } else if (pill) pill.classList.remove('on');
+  }
+  function hearWalkie(m) {
+    if (typeof m.sid !== 'string' || m.sid.length > 16) return;
+    let a = airwaves.get(m.sid);
+    if (!a) {
+      if (m.end) return;
+      a = { from: m.from, next: 0, pending: new Map(), queue: [], blobs: [], ended: false, n: Infinity, last: Date.now() };
+      airwaves.set(m.sid, a);
+      onAir(m.from, true);
+      if (canStream()) {
+        a.ms = new MediaSource();
+        a.audio = new Audio(URL.createObjectURL(a.ms));
+        a.ms.addEventListener('sourceopen', () => {
+          try { a.sb = a.ms.addSourceBuffer(WALKIE_MIME); a.sb.mode = 'sequence'; a.sb.addEventListener('updateend', () => feed(a, m.sid)); feed(a, m.sid); } catch (e) { a.sb = null; }
+        });
+        a.audio.addEventListener('ended', () => finishAir(m.sid));
+      }
+      a.watch = setInterval(() => { if (Date.now() - a.last > 4000) finishAir(m.sid); }, 1000);
+    }
+    a.last = Date.now();
+    if (m.end) { a.ended = true; a.n = typeof m.n === 'number' ? m.n : a.next; feed(a, m.sid); return; }
+    if (!Number.isInteger(m.i) || typeof m.d !== 'string' || m.d.length > 80000) return;
+    a.pending.set(m.i, fromB64(m.d));
+    while (a.pending.has(a.next)) { a.queue.push(a.pending.get(a.next)); a.pending.delete(a.next); a.next++; }
+    feed(a, m.sid);
+  }
+  function feed(a, sid) {
+    if (!a.ms) { // no live playback here: collect, then play the whole thing at the end
+      while (a.queue.length) a.blobs.push(a.queue.shift());
+      if (a.ended && a.next >= a.n) {
+        const audio = new Audio(URL.createObjectURL(new Blob(a.blobs, { type: 'audio/webm' })));
+        audio.addEventListener('ended', () => finishAir(sid));
+        audio.play().catch(() => finishAir(sid));
+      }
+      return;
+    }
+    if (!a.sb || a.sb.updating) return;
+    if (a.queue.length) {
+      try { a.sb.appendBuffer(a.queue.shift()); } catch (e) { /* a slice we can't use: skip it */ }
+      if (a.audio.paused) a.audio.play().catch(() => toast(`📻 ${nameOf(a.from)} is talking. Tap anywhere to hear them`, 2500));
+      return;
+    }
+    if (a.ended && a.next >= a.n && a.ms.readyState === 'open') { try { a.ms.endOfStream(); } catch (e) { /* already closed */ } }
+  }
+  function finishAir(sid) {
+    const a = airwaves.get(sid);
+    if (!a) return;
+    clearInterval(a.watch);
+    airwaves.delete(sid);
+    const still = [...airwaves.values()][0];
+    if (still) onAir(still.from, true); else onAir(null, false);
+  }
+  function wireWalkie(btn) {
+    walkie.btns.push(btn);
+    btn.addEventListener('pointerdown', (e) => { e.preventDefault(); capture(btn, e); startWalkie(); });
+    btn.addEventListener('pointerup', stopWalkie);
+    btn.addEventListener('pointercancel', stopWalkie);
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+  // Hold V anywhere in a game to talk (not while typing).
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'v' || e.key === 'V') && !e.repeat && inGame && !e.ctrlKey && !e.metaKey && !e.altKey && !(e.target instanceof Element && e.target.closest('input, textarea'))) { e.preventDefault(); startWalkie(); }
+  });
+  document.addEventListener('keyup', (e) => { if (e.key === 'v' || e.key === 'V') stopWalkie(); });
 
   /* ---------- emoji wheel: tap to open then tap an emoji, or press, slide and let go ---------- */
   wheel.innerHTML = CHAT_EMOTES.map((e, i) => {
@@ -400,17 +522,18 @@ function createChat(opts) {
       el.insertAdjacentHTML('beforeend', compact
         ? '<button class="icon-btn chat-open" type="button" aria-label="Chat" data-icon="chat" data-chat-open><b class="badge chat-unread" hidden></b></button>'
         : '<button class="say chat-open" type="button" data-icon="chat" data-chat-open><span>Message…</span><b class="badge chat-unread" hidden></b></button>');
-      el.insertAdjacentHTML('beforeend', '<button class="icon-btn" type="button" aria-label="React with an emoji" data-icon="smile" data-chat-emote></button><button class="icon-btn mic" type="button" aria-label="Hold to talk" data-icon="mic" data-chat-mic></button>');
+      el.insertAdjacentHTML('beforeend', '<button class="icon-btn" type="button" aria-label="React with an emoji" data-icon="smile" data-chat-emote></button><button class="icon-btn mic" type="button" aria-label="Hold to record a voice note" data-icon="mic" data-chat-mic></button><button class="icon-btn walkie" type="button" aria-label="Walkie-talkie: hold to talk live (or hold V)" title="Walkie-talkie: hold to talk live (or hold V)" data-chat-walkie>📻</button>');
       hydrateIcons(el);
       el.querySelector('[data-chat-open]').onclick = () => open(true);
       wireEmote(el.querySelector('[data-chat-emote]'));
       wireMic(el.querySelector('[data-chat-mic]'));
+      wireWalkie(el.querySelector('[data-chat-walkie]'));
     },
     // Games call this when a game screen shows or hides; the chat only works during a game.
     setInGame(on) {
       inGame = on;
       if (on) setTimeout(() => showEarlier().catch(() => {}), 600);
-      if (!on) { closeWheel(); close(); }
+      if (!on) { closeWheel(); close(); stopWalkie(); }
       dock();
     },
     reset() {

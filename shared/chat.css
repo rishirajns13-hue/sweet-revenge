@@ -109,3 +109,18 @@ body.chat-docked [data-chat-open] { display: none; }
 .earlier-head { margin: 4px 0; text-align: center; font: 800 12px var(--body); color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
 .m.earlier { align-self: flex-start; font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .tapbacks.pop, .reacts b.pop { animation: none; } }
+
+/* walkie-talkie */
+.icon-btn.walkie { font-size: 20px; }
+.icon-btn.walkie.live { background: #ff5a5f; animation: walkie-live 1s ease-in-out infinite; }
+@keyframes walkie-live { 50% { transform: scale(1.12); } }
+.rec.walkie-on span { font-size: 0; }
+.rec.walkie-on span::after { content: 'On air 📻 let go to stop'; font-size: 15px; }
+.walkie-pill { position: fixed; left: 50%; top: max(12px, env(safe-area-inset-top, 0px)); z-index: 130; translate: -50% -140%; display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 999px; background: var(--ink); color: #fff; font-weight: 600; box-shadow: 0 6px 0 #0003; transition: translate .25s cubic-bezier(.3, 1.4, .5, 1); pointer-events: none; }
+.walkie-pill.on { translate: -50% 0; }
+.walkie-pill .waves { display: flex; align-items: center; gap: 2px; height: 16px; }
+.walkie-pill .waves i { width: 3px; height: 100%; border-radius: 2px; background: #7ee8d8; animation: walkie-wave .7s ease-in-out infinite; }
+.walkie-pill .waves i:nth-child(2) { animation-delay: -.25s; } .walkie-pill .waves i:nth-child(3) { animation-delay: -.5s; }
+@keyframes walkie-wave { 50% { transform: scaleY(.3); } }
+@media (prefers-reduced-motion: reduce) { .icon-btn.walkie.live, .walkie-pill .waves i { animation: none; } }
