@@ -72,7 +72,7 @@ Typed chat messages, stickers and every finished game (players, winner, stats, p
 ## How logins work
 Supabase Auth, with a name and password. Only the friends listed in the `players` table can have an account; the database refuses any other sign-up. The first time a friend logs in after the move to Supabase (13 Nov 2026), the database checks their password against the old login and creates their account with that same password, so nobody had to sign up again. You stay logged in on each device for weeks.
 
-In a game room, the host checks each friend who joins by asking Supabase who their login belongs to (`checkProof` in `shared/core.js`), so changing your name or password never locks you out of a room.
+In a game room, the host checks each friend who joins by asking Supabase who their login belongs to (`checkProof` in `shared/core.js`), so changing your name or password never locks you out of a room. If Supabase can't be reached at all, the host falls back to accepting an unexpired login token that names that friend, so you can still play together; the games themselves never need the database.
 
 ## Project layout
 - `index.html`, `hub/`: the Sweet Revenge front door, with login and the game picker. The logo is an inline SVG in `index.html`.

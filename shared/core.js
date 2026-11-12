@@ -19,14 +19,28 @@ async function sha256(text) {
 }
 
 // Is `token` a live login for the friend called `user`? Resolves with their display name, or null.
+// If the database can't be reached at all (offline, or a network blocking it), rooms still work:
+// the host then accepts a token that names this friend and hasn't expired, without the server check.
+const offlineErr = (e) => !!e && (e.name === 'AuthRetryableFetchError' || e.status === 0 || /fetch|network|load failed/i.test(e.message || ''));
+function tokenClaims(token) {
+  try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch (e) { return null; }
+}
 async function checkProof(user, token) {
   if (typeof user !== 'string' || typeof token !== 'string' || token.length > 4000) return null;
+  const id = user.trim().toLowerCase();
+  const fallback = () => {
+    const c = tokenClaims(token), name = c && c.user_metadata && c.user_metadata.username;
+    if (!c || name !== id || !(c.exp * 1000 > Date.now())) return null;
+    return id.replace(/\b\w/g, (ch) => ch.toUpperCase()); // 'panchara kunju' → 'Panchara Kunju'
+  };
   try {
     const { data, error } = await sb.auth.getUser(token);
-    if (error || !data.user) return null;
-    const { data: who } = await sb.rpc('whois', { p_uid: data.user.id });
-    return who && who.id === user.trim().toLowerCase() ? who.name : null;
-  } catch (e) { return null; }
+    if (error) return offlineErr(error) ? fallback() : null;
+    if (!data.user) return null;
+    const { data: who, error: e2 } = await sb.rpc('whois', { p_uid: data.user.id });
+    if (e2) return offlineErr(e2) ? fallback() : null;
+    return who && who.id === id ? who.name : null;
+  } catch (e) { return fallback(); }
 }
 
 /* ================= icons (one stroke family, 24px grid) ================= */
