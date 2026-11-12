@@ -6,6 +6,7 @@
 
 const CHAT_EMOTES = ['😂', '🔥', '😭', '👏', '😈', '🫡', '😱', '🥳'];
 const CHAT_QUICK = ['😂', '🔥', '😭', '😈', '🫡', '💀'];
+const CHAT_TAPBACKS = ['😂', '🔥', '💀', '😈', '😭', '👏'];
 const CHAT_STICKERS = {
   gg: ['GG 🤝', '#ffffff'], all: ['Is that all?', '#ffc233'], lucky: ['Lucky 🍀', '#2bc48a'],
   noob: ["Beginner's luck", '#4d9de0'], revenge: ['Revenge is coming', '#c9a7ff'],
@@ -26,7 +27,7 @@ const CHAT_STICKERS = {
    room()         the room code they're saved with (optional) */
 function createChat(opts) {
   const o = { stickers: CHAT_STICKERS, dockAt: 0, sound() {}, anchor() { return null; }, stage() { return null; }, room() { return null; }, ...opts };
-  const COOLDOWN = { chat: 0, react: 500, sticker: 2500, voice: 0, typing: 2500, poke: 8000 };
+  const COOLDOWN = { chat: 0, react: 500, sticker: 2500, voice: 0, typing: 2500, poke: 8000, msgreact: 250 };
   const lastSent = {};
   let unread = 0, inGame = false;
 
@@ -142,13 +143,27 @@ function createChat(opts) {
     if (stage) retrigger(stage, 'shake');
   }
 
+  const tagMsg = (el, m) => { if (el && typeof m.mid === 'string' && m.mid.length <= 24) el.dataset.mid = m.mid; };
   // Check and show a social message. `mine` is true for messages this device sent.
   function receive(m, mine = false) {
     if (!m || !o.players().some((p) => p.k === m.from)) return false;
     if (m.t === 'typing') { if (!mine) showTyping(m.from); return true; } // no sound, no unread
     const who = mine ? '' : `<small>${escapeHtml(nameOf(m.from))}</small>`, cls = mine ? 'me' : 'them';
+    if (m.t === 'msgreact') {
+      // Someone stuck an emoji on a message: show it as a little chip under that message.
+      const el = typeof m.mid === 'string' && m.mid.length <= 24 && CHAT_TAPBACKS.includes(m.e) && msgs.querySelector(`.m[data-mid="${CSS.escape(m.mid)}"]`);
+      if (!el) return true;
+      let bar = el.querySelector('.reacts');
+      if (!bar) { el.insertAdjacentHTML('beforeend', '<span class="reacts"></span>'); bar = el.querySelector('.reacts'); }
+      let chip = bar.querySelector(`[data-e="${m.e}"]`);
+      if (!chip) { bar.insertAdjacentHTML('beforeend', `<b data-e="${m.e}">${m.e}<i>0</i></b>`); chip = bar.lastElementChild; }
+      chip.querySelector('i').textContent = +chip.querySelector('i').textContent + 1;
+      retrigger(chip, 'pop');
+      if (!mine) floatEmoji(m.from, m.e);
+      return true;
+    }
     if (m.t === 'chat' && typeof m.text === 'string' && m.text.trim() && m.text.length <= 300) {
-      addMsg(who + escapeHtml(m.text), cls, m.from);
+      tagMsg(addMsg(who + escapeHtml(m.text), cls, m.from), m);
       if (!mine) showBubble(m.from, m.text);
     } else if (m.t === 'poke') {
       // A poke: "your move!" The other players' screens give a little shake.
@@ -166,7 +181,7 @@ function createChat(opts) {
       return true; // reactions don't go in the chat or count as unread
     } else if (m.t === 'sticker' && o.stickers[m.id]) {
       const [text, bg] = o.stickers[m.id];
-      addMsg(`${who}<span class="sticker-art" style="--sbg:${bg}">${escapeHtml(text)}</span>`, `${cls} sticker`, m.from);
+      tagMsg(addMsg(`${who}<span class="sticker-art" style="--sbg:${bg}">${escapeHtml(text)}</span>`, `${cls} sticker`, m.from), m);
       slamSticker(m.id);
     } else if (m.t === 'voice' && typeof m.data === 'string' && m.data.length <= 400000 && /^audio\/[\w.+-]+(;.*)?$/.test(m.mime || '') && m.dur > 0 && m.dur <= 30) {
       const bars = Array.from({ length: 18 }, () => `<i style="height:${25 + Math.random() * 75}%"></i>`).join('');
@@ -186,6 +201,7 @@ function createChat(opts) {
     if (now - (lastSent[m.t] || 0) < COOLDOWN[m.t]) return;
     lastSent[m.t] = now;
     m.from = o.me();
+    if (m.t === 'chat' || m.t === 'sticker') m.mid = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     if (!receive(m, true)) return;
     if (m.t !== 'typing') o.sound('out');
     o.send(m);
@@ -333,6 +349,48 @@ function createChat(opts) {
     emit({ t: 'chat', text });
   });
   sheet.querySelector('.chat-close').onclick = close;
+
+  /* ---------- tap a message to react to it ---------- */
+  const picker = document.createElement('div');
+  picker.className = 'tapbacks';
+  picker.hidden = true;
+  picker.innerHTML = CHAT_TAPBACKS.map((e) => `<button type="button" data-e="${e}" aria-label="React ${e}">${e}</button>`).join('');
+  sheet.appendChild(picker);
+  let pickFor = null;
+  msgs.addEventListener('click', (e) => {
+    const m = e.target.closest('.m[data-mid]');
+    if (!m || e.target.closest('button')) return;
+    pickFor = m.dataset.mid;
+    const r = m.getBoundingClientRect(), sr = sheet.getBoundingClientRect();
+    picker.style.top = Math.max(4, r.top - sr.top - 46) + 'px';
+    picker.style.left = Math.min(Math.max(4, r.left - sr.left), sr.width - 240) + 'px';
+    picker.hidden = false;
+    retrigger(picker, 'pop');
+  });
+  picker.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || !pickFor) return;
+    emit({ t: 'msgreact', mid: pickFor, e: b.dataset.e });
+    picker.hidden = true;
+  });
+  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.tapbacks, .m[data-mid]')) picker.hidden = true; });
+
+  /* ---------- the last few lines with these friends, from the saved chat ---------- */
+  let earlierShown = false;
+  async function showEarlier() {
+    if (earlierShown || !msgs.querySelector('.empty') || typeof sb === 'undefined' || !me) return;
+    const cached = store.get('sr-profile:' + me.user, null), friends = (cached && cached.friends) || {};
+    const idOf = (name) => (Object.entries(friends).find(([, f]) => f.name === name) || [String(name).toLowerCase()])[0];
+    const others = o.players().filter((p) => p.k !== o.me()).map((p) => idOf(p.name)).filter((id) => friends[id] && id !== me.user);
+    if (!others.length) return; // practice against bots: nothing to carry over
+    earlierShown = true;
+    const { data } = await sb.from('chat_messages').select('sender, kind, body, sent_at').in('sender', [me.user, ...others]).order('sent_at', { ascending: false }).limit(6);
+    if (!data || !data.length || !msgs.querySelector('.empty')) return;
+    const names = { [me.user]: 'You', ...Object.fromEntries(others.map((id) => [id, friends[id].name.split(' ').pop()])) };
+    const lines = data.reverse().map((r) => `<div class="m earlier"><small>${escapeHtml(names[r.sender] || r.sender)}</small>${escapeHtml(r.body)}</div>`).join('');
+    msgs.querySelector('.empty').outerHTML = `<div class="earlier-wrap"><p class="earlier-head">Earlier with ${escapeHtml(others.map((id) => names[id]).join(' & '))}</p>${lines}<p class="earlier-head">Now</p></div>`;
+    msgs.scrollTop = msgs.scrollHeight;
+  }
   wireMic(sheet.querySelector('[data-chat-mic]'));
 
   return {
@@ -351,11 +409,13 @@ function createChat(opts) {
     // Games call this when a game screen shows or hides; the chat only works during a game.
     setInGame(on) {
       inGame = on;
+      if (on) setTimeout(() => showEarlier().catch(() => {}), 600);
       if (!on) { closeWheel(); close(); }
       dock();
     },
     reset() {
-      msgs.innerHTML = '<p class="empty">Say hi. Messages, stickers and voice notes show up here.</p>';
+      msgs.innerHTML = '<p class="empty">Say hi. Messages, stickers and voice notes show up here. Tap a message to react to it.</p>';
+      earlierShown = false;
       setUnread(0);
       close();
     },

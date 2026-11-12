@@ -93,3 +93,19 @@ body.chat-docked [data-chat-open] { display: none; }
 .m.sys.poke { color: var(--ink); background: #ffe27a; border: 2px solid var(--ink); border-radius: 999px; padding: 3px 12px; font-weight: 700; animation: poke-in .45s cubic-bezier(.3, 1.6, .5, 1); }
 @keyframes poke-in { 0% { transform: scale(.6) rotate(-6deg); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .m.sys.poke { animation: none; } }
+
+/* tap a message to stick an emoji on it */
+.msgs .m[data-mid] { cursor: pointer; }
+.tapbacks { position: absolute; z-index: 5; display: flex; gap: 2px; padding: 4px 6px; background: var(--paper); border: 3px solid var(--ink); border-radius: 999px; box-shadow: 3px 3px 0 var(--ink); }
+.tapbacks button { border: 0; background: none; font-size: 22px; width: 34px; height: 34px; border-radius: 50%; padding: 0; transition: transform .12s; }
+.tapbacks button:hover { transform: scale(1.25); }
+.tapbacks.pop, .reacts b.pop { animation: tb-pop .3s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes tb-pop { from { transform: scale(.5); opacity: 0; } }
+.reacts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.reacts b { color: var(--ink); display: inline-flex; align-items: center; gap: 2px; padding: 0 6px; border-radius: 999px; background: #fff; border: 2px solid var(--ink); font-size: 14px; line-height: 1.5; }
+.reacts b i { font: 800 11px var(--body); font-style: normal; }
+/* lines carried over from earlier games */
+.earlier-wrap { display: flex; flex-direction: column; gap: 4px; opacity: .6; }
+.earlier-head { margin: 4px 0; text-align: center; font: 800 12px var(--body); color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+.m.earlier { align-self: flex-start; font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .tapbacks.pop, .reacts b.pop { animation: none; } }
