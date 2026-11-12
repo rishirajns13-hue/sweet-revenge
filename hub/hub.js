@@ -86,36 +86,37 @@ function react(el, state, ms = 2400) {
 const reactMe = (state) => { react($('#big-avatar'), state); react($('#me-avatar'), state); };
 
 /* ================= loading screen ================= */
-// Full show on the first open of a browser session or right after logging in; a quick one when you come back from a game.
+// The menu opens straight away with what this device saw last time (level, trophies, rivals), and fresh
+// data from the database swaps in quietly. The cone only shows when there's nothing saved yet,
+// e.g. the first login on a device, and it never waits longer than it has to.
+const cacheKey = () => 'sr-profile:' + me.name.toLowerCase();
 async function boot({ full = false } = {}) {
-  const quick = !full && sessionStorage.getItem('sr-booted');
-  const minMs = quick ? 400 : 1300, started = Date.now();
+  if (!(await loadMe())) { showScreen('login'); $('#login-user').focus(); return; }
+  if (!routeAway()) return;
+  const cached = store.get(cacheKey(), null);
+  if (cached && cached.level && !full) {
+    applyProfile(cached, { firstLoad: true, cached: true });
+    enterHub();
+    return;
+  }
   showScreen('loading');
   document.querySelectorAll('.load-cone .scoop').forEach((s) => s.classList.remove('in'));
   $('.load-cone').classList.remove('done');
   const steps = [...document.querySelectorAll('.load-steps li')];
   steps.forEach((li) => (li.className = ''));
-  const step = async (i) => {
+  const step = (i) => {
     steps[i].className = 'ok';
     document.querySelector(`.load-cone .s${i + 1}`).classList.add('in');
     if (steps[i + 1]) steps[i + 1].className = 'now';
-    if (!quick) await wait(260);
   };
-
-  steps[0].className = 'now';
-  if (!(await loadMe())) { showScreen('login'); $('#login-user').focus(); return; }
-  if (!routeAway()) return;
-  await step(0);
-
-  // The scoreboard gets up to 4 seconds. If it's slow, go in anyway: the menu fills in
-  // by itself when it answers (it keeps trying quietly in the background).
-  const p = await Promise.race([fetchMe(), wait(4000).then(() => null)]);
-  await step(1);
+  step(0);
+  // The scoreboard gets up to 3 seconds. If it's slow, go in anyway: the menu fills in by itself.
+  const p = await Promise.race([fetchMe(), wait(3000).then(() => null)]);
+  step(1);
   if (p && p.level) applyProfile(p, { firstLoad: true });
-  await step(2);
+  step(2);
   $('.load-cone').classList.add('done');
-  await wait(Math.max(0, minMs - (Date.now() - started)));
-  sessionStorage.setItem('sr-booted', '1');
+  await wait(350); // just long enough to see the last scoop land
   enterHub();
 }
 
@@ -389,10 +390,13 @@ function renderEmpty() {
 
 /* ================= putting a profile on screen, and celebrating what's new ================= */
 let profile = null, checkedAt = 0, pendingReaction = null;
-function applyProfile(p, { firstLoad = false } = {}) {
+function applyProfile(p, { firstLoad = false, cached = false } = {}) {
   const before = profile;
-  profile = p; checkedAt = Date.now();
+  profile = p;
+  if (cached) { setLive('checking'); renderLevel(p); renderRecordRibbons(p); renderTrophies(p, []); renderRivals(p); renderHistory(p); return; }
+  checkedAt = Date.now();
   setLive('live');
+  store.set(cacheKey(), p);
 
   const seen = store.get(seenKey(), null);
   const unlocked = p.achievements.filter((a) => a.done).map((a) => a.id);
@@ -465,7 +469,7 @@ function fetchMe() {
 }
 async function refresh() {
   if (!me) return;
-  if (!profile && $('#btn-live').dataset.state !== 'live') setLive('checking');
+  if ($('#btn-live').dataset.state !== 'live') setLive('checking');
   const p = await fetchMe();
   if (!p || !p.level) { setLive('offline'); if (!profile) renderEmpty(); return; }
   applyProfile(p);
@@ -473,7 +477,7 @@ async function refresh() {
 let liveTimer = 0;
 function startLive() {
   if (liveTimer) return;
-  if (!profile) refresh();
+  refresh();
   liveTimer = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, POLL_MS);
   setInterval(() => { if (!$('#live-pop').hidden) renderLivePop(); }, 5000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });

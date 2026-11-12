@@ -8,7 +8,7 @@
   --blue: #4d9de0;
   --shadow: 4px 4px 0 var(--ink);
   --display: 'Fredoka', 'Trebuchet MS', system-ui, sans-serif;
-  --body: 'Baloo 2', 'Nunito', system-ui, sans-serif;
+  --body: 'Baloo 2', system-ui, sans-serif;
   /* titles and big moments: a chunky game-poster face */
   --title: 'Lilita One', 'Fredoka', system-ui, sans-serif;
 }
