@@ -72,7 +72,7 @@ const AVATARS = ['😎', '🥰', '🤓', '🤠', '😺', '🐼', '🦊', '👻',
 // Avatars can carry a custom colour and accessory ("🦊~3a", see shared/avatars.js). Every game checks
 // a player's avatar with AVATARS.includes(), so that check accepts custom looks too.
 AVATARS.includes = (a) => (typeof AVATAR_ART !== 'undefined' ? AVATAR_ART.valid(a) : Array.prototype.includes.call(AVATARS, a));
-const PALETTES = [['sunset', 'Sunset'], ['lagoon', 'Lagoon'], ['lemonade', 'Lemonade'], ['midnight', 'Midnight'], ['bubblegum', 'Bubblegum'], ['jungle', 'Jungle']];
+const PALETTES = [['sunset', 'Candy Pop'], ['lagoon', 'Deep Sea'], ['lemonade', 'Picnic'], ['midnight', 'Arcade Night'], ['bubblegum', 'Cotton Candy'], ['jungle', 'Jungle']];
 const THEME_COLOR = { sunset: '#8f6bff', lagoon: '#2ad0c1', lemonade: '#ffb03b', midnight: '#241a4a', bubblegum: '#ff8fc8', jungle: '#2bc48a' };
 const store = {
   get(k, fallback) { try { const v = localStorage.getItem(k); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; } },
