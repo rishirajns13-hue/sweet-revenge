@@ -228,7 +228,38 @@ function threatened(tokens, players, color, a, teams) {
   }));
 }
 
+/* ================= critters in their yards ================= */
+// Each player's critter sits in the middle of their yard, watching. It cheers when its player bonks
+// someone, sulks when bonked, and throws a party when its player wins.
+function renderCritters() {
+  const board = $('#board');
+  if (!board || !game) return;
+  for (const color of Object.keys(COLORS)) {
+    let el = board.querySelector(`.yard-critter[data-color="${color}"]`);
+    if (!game.players.includes(color)) { if (el) el.remove(); continue; }
+    if (!el) {
+      el = document.createElement('span');
+      el.className = 'yard-critter';
+      el.dataset.color = color;
+      const [bx, by] = BASE[color];
+      el.style.left = ((bx + 3) / 15) * 100 + '%';
+      el.style.top = ((by + 3) / 15) * 100 + '%';
+      board.appendChild(el);
+    }
+    if (el.dataset.av !== avatarOf(color)) setAvatar(el, avatarOf(color));
+  }
+}
+function critterMood(color, mood, ms = 2600) {
+  const el = $(`.yard-critter[data-color="${color}"]`);
+  if (!el) return;
+  setAvatar(el, avatarOf(color), mood);
+  retrigger(el, mood === 'cheer' ? 'hype' : 'droop');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { setAvatar(el, avatarOf(color)); el.classList.remove('hype', 'droop'); }, ms);
+}
+
 function renderTokens() {
+  renderCritters();
   const groups = {};
   for (const c of game.players) display[c].forEach((p, i) => {
     const pt = pointFor(c, p, i), key = pt.join(',');
@@ -426,6 +457,8 @@ async function animateMove(ev) {
     }
     renderTokens();
     const victims = [...new Set(ev.captured.map((c) => c.color))];
+    critterMood(ev.color, 'cheer');
+    victims.forEach((v) => critterMood(v, 'sulk', 3200));
     if (victims.some(isMine)) toast(`💥 ${shortName(ev.color)} bonked you!`);
     else toast(`💥 ${shortName(ev.color)} bonked ${victims.map(shortName).join(' & ')}!`);
     if (mode === 'cpu') floatEmoji(isBot(ev.color) ? '😈' : '😭', game.players.find(isBot));
