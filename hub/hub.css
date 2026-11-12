@@ -402,3 +402,17 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .acct-msg.ok { color: #1e9e74; }
 @keyframes acct-open { from { opacity: 0; transform: translateY(-6px); } }
 @media (prefers-reduced-motion: reduce) { .acct-form { animation: none; } }
+
+/* ---------- "they beat you, go get revenge" call-out on Play ---------- */
+.revenge-call { display: flex; align-items: center; gap: 12px; padding: 8px 14px 8px 8px; color: var(--ink); text-decoration: none;
+  background: var(--paper); border: 3px solid var(--ink); border-radius: 18px; box-shadow: var(--hard); width: min(620px, 100%);
+  rotate: -.6deg; transition: rotate var(--t-fast) var(--ease-out), translate var(--t-fast) var(--ease-out); animation: rc-in var(--t-slow) var(--ease-pop); }
+.revenge-call:hover { rotate: 0deg; translate: 0 -2px; }
+.rc-face { flex: none; font-size: 52px; line-height: 0; }
+.rc-txt { flex: 1; display: grid; min-width: 0; }
+.rc-txt b { font-size: 19px; }
+.rc-txt small { font: 700 13px var(--body); color: var(--muted); }
+.rc-go { flex: none; padding: 8px 14px; border-radius: 12px; background: var(--red); color: #fff; border: 3px solid var(--ink); font-weight: 700; box-shadow: 2px 2px 0 var(--ink); }
+@keyframes rc-in { from { opacity: 0; transform: translateY(-8px) scale(.97); } }
+@media (prefers-reduced-motion: reduce) { .revenge-call { animation: none; } }
+@media (max-width: 520px) { .rc-go { padding: 6px 10px; font-size: 14px; } .rc-face { font-size: 42px; } }

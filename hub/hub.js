@@ -349,6 +349,20 @@ function renderRivals(p) {
 }
 
 let seenGames = null;
+// "Ammu beat you at Ludo 20 min ago. Revenge?" when your last real game against a friend was a loss
+// in the past day. Tapping it opens that game, ready to start a rematch.
+function renderRevengeCall(p) {
+  const el = $('#revenge-call'), g = p.recent.find((x) => !x.practice);
+  const winner = g && !g.won && g.players.find((x) => !x.bot && x.id !== p.me.id && g.winners.includes(x.id));
+  if (!winner || Date.now() - new Date(g.endedAt).getTime() > 864e5) { el.hidden = true; return; }
+  const [icon, label] = GAMES[g.kind] || ['🎮', g.kind];
+  const name = (p.friends && p.friends[winner.id] && p.friends[winner.id].name) || winner.name;
+  el.href = `${g.kind}.html`;
+  el.innerHTML = `<span class="rc-face" aria-hidden="true">${avatarHTML(avatarFor(winner.id), 'smug')}</span>
+    <span class="rc-txt"><b>${escapeHtml(shortName(name))} beat you at ${escapeHtml(label)}</b><small>${timeAgo(g.endedAt)}. They're probably still gloating.</small></span>
+    <span class="rc-go">${icon} Revenge</span>`;
+  el.hidden = false;
+}
 function renderHistory(p) {
   const list = $('#history');
   if (!p.recent.length) {
@@ -406,6 +420,7 @@ function drawProfile(p, freshTrophies) {
     trophies: [p.achievements.map((a) => [a.id, a.done, a.have]), () => renderTrophies(p, freshTrophies)],
     rivals: [[p.rivalry, p.me && p.me.name, p.friends], () => renderRivals(p)],
     history: [p.recent.map((g) => g.id), () => renderHistory(p)],
+    revenge: [p.recent.slice(0, 1).map((g) => g.id), () => renderRevengeCall(p)],
   };
   let changed = false;
   for (const [key, [data, draw]] of Object.entries(parts)) {
