@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#8f6bff">
+  <title>Sticky Situation · Sweet Revenge</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍬</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@500;600;700;800&family=Lilita+One&family=Bungee&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared/base.css?v=15">
+  <link rel="stylesheet" href="shared/themes.css?v=5">
+  <link rel="stylesheet" href="sticky/sticky.css?v=1">
+</head>
+<body class="pal-sunset">
+  <div id="scene" aria-hidden="true"><i class="a up"></i><i class="b up"></i></div>
+  <main>
+    <!-- HOME -->
+    <section id="screen-home" class="screen active">
+      <header class="topbar">
+        <a class="icon-btn" href="index.html" aria-label="Back to Sweet Revenge" data-icon="back"></a>
+        <h1 class="st-logo">Sticky <span>Situation</span></h1>
+        <span></span>
+      </header>
+      <div class="card st-hero">
+        <div class="st-hero-art" aria-hidden="true">🎂<i>🍬</i></div>
+        <p class="st-pitch">Two critters, one stretchy gummy rope, one giant birthday cake. <b>Climb to the cherry together.</b> Slip, and you drag your partner down with you. Hold on, and they can swing past you.</p>
+      </div>
+      <button id="btn-couch" class="btn big cta" type="button">🛋️ Play together on this laptop</button>
+      <p class="st-soon">Online play is coming next. For now, grab your partner and share the keyboard.</p>
+      <div class="card st-keys">
+        <div><b>Player 1</b><span><kbd>A</kbd><kbd>D</kbd> move · <kbd>W</kbd> jump · hold <kbd>Shift</kbd> to grab</span></div>
+        <div><b>Player 2</b><span><kbd>←</kbd><kbd>→</kbd> move · <kbd>↑</kbd> jump · hold <kbd>/</kbd> or <kbd>Right Shift</kbd> to grab</span></div>
+      </div>
+    </section>
+
+    <!-- PLAY -->
+    <section id="screen-play" class="screen">
+      <div id="stage" class="st-stage">
+        <canvas id="view" aria-label="The cake you're climbing"></canvas>
+        <header class="st-hud">
+          <button id="btn-leave" class="icon-btn" type="button" aria-label="Leave" data-icon="x"></button>
+          <div class="st-meter"><b id="height">0 m</b><small id="layer">Vanilla sponge</small><i><em id="height-bar"></em></i></div>
+          <div class="st-falls" id="falls"></div>
+          <button id="btn-mute" class="icon-btn" type="button" aria-label="Sound on or off" data-icon="volume"></button>
+        </header>
+        <div id="st-banner" class="st-banner" hidden></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status"></div>
+  <div id="fx"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+  <script src="shared/core.js?v=14"></script>
+  <script src="shared/avatars.js?v=3"></script>
+  <script src="shared/sound.js?v=1"></script>
+  <script src="sticky/physics.js?v=1"></script>
+  <script src="sticky/levels.js?v=1"></script>
+  <script src="sticky/view.js?v=3"></script>
+  <script src="sticky/game.js?v=1"></script>
+</body>
+</html>
