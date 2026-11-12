@@ -15,6 +15,18 @@
     maxFall: -26, dt: 1 / 60,
   };
 
+  /* Platform kinds:  { x, y, w, h }  plain
+       slip: true      slippery frosting (you keep sliding)
+       bounce: 14      marshmallow: landing launches you up at this speed
+       move: { ax, ay, period, phase }  slides back and forth and carries whoever stands on it */
+  function boxesAt(level, t) {
+    return level.platforms.map((b) => {
+      if (!b.move) return b;
+      const k = Math.sin((2 * Math.PI * t) / b.move.period + (b.move.phase || 0));
+      return { ...b, x: b.x + (b.move.ax || 0) * k, y: b.y + (b.move.ay || 0) * k, src: b };
+    });
+  }
+
   const critter = (x, y) => ({ x, y, vx: 0, vy: 0, ground: false, grab: false, coyote: 0, buffer: 0, falls: 0, peak: y, checkpoint: { x, y } });
   function newWorld(level) {
     const s = level.spawn;
@@ -41,21 +53,24 @@
     return 'side';
   }
   // Touching any platform (a little wider than colliding) lets you grab it.
-  function touching(c, boxes) {
+  function touchIndex(c, boxes) {
     const r = P.radius + 0.08;
-    return boxes.some((b) => {
+    return boxes.findIndex((b) => {
+      if (b.bounce) return false; // too squishy to hold
       const nx = Math.max(b.x, Math.min(c.x, b.x + b.w)), ny = Math.max(b.y, Math.min(c.y, b.y + b.h));
       return (c.x - nx) ** 2 + (c.y - ny) ** 2 <= r * r;
     });
   }
+  const touching = (c, boxes) => touchIndex(c, boxes) >= 0;
 
   // input: { left, right, jump (pressed this step), grab (held) }
   function moveCritter(c, input, boxes, dt) {
-    const wantGrab = !!input.grab && touching(c, boxes);
-    c.grab = wantGrab;
+    const at = input.grab ? touchIndex(c, boxes) : -1;
+    c.grab = at >= 0;
+    c.holdIndex = c.grab ? at : null;
     if (c.grab) { c.vx = 0; c.vy = 0; return; } // stuck to the frosting
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-    const control = c.ground ? 1 : P.airControl;
+    const control = c.ground ? (c.on && c.on.slip ? 0.12 : 1) : P.airControl;
     const target = dir * P.moveSpeed;
     const rate = (dir ? P.accel : P.friction) * control * dt;
     c.vx += Math.max(-rate, Math.min(rate, target - c.vx));
@@ -80,24 +95,40 @@
     return d;
   }
 
-  function integrate(c, boxes, dt) {
-    if (c.grab) return;
+  function integrate(c, boxes, prev, dt) {
+    if (c.grab) {
+      // Holding a moving platform: ride along with it.
+      const i = c.holdIndex;
+      if (i != null && boxes[i].src) { c.x += boxes[i].x - prev[i].x; c.y += boxes[i].y - prev[i].y; }
+      return;
+    }
+    // Standing on a moving platform last step: get carried by how far it moved.
+    if (c.ground && c.onIndex != null && boxes[c.onIndex].src) {
+      c.x += boxes[c.onIndex].x - prev[c.onIndex].x; c.y += boxes[c.onIndex].y - prev[c.onIndex].y;
+    }
+    const falling = c.vy;
     c.x += c.vx * dt; c.y += c.vy * dt;
-    c.ground = false;
-    for (const b of boxes) if (collide(c, b) === 'top') c.ground = true;
+    c.ground = false; c.on = null; c.onIndex = null;
+    boxes.forEach((b, i) => {
+      if (collide(c, b) !== 'top') return;
+      if (b.bounce && falling < -2) { c.vy = b.bounce; c.bounced = true; return; }
+      c.ground = true; c.on = b; c.onIndex = i;
+    });
   }
 
   // One fixed step for both critters. Returns the world (mutated) with any new events.
   function step(w, inA, inB) {
-    const dt = P.dt, boxes = w.level.platforms;
+    const dt = P.dt, prev = boxesAt(w.level, w.t);
     w.t += dt;
+    const boxes = boxesAt(w.level, w.t);
     moveCritter(w.a, inA || {}, boxes, dt);
     moveCritter(w.b, inB || {}, boxes, dt);
     w.ropeLength = rope(w.a, w.b, dt);
-    integrate(w.a, boxes, dt);
-    integrate(w.b, boxes, dt);
+    integrate(w.a, boxes, prev, dt);
+    integrate(w.b, boxes, prev, dt);
     for (const [k, c] of [['a', w.a], ['b', w.b]]) {
       if (c.jumped) { w.events.push({ t: 'jump', k }); c.jumped = false; }
+      if (c.bounced) { w.events.push({ t: 'bounce', k }); c.bounced = false; }
       // Reaching a checkpoint (a candle) while standing saves it for both.
       for (const cp of w.level.checkpoints || []) {
         if (c.ground && Math.abs(c.x - cp.x) < 0.8 && Math.abs(c.y - cp.y) < 1 && (w.a.checkpoint.y < cp.y)) {
@@ -122,6 +153,6 @@
     return w;
   }
 
-  const api = { P, newWorld, step, collide, touching, rope };
+  const api = { P, newWorld, step, collide, touching, rope, boxesAt };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StickyPhysics = api;
 })(typeof window !== 'undefined' ? window : globalThis);

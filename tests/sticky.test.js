@@ -57,3 +57,40 @@ test('both reaching the goal wins', () => {
   run(w, 90);
   assert.equal(w.won, true);
 });
+
+const Levels = require('../sticky/levels.js');
+const Phys = require('../sticky/physics.js');
+
+test('the cake: every hop on the route is jumpable', () => {
+  const r = Levels.cake.route;
+  const reach = (Phys.P.jumpSpeed ** 2) / (2 * -Phys.P.gravity); // highest a jump can lift you
+  for (let i = 1; i < r.length; i++) {
+    const a = r[i - 1], b = r[i];
+    const slack = (m) => (m ? Math.abs(m.ax || 0) + Math.abs(m.ay || 0) : 0);
+    const up = b.y - a.y - slack(b.move) * 0; // moving ones come closer at some point
+    const gap = Math.max(0, Math.max(b.x, a.x) - Math.min(b.x + b.w, a.x + a.w)) - slack(a.move) - slack(b.move);
+    if (a.bounce) continue; // marshmallows launch you much higher
+    assert.ok(up <= reach - 0.2, `hop ${i} is ${up.toFixed(2)} m up (max ${reach.toFixed(2)})`);
+    assert.ok(gap <= 3, `hop ${i} gap ${gap.toFixed(2)} m`);
+  }
+});
+
+test('the cake: standing on a sliding strawberry carries you', () => {
+  const lvl = { spawn: { x: 0, y: 2 }, platforms: [{ x: -4, y: 0, w: 8, h: 0.6, move: { ax: 2, period: 2 } }], checkpoints: [], goal: null, fallLimit: 50 };
+  const w = Phys.newWorld(lvl);
+  w.b.x = 0.4; w.a.x = 0.2;
+  for (let i = 0; i < 40; i++) Phys.step(w, {}, {});
+  const x0 = w.a.x;
+  for (let i = 0; i < 20; i++) Phys.step(w, {}, {});
+  assert.ok(w.a.ground, 'standing on it');
+  assert.ok(Math.abs(w.a.x - x0) > 0.3, 'moved with the platform');
+});
+
+test('the cake: a marshmallow bounces you way up', () => {
+  const lvl = { spawn: { x: 0, y: 4 }, platforms: [{ x: -2, y: 0, w: 4, h: 0.6, bounce: 13.5 }], checkpoints: [], goal: null, fallLimit: 50 };
+  const w = Phys.newWorld(lvl);
+  let top = 0;
+  for (let i = 0; i < 120; i++) { Phys.step(w, {}, {}); top = Math.max(top, w.a.y); }
+  assert.ok(w.events.some((e) => e.t === 'bounce'));
+  assert.ok(top > 4.5, `bounced up to ${top.toFixed(1)} m`);
+});
