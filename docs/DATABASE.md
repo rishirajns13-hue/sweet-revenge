@@ -22,11 +22,17 @@ _Moved from Neon to Supabase on 13 Nov 2026. Neon, its relay bridge and its ever
   - `save_chat`, `store_progress` and `update_me` act only on your own account.
 - **Sign-ups:** only names already in `players` can have an account, and each name only once.
 
+## What the browser reads directly
+Besides the functions, logged-in friends read `players` (id, name, avatar, theme) directly: the home screen uses it for friends' critters in Rivals, and Ludo uses it with your game history for its head-to-head scores ("You 3 – 1 Ammu, all time"), so every device agrees and renames don't split a score.
+
 ## Speed
 - The home screen shows the last profile this device saw immediately. Fresh data follows in one request (`my_profile`).
 - Games and trophies arrive live over Realtime, with a refresh every 60 s as a safety net.
 - Supabase's API doesn't sleep like Neon's function did, so there's no cold start.
 - On Jio (13 Nov 2026) the project address resolved fine and answered in about 0.5 s.
+
+## Not applied yet
+A lockout for first-login password guessing (5 wrong tries in 10 minutes per name) was written on 13 Nov 2026 but the migration was declined in the session. The browser already shows a "too many tries" message for it. To apply it, paste `supabase/pending/claim_account_throttle.sql` into the Supabase SQL editor, or ask Claude to apply it again. It only matters until every friend has logged in once, because after that Supabase Auth checks passwords and rate-limits them itself.
 
 ## If Jio (or anyone) blocks Supabase again
 India blocked `supabase.co` from Feb to Oct 2026. If it happens again:

@@ -51,8 +51,13 @@ In every game the host's browser runs the game and everyone else keeps a copy. I
 ## Chat (every game)
 Every game has the same chat: messages, game-specific stickers, an emoji wheel (tap it, or press and slide to an emoji) and hold-to-talk voice notes. On a wide laptop screen it's docked beside the game in Ludo and Plus Four; otherwise the **Message** button opens it. In Doodle Duel, anything you type in the chat while someone is drawing counts as a guess, so nobody can spoil the word.
 
-## Your look
-Tap your avatar to pick an avatar and a colour palette (Sunset, Lagoon or Lemonade). It applies to every game.
+## You (your look and account)
+The **You** tab (key 4) on the home screen:
+- **Critter builder:** 12 critters (Cool Scoop, Honey Bun, Prof. Hoot, Rodeo Pup, Whiskers, Bamboo the panda, Sly Fox, Boo, Hopper, Sparkle, Stripes the tiger, Inky the octopus), 12 colours and 10 accessories. Your critter shows in every game, and friends see it in their Rivals tab.
+- **Themes:** Candy Pop, Deep Sea, Picnic, Arcade Night, Cotton Candy and Jungle. A theme changes the home screen's cards, buttons, heading font, logo colours and a gently moving scene (`hub/themes.css`); the games keep their own look and just take the theme's background colours.
+- Your critter and theme are saved to your account, so they follow you to any device.
+- **Account:** change your display name (friends see it everywhere) or your password, and log out. Your login name never changes.
+- **Settings:** sound effects, and calm mode (stops the floating and swaying animations, scenes included).
 
 ## History (saved to the database)
 Typed chat messages, stickers and every finished game (players, winner, stats, plus every Ludo bonk and Plus Four bomb) are saved in a **Supabase** Postgres database. Voice notes and emoji reactions are never saved. The site stays static; browsers talk to Supabase directly with the publishable key, which is safe to be public:
