@@ -42,7 +42,7 @@ const records = (() => {
   async function profile() {
     if (!me) return null;
     // Your profile, plus every friend's name and chosen critter (for rivals and history), in parallel.
-    const [{ data: r, error }, P, { data: friends }] = await Promise.all([sb.rpc('my_profile'), loadProgress(), sb.from('players').select('id, name, avatar')]);
+    const [{ data: r, error }, P, { data: friends }] = await Promise.all([sb.rpc('my_profile'), loadProgress(), sb.from('players').select('id, name, avatar, xp')]);
     if (error || !r) return null;
     const id = r.me.id, none = () => ({ bonks: 0, bombs: 0, bombCards: 0 });
     const hitsBy = new Map();
@@ -66,7 +66,10 @@ const records = (() => {
     const prog = P.progress(facts), when = r.stored;
     // Store XP and any trophy that just unlocked, so it keeps its unlock time.
     const fresh = prog.achievements.filter((a) => a.done && !when[a.id]);
-    sb.rpc('store_progress', { p_xp: prog.xp, p_achievements: prog.achievements.filter((a) => a.done).map((a) => a.id) }).then(() => {});
+    const mine = (friends || []).find((f) => f.id === id);
+    if (fresh.length || !mine || mine.xp !== prog.xp) { // only write when something changed
+      sb.rpc('store_progress', { p_xp: prog.xp, p_achievements: prog.achievements.filter((a) => a.done).map((a) => a.id) }).then(() => {});
+    }
     const now = new Date().toISOString();
     fresh.forEach((a) => (when[a.id] = now));
 
@@ -132,6 +135,7 @@ const records = (() => {
     sb.rpc('update_me', { p_avatar: myAvatar(), p_theme: store.get('ludo-palette', 'sunset') }).then(() => {});
   }
 
+  let recent = null, recentAt = 0;
   const sent = new Set();
   return {
     // A message this player just sent. `text` is the message, or the sticker's words.
@@ -149,7 +153,12 @@ const records = (() => {
       sent.add(key);
       save('save_game', { g });
     },
-    me: profile,
+    // Callers on one page (the home screen, Ludo's scores, the end-of-game rewards) share a load
+    // that's under 3 seconds old instead of each asking the database again.
+    me({ fresh = false } = {}) {
+      if (fresh || !recent || Date.now() - recentAt > 3000) { recentAt = Date.now(); recent = profile().catch(() => null); }
+      return recent;
+    },
     saveLook,
     onChange,
     // Change your display name. Resolves with null when it worked, or a short message saying why not.

@@ -488,7 +488,7 @@ document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#live-p
 // One profile request at a time: the loading screen, live updates and tab switches share it.
 let mePending = null;
 function fetchMe() {
-  if (!mePending) mePending = records.me().finally(() => { mePending = null; });
+  if (!mePending) mePending = records.me({ fresh: true }).finally(() => { mePending = null; });
   return mePending;
 }
 async function refresh() {
