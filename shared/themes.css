@@ -1,19 +1,19 @@
-/* Sweet Revenge themes (home screen only; the games keep their own look).
+/* Sweet Revenge themes, on every page (home screen and all games).
    A theme is more than a background: it sets the outline colour (--ink), the card paper, how round
    and how "stickery" cards and buttons are, the heading font, the logo's colours, and a scene that
    moves gently behind everything (#scene, two layers; transform/opacity only, so it stays smooth).
-   The body carries .home and .pal-<theme>; applyPalette() in shared/core.js switches it. */
+   The body carries .pal-<theme>; applyPalette() in shared/core.js switches it. Seasons stay on the home screen (.home). */
 
 /* ---------- the logo follows the theme's outline colour; themes recolour its fills ---------- */
-.home .lg-ink { fill: var(--ink); }
-.home .lg-line { stroke: var(--ink); }
+.lg-ink { fill: var(--ink); }
+.lg-line { stroke: var(--ink); }
 
 /* ---------- the scene layer (shared mechanics) ---------- */
 #scene { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
 #scene i { position: absolute; display: block; will-change: transform; }
 /* A tiling layer that drifts: taller/wider than the screen by one tile, moved by exactly one tile. */
-.home #scene .up { left: 0; right: 0; top: 0; height: calc(100% + var(--tile)); background-size: var(--tile) var(--tile); animation: scene-up var(--dur) linear infinite; }
-.home #scene .side { top: 0; bottom: 0; left: 0; width: calc(100% + var(--tile)); background-size: var(--tile) var(--tile); animation: scene-side var(--dur) linear infinite; }
+#scene .up { left: 0; right: 0; top: 0; height: calc(100% + var(--tile)); background-size: var(--tile) var(--tile); animation: scene-up var(--dur) linear infinite; }
+#scene .side { top: 0; bottom: 0; left: 0; width: calc(100% + var(--tile)); background-size: var(--tile) var(--tile); animation: scene-side var(--dur) linear infinite; }
 @keyframes scene-up { to { transform: translate3d(0, calc(-1 * var(--tile)), 0); } }
 @keyframes scene-down { from { transform: translate3d(0, calc(-1 * var(--tile)), 0); } to { transform: none; } }
 @keyframes scene-side { to { transform: translate3d(calc(-1 * var(--tile)), 0, 0); } }
@@ -24,128 +24,128 @@
 /* =====================================================================
    1. SUNSET · "Candy Pop" (the default): chunky stickers, sprinkles drifting down
    ===================================================================== */
-.home.pal-sunset #scene .a { --tile: 260px; --dur: 38s; animation-name: scene-down; opacity: .9;
+.pal-sunset #scene .a { --tile: 260px; --dur: 38s; animation-name: scene-down; opacity: .9;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cg stroke-width='7' stroke-linecap='round'%3E%3Cpath d='M30 40l14 6' stroke='%23fff8'/%3E%3Cpath d='M150 30l-6 13' stroke='%23ffe27a'/%3E%3Cpath d='M210 110l13 4' stroke='%23fff8'/%3E%3Cpath d='M90 140l-4 13' stroke='%237ee8d8'/%3E%3Cpath d='M40 210l12-7' stroke='%23ffe27a'/%3E%3Cpath d='M170 200l5 13' stroke='%23fff8'/%3E%3C/g%3E%3C/svg%3E"); }
-.home.pal-sunset #scene .b { --tile: 180px; --dur: 26s; animation-name: scene-down; opacity: .5;
+.pal-sunset #scene .b { --tile: 180px; --dur: 26s; animation-name: scene-down; opacity: .5;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cg stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M20 90l8 3' stroke='%23fff'/%3E%3Cpath d='M120 40l-3 8' stroke='%23fff'/%3E%3Cpath d='M140 150l8-3' stroke='%23fff'/%3E%3C/g%3E%3C/svg%3E"); }
 
 /* =====================================================================
    2. LAGOON · "Deep Sea": round bubbly cards that sit on the water, bubbles rising
    ===================================================================== */
-.home.pal-lagoon { --ink: #10335e; --muted: #3e5d80; --paper: #f3fcff; --title: 'Baloo 2', 'Fredoka', sans-serif;
+.pal-lagoon { --ink: #10335e; --muted: #3e5d80; --paper: #f3fcff; --title: 'Baloo 2', 'Fredoka', sans-serif;
   --shadow: 0 7px 0 #10335e; --hard: 0 8px 0 #10335e; }
-.home.pal-lagoon #scene .a { --tile: 300px; --dur: 30s;
+.pal-lagoon #scene .a { --tile: 300px; --dur: 30s;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cg fill='%23ffffff22' stroke='%23ffffffaa' stroke-width='2.5'%3E%3Ccircle cx='40' cy='60' r='14'/%3E%3Ccircle cx='190' cy='30' r='8'/%3E%3Ccircle cx='250' cy='170' r='18'/%3E%3Ccircle cx='110' cy='220' r='10'/%3E%3Ccircle cx='60' cy='270' r='6'/%3E%3C/g%3E%3Cg fill='%23fff'%3E%3Ccircle cx='35' cy='55' r='3.5'/%3E%3Ccircle cx='244' cy='163' r='4.5'/%3E%3Ccircle cx='106' cy='216' r='2.5'/%3E%3C/g%3E%3C/svg%3E"); }
-.home.pal-lagoon #scene .b { --tile: 160px; --dur: 14s; opacity: .7;
+.pal-lagoon #scene .b { --tile: 160px; --dur: 14s; opacity: .7;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cg fill='none' stroke='%23ffffff99' stroke-width='2'%3E%3Ccircle cx='30' cy='40' r='4'/%3E%3Ccircle cx='120' cy='100' r='5'/%3E%3Ccircle cx='80' cy='150' r='3'/%3E%3C/g%3E%3C/svg%3E"); }
-.home.pal-lagoon .card, .home.pal-lagoon .vs-card, .home.pal-lagoon .tabs { border-radius: 30px; }
-.home.pal-lagoon .game-card { border-radius: 32px; box-shadow: 0 9px 0 var(--ink); }
-.home.pal-lagoon .btn { border-radius: 999px; box-shadow: 0 4px 0 var(--ink); }
-.home.pal-lagoon .btn:hover { box-shadow: 0 5px 0 var(--ink); }
-.home.pal-lagoon .btn:active { box-shadow: 0 1px 0 var(--ink); }
-.home.pal-lagoon h1, .home.pal-lagoon h2, .home.pal-lagoon h3, .home.pal-lagoon .hello, .home.pal-lagoon .shelf-label, .home.pal-lagoon .shelf-title,
-.home.pal-lagoon .game-card h2, .home.pal-lagoon .tab .tl, .home.pal-lagoon .lv-title { font-weight: 800; letter-spacing: 0; }
-.home.pal-lagoon .lg-rev { fill: #7ee8d8; }
+.pal-lagoon .card, .pal-lagoon .vs-card, .pal-lagoon .tabs { border-radius: 30px; }
+.pal-lagoon .game-card { border-radius: 32px; box-shadow: 0 9px 0 var(--ink); }
+.pal-lagoon .btn { border-radius: 999px; box-shadow: 0 4px 0 var(--ink); }
+.pal-lagoon .btn:hover { box-shadow: 0 5px 0 var(--ink); }
+.pal-lagoon .btn:active { box-shadow: 0 1px 0 var(--ink); }
+.pal-lagoon h1, .pal-lagoon h2, .pal-lagoon h3, .pal-lagoon .hello, .pal-lagoon .shelf-label, .pal-lagoon .shelf-title,
+.pal-lagoon .game-card h2, .pal-lagoon .tab .tl, .pal-lagoon .lv-title { font-weight: 800; letter-spacing: 0; }
+.pal-lagoon .lg-rev { fill: #7ee8d8; }
 
 /* =====================================================================
    3. LEMONADE · "Picnic": gingham cloth, stitched paper cards, handwritten headings, clouds drifting by
    ===================================================================== */
-.home.pal-lemonade { --ink: #4a2f1b; --muted: #7a5a3e; --paper: #fffdf3; --title: 'Fredoka', sans-serif;
+.pal-lemonade { --ink: #4a2f1b; --muted: #7a5a3e; --paper: #fffdf3; --title: 'Fredoka', sans-serif;
   --bg: linear-gradient(90deg, #ff6b6b33 50%, transparent 0) 0 0 / 56px 56px, linear-gradient(#ff6b6b33 50%, transparent 0) 0 0 / 56px 56px, linear-gradient(160deg, #fff1b8, #ffd27a);
   --shadow: 4px 5px 0 #4a2f1b; --hard: 4px 5px 0 #4a2f1b; }
-.home.pal-lemonade #scene .a { --tile: 700px; --dur: 70s; top: 2%; height: 300px; right: auto; width: calc(100% + var(--tile));
+.pal-lemonade #scene .a { --tile: 700px; --dur: 70s; top: 2%; height: 300px; right: auto; width: calc(100% + var(--tile));
   background-repeat: repeat-x; background-size: 700px 300px; animation-name: scene-side;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='300'%3E%3Cg fill='%23fff' stroke='%234a2f1b' stroke-width='4' stroke-linejoin='round'%3E%3Cpath d='M60 90c-4-24 24-34 36-20 6-22 42-22 46 2 22-4 30 22 14 30H70c-14 0-20-6-10-12z'/%3E%3Cpath d='M420 200c-3-18 19-26 28-15 5-17 33-17 36 1 17-3 23 17 11 23h-67c-11 0-16-5-8-9z'/%3E%3C/g%3E%3C/svg%3E"); }
-.home.pal-lemonade #scene .b { display: none; }
-.home.pal-lemonade .card, .home.pal-lemonade .vs-card { border-radius: 10px; outline: 2.5px dashed #4a2f1b55; outline-offset: -9px; }
-.home.pal-lemonade .game-card { border-radius: 12px; box-shadow: 5px 6px 0 var(--ink); outline: 2.5px dashed #4a2f1b44; outline-offset: -8px; }
-.home.pal-lemonade .tabs { border-radius: 12px; }
-.home.pal-lemonade .btn { border-radius: 10px; }
-.home.pal-lemonade h1, .home.pal-lemonade h2, .home.pal-lemonade h3, .home.pal-lemonade .hello, .home.pal-lemonade .shelf-label, .home.pal-lemonade .shelf-title,
-.home.pal-lemonade .game-card h2, .home.pal-lemonade .lv-title { font-weight: 700; letter-spacing: 0; }
+.pal-lemonade #scene .b { display: none; }
+.pal-lemonade .card, .pal-lemonade .vs-card { border-radius: 10px; outline: 2.5px dashed #4a2f1b55; outline-offset: -9px; }
+.pal-lemonade .game-card { border-radius: 12px; box-shadow: 5px 6px 0 var(--ink); outline: 2.5px dashed #4a2f1b44; outline-offset: -8px; }
+.pal-lemonade .tabs { border-radius: 12px; }
+.pal-lemonade .btn { border-radius: 10px; }
+.pal-lemonade h1, .pal-lemonade h2, .pal-lemonade h3, .pal-lemonade .hello, .pal-lemonade .shelf-label, .pal-lemonade .shelf-title,
+.pal-lemonade .game-card h2, .pal-lemonade .lv-title { font-weight: 700; letter-spacing: 0; }
 /* brown lettering with a white edge reads well on the gingham */
-.home.pal-lemonade .hello, .home.pal-lemonade .shelf-label, .home.pal-lemonade .shelf-title { color: #4a2f1b; text-shadow: 2px 0 0 #fff, -2px 0 0 #fff, 0 2px 0 #fff, 0 -2px 0 #fff, 2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 4px 4px 0 #4a2f1b33; }
-.home.pal-lemonade .shelf-label small { color: #4a2f1b; }
-.home.pal-lemonade .lg-rev { fill: #ff6b6b; }
+.pal-lemonade .hello, .pal-lemonade .shelf-label, .pal-lemonade .shelf-title { color: #4a2f1b; text-shadow: 2px 0 0 #fff, -2px 0 0 #fff, 0 2px 0 #fff, 0 -2px 0 #fff, 2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 4px 4px 0 #4a2f1b33; }
+.pal-lemonade .shelf-label small { color: #4a2f1b; }
+.pal-lemonade .lg-rev { fill: #ff6b6b; }
 
 /* =====================================================================
    4. MIDNIGHT · "Arcade Night": neon-edged cards, arcade lettering, twinkling stars and a glowing grid floor
    ===================================================================== */
-.home.pal-midnight { --ink: #1b1340; --muted: #4c4470; --paper: #fdf9ff; --title: 'Bungee', 'Lilita One', sans-serif;
+.pal-midnight { --ink: #1b1340; --muted: #4c4470; --paper: #fdf9ff; --title: 'Bungee', 'Lilita One', sans-serif;
   --shadow: 0 0 0 3px #ff71ce, 0 0 26px #ff71ce88; --hard: 0 0 0 3px #7ee8d8, 0 0 24px #7ee8d877; }
-.home.pal-midnight #scene .a { inset: 0; background:
+.pal-midnight #scene .a { inset: 0; background:
     radial-gradient(circle at 12% 18%, #fff 0 1.6px, transparent 2.4px) 0 0 / 140px 140px,
     radial-gradient(circle at 64% 42%, #ffe9a0 0 1.4px, transparent 2.2px) 0 0 / 190px 190px,
     radial-gradient(circle at 38% 76%, #9ff 0 1.2px, transparent 2px) 0 0 / 110px 110px;
   animation: twinkle 3.2s ease-in-out infinite; }
 /* the grid floor: a tilted plane whose lines roll toward you */
-.home.pal-midnight #scene .b { left: -50%; right: -50%; top: auto; bottom: -10%; height: calc(55% + 60px); transform-origin: 50% 0; transform: perspective(380px) rotateX(62deg);
+.pal-midnight #scene .b { left: -50%; right: -50%; top: auto; bottom: -10%; height: calc(55% + 60px); transform-origin: 50% 0; transform: perspective(380px) rotateX(62deg);
   background:
     linear-gradient(#ff71ceaa 2px, transparent 2px) 0 0 / 60px 60px,
     linear-gradient(90deg, #ff71ce88 2px, transparent 2px) 0 0 / 60px 60px;
   -webkit-mask-image: linear-gradient(transparent, #000 40%); mask-image: linear-gradient(transparent, #000 40%);
   animation: grid-roll 2.4s linear infinite; }
 @keyframes grid-roll { from { transform: perspective(380px) rotateX(62deg) translateY(-60px); } to { transform: perspective(380px) rotateX(62deg) translateY(0); } }
-.home.pal-midnight .card, .home.pal-midnight .vs-card, .home.pal-midnight .tabs { border-radius: 14px; }
-.home.pal-midnight .game-card { border-radius: 16px; box-shadow: 0 0 0 3px #7ee8d8, 0 0 30px #7ee8d877; }
-.home.pal-midnight .game-card:nth-child(even) { box-shadow: 0 0 0 3px #ff71ce, 0 0 30px #ff71ce77; }
-.home.pal-midnight .btn { border-radius: 10px; box-shadow: 0 0 0 2px #ff71ce, 0 0 14px #ff71ce88; }
-.home.pal-midnight .btn:hover { box-shadow: 0 0 0 2px #7ee8d8, 0 0 20px #7ee8d8aa; }
-.home.pal-midnight .btn:active { box-shadow: 0 0 0 2px #7ee8d8; }
-.home.pal-midnight .btn.ghost { box-shadow: none; }
-.home.pal-midnight h1, .home.pal-midnight h2, .home.pal-midnight h3, .home.pal-midnight .shelf-label, .home.pal-midnight .shelf-title,
-.home.pal-midnight .game-card h2, .home.pal-midnight .tab .tl, .home.pal-midnight .lv-title, .home.pal-midnight .hello { font-weight: 400; letter-spacing: .5px; }
-.home.pal-midnight .hello, .home.pal-midnight .shelf-label, .home.pal-midnight .shelf-title { color: #fff; text-shadow: 0 0 10px #ff71ce, 0 0 22px #ff71ce99, 2px 2px 0 #1b1340; }
-.home.pal-midnight .hello { font-size: clamp(26px, 3.4vw, 40px); }
-.home.pal-midnight .game-shelves .game-card h2 { font-size: 19px; }
-.home.pal-midnight .tab .tl { font-size: 16px; }
-@media (max-width: 760px) { .home.pal-midnight .tab .tl { font-size: 10.5px; letter-spacing: 0; } .home.pal-midnight .shelf-label small { display: block; margin: 2px 0 0; } }
-.home.pal-midnight .brand svg { filter: drop-shadow(0 0 14px #ff71ce99) drop-shadow(0 0 3px #7ee8d8); }
-.home.pal-midnight .lg-rev { fill: #ff71ce; }
-.home.pal-midnight .lg-white { fill: #fdf9ff; }
+.pal-midnight .card, .pal-midnight .vs-card, .pal-midnight .tabs { border-radius: 14px; }
+.pal-midnight .game-card { border-radius: 16px; box-shadow: 0 0 0 3px #7ee8d8, 0 0 30px #7ee8d877; }
+.pal-midnight .game-card:nth-child(even) { box-shadow: 0 0 0 3px #ff71ce, 0 0 30px #ff71ce77; }
+.pal-midnight .btn { border-radius: 10px; box-shadow: 0 0 0 2px #ff71ce, 0 0 14px #ff71ce88; }
+.pal-midnight .btn:hover { box-shadow: 0 0 0 2px #7ee8d8, 0 0 20px #7ee8d8aa; }
+.pal-midnight .btn:active { box-shadow: 0 0 0 2px #7ee8d8; }
+.pal-midnight .btn.ghost { box-shadow: none; }
+.pal-midnight h1, .pal-midnight h2, .pal-midnight h3, .pal-midnight .shelf-label, .pal-midnight .shelf-title,
+.pal-midnight .game-card h2, .pal-midnight .tab .tl, .pal-midnight .lv-title, .pal-midnight .hello { font-weight: 400; letter-spacing: .5px; }
+.pal-midnight .hello, .pal-midnight .shelf-label, .pal-midnight .shelf-title { color: #fff; text-shadow: 0 0 10px #ff71ce, 0 0 22px #ff71ce99, 2px 2px 0 #1b1340; }
+.pal-midnight .hello { font-size: clamp(26px, 3.4vw, 40px); }
+.pal-midnight .game-shelves .game-card h2 { font-size: 19px; }
+.pal-midnight .tab .tl { font-size: 16px; }
+@media (max-width: 760px) { .pal-midnight .tab .tl { font-size: 10.5px; letter-spacing: 0; } .pal-midnight .shelf-label small { display: block; margin: 2px 0 0; } }
+.pal-midnight .brand svg { filter: drop-shadow(0 0 14px #ff71ce99) drop-shadow(0 0 3px #7ee8d8); }
+.pal-midnight .lg-rev { fill: #ff71ce; }
+.pal-midnight .lg-white { fill: #fdf9ff; }
 
 /* =====================================================================
    5. BUBBLEGUM · "Cotton Candy": extra-round pillowy cards with soft shadows, clouds and hearts floating up
    ===================================================================== */
-.home.pal-bubblegum { --ink: #6b2d5c; --muted: #94608a; --paper: #fff8fc; --title: 'Fredoka', sans-serif;
+.pal-bubblegum { --ink: #6b2d5c; --muted: #94608a; --paper: #fff8fc; --title: 'Fredoka', sans-serif;
   --shadow: 0 10px 0 #6b2d5c33, 0 2px 0 #6b2d5c; --hard: 0 10px 0 #6b2d5c33, 0 2px 0 #6b2d5c; }
-.home.pal-bubblegum #scene .a { --tile: 640px; --dur: 80s;
+.pal-bubblegum #scene .a { --tile: 640px; --dur: 80s;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Cg fill='%23ffffffb0'%3E%3Ccircle cx='90' cy='120' r='38'/%3E%3Ccircle cx='140' cy='100' r='50'/%3E%3Ccircle cx='195' cy='125' r='36'/%3E%3Crect x='70' y='120' width='150' height='40' rx='20'/%3E%3Ccircle cx='430' cy='420' r='30'/%3E%3Ccircle cx='470' cy='400' r='42'/%3E%3Ccircle cx='515' cy='425' r='28'/%3E%3Crect x='410' y='420' width='125' height='32' rx='16'/%3E%3C/g%3E%3C/svg%3E"); }
-.home.pal-bubblegum #scene .b { --tile: 240px; --dur: 22s; opacity: .8;
+.pal-bubblegum #scene .b { --tile: 240px; --dur: 22s; opacity: .8;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cg fill='%23ffffffcc'%3E%3Cpath d='M50 70c-7-5-12-9-12-14 0-4 5-7 9-4l3 3 3-3c4-3 9 0 9 4 0 5-5 9-12 14z'/%3E%3Cpath d='M180 190c-5-4-9-7-9-10 0-3 3-5 6-3l3 2 3-2c3-2 6 0 6 3 0 3-4 6-9 10z'/%3E%3C/g%3E%3C/svg%3E"); }
-.home.pal-bubblegum .card, .home.pal-bubblegum .vs-card, .home.pal-bubblegum .tabs { border-radius: 34px; }
-.home.pal-bubblegum .game-card { border-radius: 36px; box-shadow: 0 12px 0 #6b2d5c33, 0 3px 0 var(--ink); }
-.home.pal-bubblegum .btn { border-radius: 999px; box-shadow: 0 5px 0 #6b2d5c33, 0 2px 0 var(--ink); }
-.home.pal-bubblegum .btn:hover { box-shadow: 0 7px 0 #6b2d5c33, 0 2px 0 var(--ink); }
-.home.pal-bubblegum .btn:active { box-shadow: 0 1px 0 var(--ink); }
-.home.pal-bubblegum h1, .home.pal-bubblegum h2, .home.pal-bubblegum h3, .home.pal-bubblegum .hello, .home.pal-bubblegum .shelf-label, .home.pal-bubblegum .shelf-title,
-.home.pal-bubblegum .game-card h2, .home.pal-bubblegum .tab .tl, .home.pal-bubblegum .lv-title { font-weight: 700; letter-spacing: 0; }
-.home.pal-bubblegum .hello, .home.pal-bubblegum .shelf-label, .home.pal-bubblegum .shelf-title { color: #6b2d5c; text-shadow: 0 3px 0 #fff, 0 0 16px #fffb; }
-.home.pal-bubblegum .shelf-label small { color: #6b2d5c; }
-.home.pal-bubblegum .lg-rev { fill: #c9a7ff; }
+.pal-bubblegum .card, .pal-bubblegum .vs-card, .pal-bubblegum .tabs { border-radius: 34px; }
+.pal-bubblegum .game-card { border-radius: 36px; box-shadow: 0 12px 0 #6b2d5c33, 0 3px 0 var(--ink); }
+.pal-bubblegum .btn { border-radius: 999px; box-shadow: 0 5px 0 #6b2d5c33, 0 2px 0 var(--ink); }
+.pal-bubblegum .btn:hover { box-shadow: 0 7px 0 #6b2d5c33, 0 2px 0 var(--ink); }
+.pal-bubblegum .btn:active { box-shadow: 0 1px 0 var(--ink); }
+.pal-bubblegum h1, .pal-bubblegum h2, .pal-bubblegum h3, .pal-bubblegum .hello, .pal-bubblegum .shelf-label, .pal-bubblegum .shelf-title,
+.pal-bubblegum .game-card h2, .pal-bubblegum .tab .tl, .pal-bubblegum .lv-title { font-weight: 700; letter-spacing: 0; }
+.pal-bubblegum .hello, .pal-bubblegum .shelf-label, .pal-bubblegum .shelf-title { color: #6b2d5c; text-shadow: 0 3px 0 #fff, 0 0 16px #fffb; }
+.pal-bubblegum .shelf-label small { color: #6b2d5c; }
+.pal-bubblegum .lg-rev { fill: #c9a7ff; }
 
 /* =====================================================================
    6. JUNGLE · "Jungle Ruckus": parchment cards with chunky dark-green outlines, leaves swaying, fireflies
    ===================================================================== */
-.home.pal-jungle { --ink: #1f3a26; --muted: #4c6a50; --paper: #fbf6e3;
+.pal-jungle { --ink: #1f3a26; --muted: #4c6a50; --paper: #fbf6e3;
   --shadow: 5px 6px 0 #1f3a26; --hard: 5px 6px 0 #1f3a26; }
-.home.pal-jungle #scene .a { inset: 0; transform-origin: 0 0; animation: sway 7s ease-in-out infinite;
+.pal-jungle #scene .a { inset: 0; transform-origin: 0 0; animation: sway 7s ease-in-out infinite;
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360'%3E%3Cg stroke='%231f3a26' stroke-width='5' stroke-linejoin='round'%3E%3Cpath d='M0 40C80 20 170 60 200 140 120 150 40 120 0 80z' fill='%2340b36a'/%3E%3Cpath d='M0 150c60-10 120 20 140 80-60 8-110-10-140-40z' fill='%2329925a'/%3E%3Cpath d='M40 0c40 30 60 80 40 130C40 100 20 60 40 0z' fill='%2357c47b'/%3E%3C/g%3E%3Cpath d='M0 60C60 60 130 90 180 135M0 170c40 0 90 20 125 55M50 20c15 30 25 60 28 100' fill='none' stroke='%231f3a26' stroke-width='3' opacity='.5'/%3E%3C/svg%3E") no-repeat -40px -30px / 420px 420px,
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360'%3E%3Cg stroke='%231f3a26' stroke-width='5' stroke-linejoin='round'%3E%3Cpath d='M360 320C280 340 190 300 160 220 240 210 320 240 360 280z' fill='%2340b36a'/%3E%3Cpath d='M360 210c-60 10-120-20-140-80 60-8 110 10 140 40z' fill='%2329925a'/%3E%3C/g%3E%3C/svg%3E") no-repeat calc(100% + 40px) calc(100% + 30px) / 440px 440px; }
 @keyframes sway { 50% { transform: rotate(1.6deg) scale(1.01); } }
-.home.pal-jungle #scene .b { inset: 0; animation: twinkle 2.6s ease-in-out infinite; background:
+.pal-jungle #scene .b { inset: 0; animation: twinkle 2.6s ease-in-out infinite; background:
     radial-gradient(circle at 20% 30%, #fff7a0 0 2.5px, #fff7a044 4px, transparent 7px) 0 0 / 230px 230px,
     radial-gradient(circle at 70% 70%, #fff7a0 0 2px, #fff7a044 3.5px, transparent 6px) 0 0 / 170px 170px; }
-.home.pal-jungle .card, .home.pal-jungle .vs-card, .home.pal-jungle .tabs { border-radius: 18px; border-width: 4px; }
-.home.pal-jungle .game-card { border-radius: 20px; border-width: 4px; box-shadow: 6px 8px 0 var(--ink); }
-.home.pal-jungle .btn { border-radius: 14px; }
-.home.pal-jungle .lg-rev { fill: #ffb84d; }
+.pal-jungle .card, .pal-jungle .vs-card, .pal-jungle .tabs { border-radius: 18px; border-width: 4px; }
+.pal-jungle .game-card { border-radius: 20px; border-width: 4px; box-shadow: 6px 8px 0 var(--ink); }
+.pal-jungle .btn { border-radius: 14px; }
+.pal-jungle .lg-rev { fill: #ffb84d; }
 
 /* =====================================================================
    SEASONS: a festive layer on top of any theme, a few days a year (hub.js seasonNow()).
    ===================================================================== */
-.home #scene .season { display: none; }
+#scene .season { display: none; }
 .home[class*="season-"] #scene .season { display: block; }
 .season-line { margin: -6px 0 0; color: #fff; font-weight: 700; font-size: 17px; text-shadow: 1px 1px 0 #2b214099; }
 

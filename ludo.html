@@ -9,12 +9,14 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@500;600;700;800&family=Lilita+One&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="shared/base.css?v=14">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@500;600;700;800&family=Lilita+One&family=Bungee&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared/base.css?v=15">
+  <link rel="stylesheet" href="shared/themes.css?v=5">
   <link rel="stylesheet" href="shared/chat.css?v=6">
-  <link rel="stylesheet" href="ludo/ludo.css?v=10">
+  <link rel="stylesheet" href="ludo/ludo.css?v=11">
 </head>
 <body class="pal-sunset">
+  <div id="scene" aria-hidden="true"><i class="a up"></i><i class="b up"></i></div>
   <main>
     <!-- HOME -->
     <section id="screen-home" class="screen active">
@@ -24,6 +26,10 @@
         <button id="btn-me" class="avatar-btn" type="button" aria-label="Your profile and colours"><span id="me-avatar"></span></button>
       </header>
       <p id="hello" class="hello"></p>
+      <div class="card lu-hero">
+        <div class="lu-hero-art" aria-hidden="true"><svg id="hero-board" viewBox="0 0 15 15"></svg><span class="lu-die">⚄</span><span class="lu-bonk">BONK!</span></div>
+        <p class="lu-pitch">Roll, race and bonk each other all the way home. <b>Land on a friend and they go back to base.</b> First to get all four pieces home wins. With four players you can play 2 v 2.</p>
+      </div>
       <div id="rival" class="card rival"></div>
       <button id="btn-resume" class="btn big resume" type="button" data-icon="play" hidden>Back to your game · <span id="resume-code"></span></button>
       <button id="btn-create" class="btn big cta" type="button" data-icon="dice">New game</button>
@@ -125,7 +131,7 @@
   <script src="shared/records.js?v=12"></script>
   <script src="shared/rewards.js?v=7"></script>
   <script src="shared/chat.js?v=7"></script>
-  <script src="ludo/game.js?v=10"></script>
+  <script src="ludo/game.js?v=11"></script>
   <script src="ludo/social.js?v=10"></script>
 </body>
 </html>

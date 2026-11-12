@@ -369,3 +369,19 @@ h1, h2, h3, .hello, .shelf-title, .col-title, .tab .tl, .game-card h2, .lv-title
 @media (prefers-reduced-motion: reduce) { .victory, .v-critter, .v-critter .cloud, .v-sparkles, .v-stamp { animation: none !important; } }
 .calm .v-critter, .calm .v-critter .cloud, .calm .v-sparkles { animation: none !important; }
 @media (max-width: 520px) { .v-critter { font-size: 48px; } .v-critter.me-sad { font-size: 40px; } .v-txt b { font-size: 21px; } .v-stamp { right: 56px; } }
+
+/* ---------- every game's own home screen: laid out like the Sweet Revenge home on a laptop ----------
+   The hero card (art, pitch, your record) on the left; New game / Join / Practice on the right. */
+body:not(.home) #screen-home.active { gap: 14px; }
+body:not(.home) #screen-home > .btn.big.cta { min-height: 66px; font-size: 24px; }
+body:not(.home) #screen-home > .link { justify-self: center; }
+@media (min-width: 860px) {
+  body:not(.home) #screen-home.active { max-width: 1000px; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); grid-auto-flow: row dense;
+    gap: 16px 30px; align-content: center; align-items: start; }
+  body:not(.home) #screen-home > .topbar { grid-column: 1 / -1; }
+  body:not(.home) #screen-home > .card, body:not(.home) #screen-home > .hello { grid-column: 1; }
+  body:not(.home) #screen-home > .card { grid-row: span 6; }
+  body:not(.home) #screen-home > .btn, body:not(.home) #screen-home > .join-row, body:not(.home) #screen-home > .link, body:not(.home) #screen-home > .error { grid-column: 2; }
+  body:not(.home) #screen-home > .btn.resume { order: -1; }
+  body:not(.home) #screen-home .topbar h1 { font-size: clamp(40px, 5vw, 60px); }
+}

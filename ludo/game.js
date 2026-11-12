@@ -941,6 +941,7 @@ document.addEventListener('DOMContentLoaded', () => {
   hydrateIcons();
   applyPalette();
   buildBoard();
+  $('#hero-board').innerHTML = $('#board-svg').innerHTML; // the home screen shows a mini board
   buildDice();
   showDice(6, false);
   wireProfileSheet();
