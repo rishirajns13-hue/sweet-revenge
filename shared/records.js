@@ -47,8 +47,14 @@ const records = (() => {
     const id = r.me.id, none = () => ({ bonks: 0, bombs: 0, bombCards: 0 });
     const hitsBy = new Map();
     let bigBomb = 0;
+    const practiceIds = new Set(r.games.filter((g) => g.practice).map((g) => g.id));
     for (const h of r.myHits) {
       const e = hitsBy.get(h.game_id) || none();
+      if (practiceIds.has(h.game_id)) { // still shown on that game's ticket, but not toward the biggest-bomb trophy
+        if (h.kind === 'bonk') e.bonks += h.n; else { e.bombs += h.n; e.bombCards += h.cards; }
+        hitsBy.set(h.game_id, e);
+        continue;
+      }
       if (h.kind === 'bonk') e.bonks += h.n;
       else { e.bombs += h.n; e.bombCards += h.cards; bigBomb = Math.max(bigBomb, h.biggest || 0); }
       hitsBy.set(h.game_id, e);

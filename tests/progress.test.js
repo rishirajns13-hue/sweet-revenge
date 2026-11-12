@@ -66,3 +66,11 @@ test('All-Rounder needs a win in every game', () => {
   assert.equal(ach(facts({ games: allButLast }), 'all_rounder').done, false);
   assert.equal(ach(facts({ games: allButLast.concat(g({ kind: P.KINDS[P.KINDS.length - 1], won: true })) }), 'all_rounder').done, true);
 });
+
+test('practice games count for neither XP nor trophies', () => {
+  const f = facts({ games: [g({ practice: true, won: true, bonks: 3 })] });
+  assert.equal(P.xpFor(f), 0);
+  assert.equal(ach(f, 'first_win').done, false);
+  assert.equal(ach(f, 'first_bonk').done, false);
+  assert.equal(ach(facts({ games: [g({ won: true })] }), 'first_win').done, true);
+});

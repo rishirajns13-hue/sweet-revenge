@@ -53,10 +53,14 @@ export const ACHIEVEMENTS = [
 
 export function progress(f) {
   const xp = xpFor(f);
+  // Trophies only count real games against friends: practice games against bots don't count
+  // (the user's rule, 13 Nov 2026). bigBomb, maxBonkedInGame and the revenge flags are gathered
+  // from real games only by the caller.
+  const real = { ...f, games: f.games.filter((g) => !g.practice) };
   return {
     ...levelFor(xp),
     achievements: ACHIEVEMENTS.map(([id, icon, name, how, goal]) => {
-      const [have, need] = goal(f);
+      const [have, need] = goal(real);
       return { id, icon, name, how, have: Math.min(have, need), need, done: have >= need };
     }),
   };
