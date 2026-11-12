@@ -432,3 +432,16 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .pick-games { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
 @keyframes cp-in { from { transform: scale(.85) rotate(-3deg); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .cp-card, .cp-face, .challenge-pop { animation: none; } }
+
+/* ---------- grudge series on a rival's card ---------- */
+.grudge { display: grid; justify-items: center; gap: 4px; padding: 8px 10px; border: 2.5px dashed var(--ink); border-radius: 14px; background: #fff6cf; text-align: center; }
+.g-title { font: 800 13px var(--body); text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+.g-title em { font-style: normal; text-transform: none; letter-spacing: 0; }
+.g-pips { display: flex; align-items: center; gap: 6px; }
+.g-pips i { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid var(--ink); background: #fff; transition: transform var(--t-med) var(--ease-pop); }
+.g-pips i.on { transform: scale(1.1); }
+.g-pips i.on.me { background: var(--green); }
+.g-pips i.on.them { background: var(--red); }
+.g-pips b { font: 400 14px var(--title); margin: 0 4px; }
+.g-state { font-size: 17px; }
+.grudge small { font: 700 12px var(--body); color: var(--muted); }

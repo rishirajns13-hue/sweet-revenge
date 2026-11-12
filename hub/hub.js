@@ -316,6 +316,10 @@ function renderRivals(p) {
     if (r.kind === 'bomb') e.cards[mine ? 0 : 1] += r.cards;
     rivals.set(id, e);
   }
+  // Friends you've played but never bonked or bombed still get a card (for the grudge series).
+  for (const id of Object.keys(p.grudge || {})) {
+    if (!rivals.has(id)) rivals.set(id, { id, name: ((p.friends || {})[id] || {}).name || id, bonk: [0, 0], bomb: [0, 0], splat: [0, 0], cards: [0, 0] });
+  }
   const total = (e) => e.bonk[0] + e.bonk[1] + e.bomb[0] + e.bomb[1] + e.splat[0] + e.splat[1];
   const all = [...rivals.values()].sort((a, b) => total(b) - total(a));
   const humans = all.filter((e) => !isBotId(e.id)), bots = all.filter((e) => isBotId(e.id));
@@ -324,6 +328,15 @@ function renderRivals(p) {
     const pct = Math.round((mine / (mine + theirs)) * 100);
     return `<div class="tug"><b>${mine}</b><span class="rope" aria-hidden="true"><i class="${mine ? '' : 'none'}" data-w="${pct}"></i></span><b>${theirs}</b>
       <small>${what}${extra}</small></div>`;
+  };
+  const grudgeBlock = (e) => {
+    const g = (p.grudge || {})[e.id];
+    if (!g) return '';
+    const pips = Array.from({ length: 3 }, (_, i) => `<i class="${i < g.me ? 'on me' : ''}"></i>`).join('') + '<b>vs</b>' + Array.from({ length: 3 }, (_, i) => `<i class="${i < g.them ? 'on them' : ''}"></i>`).join('');
+    const them = escapeHtml(shortName(e.name));
+    const state = g.me === g.them ? (g.me ? `All square, ${g.me}–${g.them}` : 'New series: first to 3 wins') : g.me > g.them ? `You lead ${g.me}–${g.them}` : `${them} leads ${g.them}–${g.me}`;
+    const past = g.won || g.lost ? `<small>Series won: you ${g.won} · ${them} ${g.lost}</small>` : '';
+    return `<div class="grudge"><span class="g-title">🥊 Grudge series <em>first to 3</em></span><span class="g-pips" aria-hidden="true">${pips}</span><b class="g-state">${state}</b>${past}</div>`;
   };
   const card = (e) => {
     const mine = e.bonk[0] + e.bomb[0] + e.splat[0], theirs = e.bonk[1] + e.bomb[1] + e.splat[1], them = escapeHtml(shortName(e.name));
@@ -335,7 +348,7 @@ function renderRivals(p) {
         <span class="vs-mid" aria-hidden="true">VS</span>
         <div class="vs-side"><span class="crown">${lead === 'them' ? CROWN : ''}</span><span class="actor" data-av="${avatarFor(e.id)}" data-mood="${lead === 'them' ? 'smug' : lead ? 'sweat' : ''}">${avatarHTML(avatarFor(e.id))}</span>${them}</div>
       </div>
-      ${tug(e.bonk, '💥 bonks')}${tug(e.bomb, '📦 bombs', cards)}${tug(e.splat, '🥶 freezes, splats & wobbles')}</div>`;
+      ${grudgeBlock(e)}${tug(e.bonk, '💥 bonks')}${tug(e.bomb, '📦 bombs', cards)}${tug(e.splat, '🥶 freezes, splats & wobbles')}</div>`;
   };
   let html = humans.length ? humans.map(card).join('')
     : `<div class="empty-card">No bonks or bombs yet. Bonk someone in Ludo or drop a +4 pile on them in Plus Four and the feud starts here.<a class="btn cta" href="#play">Go start one</a></div>`;
@@ -480,7 +493,7 @@ function drawProfile(p, freshTrophies) {
     level: [p.level, () => renderLevel(p)],
     record: [p.record, () => renderRecordRibbons(p)],
     trophies: [p.achievements.map((a) => [a.id, a.done, a.have]), () => renderTrophies(p, freshTrophies)],
-    rivals: [[p.rivalry, p.me && p.me.name, p.friends], () => renderRivals(p)],
+    rivals: [[p.rivalry, p.me && p.me.name, p.friends, p.grudge], () => renderRivals(p)],
     history: [p.recent.map((g) => g.id), () => renderHistory(p)],
     revenge: [p.recent.slice(0, 1).map((g) => g.id), () => renderRevengeCall(p)],
     challenge: [Object.keys(p.friends || {}), () => renderChallengeStrip(p)],

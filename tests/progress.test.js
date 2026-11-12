@@ -74,3 +74,8 @@ test('practice games count for neither XP nor trophies', () => {
   assert.equal(ach(f, 'first_bonk').done, false);
   assert.equal(ach(facts({ games: [g({ won: true })] }), 'first_win').done, true);
 });
+
+test('Grudge Champ needs a won best-of-5 series', () => {
+  assert.equal(ach(facts({ seriesWon: 0 }), 'grudge_champ').done, false);
+  assert.equal(ach(facts({ seriesWon: 1 }), 'grudge_champ').done, true);
+});

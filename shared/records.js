@@ -59,6 +59,21 @@ const records = (() => {
       else { e.bombs += h.n; e.bombCards += h.cards; bigBomb = Math.max(bigBomb, h.biggest || 0); }
       hitsBy.set(h.game_id, e);
     }
+    // Grudge series: against each friend, a best-of-5 that runs across days and across every game.
+    // A game counts when one of you won and the other didn't (practice games never count).
+    const grudge = {};
+    for (const g of r.games) {
+      if (g.practice) continue;
+      const iWon = g.winners.includes(id);
+      for (const pl of g.players) {
+        if (pl.bot || pl.id === id) continue;
+        const theyWon = g.winners.includes(pl.id);
+        if (iWon === theyWon) continue;
+        const e = (grudge[pl.id] ||= { me: 0, them: 0, won: 0, lost: 0 });
+        if (iWon) e.me++; else e.them++;
+        if (e.me === 3 || e.them === 3) { if (e.me === 3) e.won++; else e.lost++; e.me = 0; e.them = 0; }
+      }
+    }
     const facts = {
       games: r.games.map((g) => ({
         kind: g.kind, practice: g.practice, won: g.winners.includes(id), ...(hitsBy.get(g.id) || none()),
@@ -66,7 +81,7 @@ const records = (() => {
         fastest: (g.mine && g.mine.fastest) || 0,
         snakesSlid: num(g.mine, ['snakes', 'snakesSlid', 'slid']), longestLadder: num(g.mine, ['longestLadder', 'longest']),
       })),
-      bigBomb, maxBonkedInGame: r.maxBonked, chats: r.chats,
+      bigBomb, maxBonkedInGame: r.maxBonked, chats: r.chats, seriesWon: Object.values(grudge).reduce((n, e) => n + e.won, 0),
       revengeBonk: r.revenge.includes('bonk'), revengeBomb: r.revenge.includes('bomb'),
     };
     const prog = P.progress(facts), when = r.stored;
@@ -112,6 +127,7 @@ const records = (() => {
       achievements: prog.achievements.map((a) => ({ ...a, unlockedAt: when[a.id] || null })),
       rivalry: r.rivalry,
       h2h,
+      grudge,
       friends: Object.fromEntries((friends || []).map((f) => [f.id, { name: f.name, avatar: f.avatar }])),
       recent: r.games.slice(-12).reverse().map((g) => ({
         id: g.id, kind: g.kind, room: g.room, practice: g.practice, startedAt: g.started_at, endedAt: g.ended_at,
