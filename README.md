@@ -38,12 +38,6 @@ Drawing tools: 10 colours, 3 brush sizes, fill bucket, eraser, undo and clear. O
 ## 🐍 Snakes & Ladders (the screamy one)
 Roll (Space or tap the die), climb ladders, slide down snakes, exact roll to finish on 100. A 6 rolls again. **Land on a friend to bonk them** back to the foot of the last ladder they climbed. Room codes start with S. 2–4 players, bots, practice mode.
 
-## 🏎️ Sugar Rush (the fast one)
-A candy kart race: 3 laps, arrow keys or WASD to drive, Space for your item: 🍦 Brain Freeze (slows whoever's just ahead), 🍬 Jelly Splat (sticky puddle behind you), ✨ Sprinkle Boost. Last place gets better items. Room codes start with R. 2–4 racers plus bots, practice mode. On phones it accelerates for you and shows touch buttons.
-
-## 🍦 Scoop Stack (the twitchy one)
-A scoop swings over your cone: press **Space** (or tap) to drop it. Only the part that lands on the scoop below stays, so miss by too much and it splats (3 lives). Drop it dead centre for a **Perfect!**; 3 in a row charge a **Wobble** (W) that sends your rival's swing haywire for 4 seconds. Tallest tower after 90 seconds wins. Room codes start with K. 2–4 players, bots, practice mode.
-
 ## 🎲 Ludo (the long one)
 1. **New game**, share the code, and fill empty seats with bots if you like. 2–4 players; with 4 you can play **Teams (2 v 2)**.
 2. Tap the dice to roll, then tap a glowing piece. On a laptop: **Space** rolls, **1–4** moves a piece, **Enter** jumps to the chat.
@@ -78,7 +72,7 @@ Typed chat messages, stickers and every finished game (players, winner, stats, p
 - `doodle.html`, `doodle/`: Doodle Duel (`logic.js` is the pure, tested part; `words.js` has the word packs)
 - `plusfour.html`, `plusfour/`: Plus Four (`rules.js` is the pure, tested part; `cards.js` draws the cards and moves them)
 - `ludo.html`, `ludo/`: Ludo (`rules.js` is the pure, tested part)
-- `docs/`: the game plan and ideas (`GAME-IDEAS.md`: what's done, what's next, levels and achievements) and `concepts/`, the design mockups the interface was chosen from
+- `docs/`: `PROGRESS.md` (the games, levels and trophies) and `concepts/`, the design mockups the interface was chosen from
 
 ## Running locally
 Serve the folder with any static server, for example `npx serve .`, and open it in two tabs. Run the tests with `node --test`. If you add or change accounts in `shared/core.js`, copy them into `api/index.ts` too and redeploy.

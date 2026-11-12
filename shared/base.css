@@ -324,5 +324,5 @@ h1, h2, h3, .hello, .shelf-title, .col-title, .tab .tl, .game-card h2, .lv-title
 
 /* calm mode (You → Settings): stop the decorative looping animations */
 .calm .brand svg, .calm .game-card, .calm .actor.big, .calm .resume-banner, .calm .tab-badge, .calm .ribbon, .calm .xp-bar i,
-.calm .badge3d.done .disc::after, .calm .av-art .av-eyes, .calm .live-dot i, .calm .game-card.scoop .swing { animation: none !important; }
+.calm .badge3d.done .disc::after, .calm .av-art .av-eyes, .calm .live-dot i { animation: none !important; }
 .palettes { grid-template-columns: repeat(3, minmax(0, 1fr)); }

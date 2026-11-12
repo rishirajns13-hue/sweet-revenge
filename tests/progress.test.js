@@ -52,23 +52,17 @@ test('one-off feats: big bomb, revenge, punching bag, mind reader', () => {
   assert.equal(ach(facts({ games: [g({ kind: 'doodle', fastest: 0 })] }), 'mind_reader').done, false);
 });
 
-test('new games: snake slides, long ladders, photo finishes and splats unlock trophies', () => {
-  const sn = (o) => g({ kind: 'snakes', ...o }), rc = (o) => g({ kind: 'race', ...o });
+test('snake slides and long ladders unlock trophies', () => {
+  const sn = (o) => g({ kind: 'snakes', ...o });
   assert.equal(ach(facts({ games: [sn({ snakesSlid: 2 }), sn({ snakesSlid: 2 })] }), 'slippery_slope').done, false);
   assert.equal(ach(facts({ games: [sn({ snakesSlid: 3 })] }), 'slippery_slope').done, true);
   assert.equal(ach(facts({ games: [sn({ longestLadder: 29 })] }), 'sky_high').done, false);
   assert.equal(ach(facts({ games: [sn({ longestLadder: 30 })] }), 'sky_high').done, true);
-  assert.equal(ach(facts({ games: [rc({ won: true, margin: 400 })] }), 'photo_finish').done, true);
-  assert.equal(ach(facts({ games: [rc({ won: true, margin: 900 })] }), 'photo_finish').done, false);
-  assert.equal(ach(facts({ games: [rc({ splats: 6 }), rc({ splats: 4 })] }), 'brain_freezer').done, true);
 });
 
-test('splats give XP and All-Rounder now needs every game', () => {
-  assert.equal(P.xpFor(facts({ games: [g({ kind: 'race', splats: 3 })] })), 16);
+test('All-Rounder needs a win in every game', () => {
   // a win in every game but one isn't enough; a win in all of them is
   const allButLast = P.KINDS.slice(0, -1).map((kind) => g({ kind, won: true }));
   assert.equal(ach(facts({ games: allButLast }), 'all_rounder').done, false);
   assert.equal(ach(facts({ games: allButLast.concat(g({ kind: P.KINDS[P.KINDS.length - 1], won: true })) }), 'all_rounder').done, true);
-  assert.equal(ach(facts({ games: [g({ kind: 'scoop', height: 21 })] }), 'tower_boss').done, true);
-  assert.equal(ach(facts({ games: [g({ kind: 'scoop', height: 12 })] }), 'tower_boss').have, 12);
 });

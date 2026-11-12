@@ -6,8 +6,8 @@
    - Everything comes from the database (shared/records.js) and refreshes every 20 seconds.
    Needs shared/core.js, shared/records.js and shared/sound.js. */
 
-const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html', R: 'race.html', K: 'scoop.html' }[code[0]] || 'ludo.html');
-const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'], race: ['🏎️', 'Sugar Rush'], scoop: ['🍦', 'Scoop Stack'] };
+const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html' }[code[0]] || 'ludo.html');
+const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'] };
 const LEVEL_NAMES = ['Sprinkle', 'Single Scoop', 'Double Scoop', 'Waffle Cone', 'Sundae', 'Banana Split', 'Brain Freeze', 'Sweet Revenge Royalty'];
 const TABS = ['play', 'trophies', 'rivals', 'me'];
 const POLL_MS = 20000;
@@ -122,7 +122,7 @@ async function boot({ full = false } = {}) {
 // Room links and "send me back to the game I came from" skip the menu entirely.
 function routeAway() {
   const q = new URLSearchParams(location.search), next = q.get('next');
-  if (next && /^(ludo|doodle|plusfour|snakes|race|scoop)\.html$/.test(next)) {
+  if (next && /^(ludo|doodle|plusfour|snakes)\.html$/.test(next)) {
     q.delete('next');
     location.replace(next + (q.toString() ? '?' + q : ''));
     return false;
@@ -360,9 +360,7 @@ function renderHistory(p) {
     const m = g.mine || {}, bits = [timeAgo(g.endedAt)];
     if (g.kind === 'ludo') bits.push(plural(m.bonks || 0, 'bonk'));
     if (g.kind === 'plusfour') bits.push(plural(m.bombs || 0, 'bomb'));
-    if (g.kind === 'race') bits.push(plural(m.splats || 0, 'splat'));
     if (g.kind === 'snakes') bits.push(plural(m.bonks || 0, 'bonk'));
-    if (g.kind === 'scoop' && mine.score != null) bits.push(`${plural(mine.score, 'scoop')} high`);
     if (g.kind === 'doodle' && mine.score != null) bits.push(`${mine.score} points`);
     if (g.startedAt) bits.push(`${Math.max(1, Math.round((new Date(g.endedAt) - new Date(g.startedAt)) / 60000))} min`);
     const fresh = !first && !seenGames.has(g.id);

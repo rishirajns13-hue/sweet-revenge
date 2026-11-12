@@ -2,7 +2,7 @@
 /* Sweet Revenge "how to play" card: shown once per player per game, the first time they open it.
    Three short steps with a picture each, and a "Got it" button. Never shown again on this device
    unless they tap the game's help button (showHowTo(key, steps, { force: true })).
-     showHowTo('race', [{ icon: '⬆️', title: 'Drive', text: 'Arrow keys or WASD' }, ...]) */
+     showHowTo('snakes', [{ icon: '🎲', title: 'Roll', text: 'Space or tap the die' }, ...]) */
 function showHowTo(key, steps, { force = false, title = 'How to play' } = {}) {
   const seenKey = 'sr-howto:' + key;
   if (!force && store.get(seenKey, false)) return;
