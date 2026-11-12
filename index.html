@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@500;600;700;800&family=Lilita+One&family=Gaegu:wght@700&family=Bungee&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/base.css?v=14">
-  <link rel="stylesheet" href="hub/hub.css?v=20">
+  <link rel="stylesheet" href="hub/hub.css?v=21">
   <link rel="stylesheet" href="hub/themes.css?v=2">
 </head>
 <body class="home pal-sunset">
@@ -124,6 +124,7 @@
           </div>
           <a id="resume" class="resume-banner" hidden></a>
           <a id="revenge-call" class="revenge-call" hidden></a>
+          <div id="challenge-strip" class="challenge-strip" hidden></div>
             <div class="game-shelves">
             <section class="shelf-group" aria-label="Games">
               <h3 class="shelf-label">Pick your battle <small>plot revenge, one game at a time</small></h3>
@@ -285,6 +286,21 @@
         </section>
       </div>
       <div id="wipe" class="wipe" aria-hidden="true"></div>
+      <div id="challenge-pop" class="challenge-pop" role="dialog" aria-modal="true" aria-labelledby="cp-title" hidden>
+        <div class="cp-card card">
+          <span class="cp-face" aria-hidden="true"></span>
+          <h2 id="cp-title"></h2>
+          <p class="sub" id="cp-sub"></p>
+          <div class="cp-btns"><button id="cp-yes" class="btn big cta" type="button">⚔️ Accept</button><button id="cp-no" class="btn ghost" type="button">Not now</button></div>
+        </div>
+      </div>
+      <div id="challenge-pick" class="challenge-pop" role="dialog" aria-modal="true" aria-labelledby="pick-title" hidden>
+        <div class="cp-card card">
+          <h2 id="pick-title"></h2>
+          <div class="pick-games"></div>
+          <button class="btn ghost" type="button" data-close>Cancel</button>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -309,9 +325,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
   <script src="shared/core.js?v=14"></script>
   <script src="shared/avatars.js?v=3"></script>
-  <script src="shared/records.js?v=10"></script>
+  <script src="shared/records.js?v=11"></script>
   <script src="shared/rewards.js?v=6"></script>
   <script src="shared/sound.js?v=1"></script>
-  <script src="hub/hub.js?v=22"></script>
+  <script src="hub/hub.js?v=23"></script>
 </body>
 </html>

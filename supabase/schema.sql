@@ -307,3 +307,8 @@ grant execute on function public.claim_account(text, text) to anon, authenticate
 -- my_profile() was replaced so 'maxBonked' and 'revenge' skip practice games: in both subqueries the hits
 -- are joined to public.games and filtered with "and not g.practice". The rest of the function is as in
 -- section 2. XP and the other trophies skip practice games in shared/progress.mjs.
+
+/* ===================== 5. (13 Nov 2026) challenges ===================== */
+-- Table public.challenges (from_player, to_player, kind, room, status open|accepted|declined|cancelled),
+-- readable by either player; RPCs send_challenge(to, kind), challenge_room(id, room) and
+-- answer_challenge(id, accept); added to the supabase_realtime publication. Applied as migration "challenges".

@@ -141,6 +141,35 @@ const records = (() => {
     sb.rpc('update_me', { p_avatar: myAvatar(), p_theme: store.get('ludo-palette', 'sunset') }).then(() => {});
   }
 
+  /* ---------- challenges: "Kunju challenges you to Ludo!" ---------- */
+  let challengeChannel = null;
+  function onChallenge(cb) {
+    if (challengeChannel || !me) return;
+    challengeChannel = sb.channel('sr-challenges')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'challenges' }, (e) => { if (e.new && e.new.id) cb(e.new); })
+      .subscribe();
+  }
+  // On a game page opened from a challenge (?new=1&challenge=ID): make the room straight away and tell
+  // the database its code, so the friend's Accept button can drop them in.
+  (function hostChallenge() {
+    const q = new URLSearchParams(location.search), id = +q.get('challenge');
+    if (!id || q.get('new') !== '1' || !document.getElementById('btn-create')) return;
+    const started = Date.now();
+    const tick = setInterval(() => {
+      if (Date.now() - started > 20000) return clearInterval(tick);
+      const btn = document.getElementById('btn-create'), code = (document.getElementById('room-code') || {}).textContent || '';
+      if (/^[A-Z0-9]{6}$/.test(code.trim())) {
+        clearInterval(tick);
+        sb.rpc('challenge_room', { p_id: id, p_room: code.trim() }).then(() => {});
+        history.replaceState(null, '', location.pathname);
+        if (typeof toast === 'function') toast('⚔️ Challenge sent. Your friend joins as soon as they accept', 3400);
+      } else if (me && btn && btn.offsetParent && !btn.dataset.challengeClicked) {
+        btn.dataset.challengeClicked = '1';
+        btn.click();
+      }
+    }, 250);
+  })();
+
   let recent = null, recentAt = 0;
   const lastGames = new Map();
   const sent = new Set();
@@ -163,6 +192,19 @@ const records = (() => {
     },
     // Callers on one page (the home screen, Ludo's scores, the end-of-game rewards) share a load
     // that's under 3 seconds old instead of each asking the database again.
+    // Challenge a friend to a game; resolves with the challenge id, or null.
+    async challenge(to, kind) {
+      const { data, error } = await sb.rpc('send_challenge', { p_to: to, p_kind: kind });
+      return error ? null : data;
+    },
+    answerChallenge: (id, accept) => sb.rpc('answer_challenge', { p_id: id, p_accept: accept }),
+    // Open challenges sent to you in the last 10 minutes (for when the page opens after one was sent).
+    async openChallenges() {
+      const since = new Date(Date.now() - 10 * 60000).toISOString();
+      const { data } = await sb.from('challenges').select('*').eq('to_player', me.user).eq('status', 'open').gte('created_at', since).order('created_at', { ascending: false }).limit(1);
+      return data || [];
+    },
+    onChallenge,
     // The result a game just handed to game(), by game id (null if none yet).
     lastGame: (gid) => lastGames.get(gid) || null,
     me({ fresh = false } = {}) {

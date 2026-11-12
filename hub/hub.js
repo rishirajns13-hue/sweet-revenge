@@ -363,6 +363,68 @@ function renderRevengeCall(p) {
     <span class="rc-go">${icon} Revenge</span>`;
   el.hidden = false;
 }
+/* ================= challenge a friend ================= */
+// A row of friends on Play, each with a Challenge button; picking a game sends the challenge and opens
+// that game with a fresh room. The friend gets a pop-up on their home screen.
+function renderChallengeStrip(p) {
+  const el = $('#challenge-strip'), friends = Object.entries(p.friends || {}).filter(([id]) => id !== p.me.id);
+  if (!friends.length) { el.hidden = true; return; }
+  el.innerHTML = '<b class="cs-label">Challenge a friend</b>' + friends.map(([id, f]) =>
+    `<button type="button" class="cs-friend" data-friend="${escapeHtml(id)}"><span class="cs-av" aria-hidden="true">${avatarHTML(avatarFor(id), 'smug')}</span><span>${escapeHtml(shortName(f.name))}</span><i>⚔️</i></button>`).join('');
+  el.hidden = false;
+}
+$('#challenge-strip').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-friend]'); if (!b || !profile) return;
+  const id = b.dataset.friend, f = profile.friends[id];
+  const pick = $('#challenge-pick');
+  pick.querySelector('h2').textContent = `Challenge ${shortName(f.name)} to…`;
+  pick.querySelector('.pick-games').innerHTML = Object.entries(GAMES).map(([k, [icon, label]]) => `<button type="button" class="btn" data-kind="${k}">${icon} ${label}</button>`).join('');
+  pick.dataset.friend = id;
+  pick.hidden = false;
+  sfx.pop();
+});
+$('#challenge-pick').addEventListener('click', async (e) => {
+  const pick = $('#challenge-pick');
+  if (e.target.closest('[data-close]') || e.target === pick) { pick.hidden = true; return; }
+  const b = e.target.closest('[data-kind]'); if (!b) return;
+  b.disabled = true;
+  const id = await records.challenge(pick.dataset.friend, b.dataset.kind);
+  b.disabled = false;
+  if (!id) { toast("Couldn't send it. Try again?"); return; }
+  sfx.pick();
+  location.href = `${b.dataset.kind}.html?new=1&challenge=${id}`;
+});
+
+// Incoming: a pop-up with the challenger's smug critter. Accept waits for their room if it isn't ready yet.
+let waitingFor = null;
+function showChallenge(c) {
+  if (!profile || c.to_player !== me.user) return;
+  if (waitingFor && waitingFor === c.id && c.room) { location.href = `${c.kind}.html?room=${c.room}`; return; }
+  if (c.status !== 'open') { if (waitingFor === c.id && c.status === 'cancelled') { waitingFor = null; $('#challenge-pop').hidden = true; } return; }
+  const f = (profile.friends || {})[c.from_player] || { name: c.from_player }, [icon, label] = GAMES[c.kind] || ['🎮', c.kind];
+  const pop = $('#challenge-pop');
+  pop.dataset.id = c.id; pop.dataset.kind = c.kind; pop.dataset.room = c.room || '';
+  pop.querySelector('.cp-face').innerHTML = avatarHTML(avatarFor(c.from_player), 'smug');
+  $('#cp-title').textContent = `${shortName(f.name)} challenges you to ${label}!`;
+  $('#cp-sub').textContent = `${icon} Accept and you're straight in their room. Decline and they'll never let you hear the end of it.`;
+  $('#cp-yes').disabled = false; $('#cp-yes').textContent = '⚔️ Accept';
+  pop.hidden = false;
+  sfx.trophy(); reactMe('sweat');
+}
+$('#cp-yes').onclick = async () => {
+  const pop = $('#challenge-pop'), id = +pop.dataset.id;
+  $('#cp-yes').disabled = true;
+  await records.answerChallenge(id, true);
+  if (pop.dataset.room) { location.href = `${pop.dataset.kind}.html?room=${pop.dataset.room}`; return; }
+  waitingFor = id;
+  $('#cp-yes').textContent = 'Waiting for their room…';
+};
+$('#cp-no').onclick = () => { const pop = $('#challenge-pop'); records.answerChallenge(+pop.dataset.id, false); pop.hidden = true; waitingFor = null; };
+function startChallenges() {
+  records.onChallenge(showChallenge);
+  records.openChallenges().then((list) => list.forEach(showChallenge)).catch(() => {});
+}
+
 function renderHistory(p) {
   const list = $('#history');
   if (!p.recent.length) {
@@ -421,6 +483,7 @@ function drawProfile(p, freshTrophies) {
     rivals: [[p.rivalry, p.me && p.me.name, p.friends], () => renderRivals(p)],
     history: [p.recent.map((g) => g.id), () => renderHistory(p)],
     revenge: [p.recent.slice(0, 1).map((g) => g.id), () => renderRevengeCall(p)],
+    challenge: [Object.keys(p.friends || {}), () => renderChallengeStrip(p)],
   };
   let changed = false;
   for (const [key, [data, draw]] of Object.entries(parts)) {
@@ -519,6 +582,7 @@ function startLive() {
   refresh();
   liveTimer = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, POLL_MS);
   records.onChange(refresh);
+  startChallenges();
   setInterval(() => { if (!$('#live-pop').hidden) renderLivePop(); }, 5000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
 }
