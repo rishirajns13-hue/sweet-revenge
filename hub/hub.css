@@ -328,3 +328,11 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .game-card.race .g.c { left: auto; right: 5%; bottom: 8%; font-size: 18px; }
 .game-card.race:hover svg g:last-of-type, .game-card.race:hover svg g:nth-last-of-type(2) { animation: zoom .6s var(--spring) 2; }
 @keyframes zoom { 50% { translate: 8px 0; } }
+.game-card:nth-child(6) { --tilt: 1.2deg; --delay: -2.2s; }
+.game-card.scoop .art { background: #ffe6f3; }
+.game-card.scoop svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.game-card.scoop .g.a { left: 6%; top: 10%; rotate: -8deg; background: var(--yellow); font-family: var(--title); }
+.game-card.scoop .g.c { left: auto; right: 6%; bottom: 10%; font-size: 18px; }
+.game-card.scoop .swing { transform-box: view-box; transform-origin: 120px -4px; animation: scoop-swing 1.6s ease-in-out infinite; }
+@keyframes scoop-swing { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
+@media (prefers-reduced-motion: reduce) { .game-card.scoop .swing { animation: none; } }

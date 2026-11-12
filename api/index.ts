@@ -200,6 +200,7 @@ app.post('/me', authed(async (c, me) => {
       // Snakes & Ladders and Sugar Rush stats (names kept flexible: the games' own stat keys)
       snakesSlid: num(g.mine, ['snakes', 'snakesSlid', 'slid']), longestLadder: num(g.mine, ['longestLadder', 'longest']),
       margin: g.kind === 'race' && g.winners.includes(me.id) ? raceMargin(g.players, me.id) : null,
+      height: g.kind === 'scoop' ? num(g.mine, ['height']) : 0,
     })),
     bigBomb, maxBonkedInGame: bonked[0].m, chats: chats[0].n,
     revengeBonk: revenge.some((r) => r.kind === 'bonk'), revengeBomb: revenge.some((r) => r.kind === 'bomb'),

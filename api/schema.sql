@@ -69,6 +69,6 @@ create or replace view rivalry as
 -- Allowed game and hit kinds. Kept as named constraints so new games only need these two lines changed.
 -- (Re-running is safe: each is dropped and added again.)
 alter table games drop constraint if exists games_kind_check;
-alter table games add constraint games_kind_check check (kind in ('ludo', 'plusfour', 'doodle', 'snakes', 'race'));
+alter table games add constraint games_kind_check check (kind in ('ludo', 'plusfour', 'doodle', 'snakes', 'race', 'scoop'));
 alter table hits drop constraint if exists hits_kind_check;
 alter table hits add constraint hits_kind_check check (kind in ('bonk', 'bomb', 'splat'));

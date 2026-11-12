@@ -63,9 +63,11 @@ test('new games: snake slides, long ladders, photo finishes and splats unlock tr
   assert.equal(ach(facts({ games: [rc({ splats: 6 }), rc({ splats: 4 })] }), 'brain_freezer').done, true);
 });
 
-test('splats give XP and All-Rounder now needs all five games', () => {
+test('splats give XP and All-Rounder now needs every game', () => {
   assert.equal(P.xpFor(facts({ games: [g({ kind: 'race', splats: 3 })] })), 16);
-  const four = ['ludo', 'plusfour', 'doodle', 'snakes'].map((kind) => g({ kind, won: true }));
-  assert.equal(ach(facts({ games: four }), 'all_rounder').done, false);
-  assert.equal(ach(facts({ games: four.concat(g({ kind: 'race', won: true })) }), 'all_rounder').done, true);
+  const five = ['ludo', 'plusfour', 'doodle', 'snakes', 'race'].map((kind) => g({ kind, won: true }));
+  assert.equal(ach(facts({ games: five }), 'all_rounder').done, false);
+  assert.equal(ach(facts({ games: five.concat(g({ kind: 'scoop', won: true })) }), 'all_rounder').done, true);
+  assert.equal(ach(facts({ games: [g({ kind: 'scoop', height: 21 })] }), 'tower_boss').done, true);
+  assert.equal(ach(facts({ games: [g({ kind: 'scoop', height: 12 })] }), 'tower_boss').have, 12);
 });

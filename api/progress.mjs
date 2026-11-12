@@ -7,10 +7,10 @@ export const LEVELS = [
   [0, 'Sprinkle'], [100, 'Single Scoop'], [250, 'Double Scoop'], [500, 'Waffle Cone'],
   [900, 'Sundae'], [1400, 'Banana Split'], [2100, 'Brain Freeze'], [3000, 'Sweet Revenge Royalty'],
 ];
-export const KINDS = ['ludo', 'plusfour', 'doodle', 'snakes', 'race'];
+export const KINDS = ['ludo', 'plusfour', 'doodle', 'snakes', 'race', 'scoop'];
 
 /* facts = {
-     games: [{ kind, practice, won, bonks, bombs, bombCards, splats, score, fastest, snakesSlid, longestLadder, margin }]  oldest first
+     games: [{ kind, practice, won, bonks, bombs, bombCards, splats, score, fastest, snakesSlid, longestLadder, margin, height }]  oldest first
      bigBomb, maxBonkedInGame, revengeBonk, revengeBomb, chats } */
 export function xpFor(f) {
   return f.games.reduce((sum, g) => {
@@ -50,7 +50,8 @@ export const ACHIEVEMENTS = [
   ['slippery_slope', '🐍', 'Slippery Slope', 'Slide down 3 snakes in one game', (f) => [Math.min(Math.max(0, ...f.games.map((g) => g.snakesSlid || 0)), 3), 3]],
   ['sky_high', '🪜', 'Sky High', 'Climb a ladder 30+ squares long', (f) => [Math.max(0, ...f.games.map((g) => g.longestLadder || 0)) >= 30 ? 1 : 0, 1]],
   ['photo_finish', '🏁', 'Photo Finish', 'Win a Sugar Rush race by under half a second', (f) => [f.games.some((g) => g.kind === 'race' && g.won && g.margin != null && g.margin < 500) ? 1 : 0, 1]],
-  ['brain_freezer', '🥶', 'Brain Freezer', 'Land 10 freezes or splats in Sugar Rush', (f) => [sum(f.games, 'splats'), 10]],
+  ['brain_freezer', '🥶', 'Brain Freezer', 'Land 10 freezes, splats or wobbles', (f) => [sum(f.games, 'splats'), 10]],
+  ['tower_boss', '🍦', 'Tower Boss', 'Stack 20 scoops in one round of Scoop Stack', (f) => [Math.min(Math.max(0, ...f.games.filter((g) => g.kind === 'scoop').map((g) => g.height || 0)), 20), 20]],
 ];
 
 export function progress(f) {
