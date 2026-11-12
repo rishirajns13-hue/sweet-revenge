@@ -37,8 +37,28 @@ What happened while you slept. Everything listed as **live** is on the site and 
   - 🥶 Brain Freezer: 10 freezes or splats.
   - Also: All-Rounder now needs a win in every mini-game, and freezes and splats give XP.
 
-## New games
-_(filled in below when each one is merged and tested)_
+## New games (live)
+### 🐍 Snakes & Ladders
+- 2–4 players, with bots or practice against one.
+- A 10×10 board with 8 chunky cartoon snakes and 8 ladders.
+- You need the exact roll to finish, and overshooting bounces you back. A 6 rolls again, up to 3 in a row.
+- **Revenge twist:** land on a friend and they get bonked back to the foot of the last ladder they climbed.
+- Tokens hop square by square, ease up ladders and slide along the snake's curve. Bonks fly back with a "BONK!".
+- End screen awards: Snake Charmer, Ladder Climber, Bonked Most, Revenge Dealer, Lucky Sixes.
+- **Checked:** 30 seeded bot-only games each for 2, 3 and 4 players finish. In a real browser: the board, a practice game, the end screen with rewards, and a 390 px phone.
+- **Not checked:** two real devices playing online. It uses the same proven room code as Plus Four.
+
+### 🏎️ Sugar Rush (original candy kart race)
+- 2–4 racers plus bots, 3 laps. Steer with the arrows or WASD, Space uses your item. On phones it accelerates by itself and shows touch buttons.
+- Items:
+  - 🍦 **Brain Freeze** slows the racer directly ahead.
+  - 🍬 **Jelly Splat** drops a sticky puddle behind you.
+  - ✨ **Sprinkle Boost** gives a burst of speed.
+  - Whoever is in last place gets better items (the revenge rule).
+- **Lag-proof:** your own kart is simulated on your device, so it never stutters. Other racers are smoothed.
+- **Checked:** I drove a practice race in a real browser (timer, items, bots freezing each other, minimap) at laptop and phone size, with no errors. In headless simulations, bots finish 3 laps from every grid slot.
+- **Not checked:** two real devices racing online.
+- **Known gaps:** if the host leaves mid-race, the race ends. Karts pass through each other (no bumping).
 
 ## Not done / rough
 _(filled in at the end)_

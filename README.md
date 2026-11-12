@@ -33,6 +33,12 @@ One player secretly draws a word, everyone else races to guess it.
 
 Drawing tools: 10 colours, 3 brush sizes, fill bucket, eraser, undo and clear. On a laptop: Ctrl/Cmd+Z undoes, 1–3 change the brush, E is the eraser, F is fill.
 
+## 🐍 Snakes & Ladders (the screamy one)
+Roll (Space or tap the die), climb ladders, slide down snakes, exact roll to finish on 100. A 6 rolls again. **Land on a friend to bonk them** back to the foot of the last ladder they climbed. Room codes start with S. 2–4 players, bots, practice mode.
+
+## 🏎️ Sugar Rush (the fast one)
+A candy kart race: 3 laps, arrow keys or WASD to drive, Space for your item: 🍦 Brain Freeze (slows whoever's just ahead), 🍬 Jelly Splat (sticky puddle behind you), ✨ Sprinkle Boost. Last place gets better items. Room codes start with R. 2–4 racers plus bots, practice mode. On phones it accelerates for you and shows touch buttons.
+
 ## 🎲 Ludo (the long one)
 1. **New game**, share the code, and fill empty seats with bots if you like. 2–4 players; with 4 you can play **Teams (2 v 2)**.
 2. Tap the dice to roll, then tap a glowing piece. On a laptop: **Space** rolls, **1–4** moves a piece, **Enter** jumps to the chat.

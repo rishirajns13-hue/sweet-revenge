@@ -658,7 +658,7 @@ function draw(now) {
   if (!race.cam) race.cam = { x: tx, y: ty };
   race.cam.x += (tx - race.cam.x) * 0.12; race.cam.y += (ty - race.cam.y) * 0.12;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = '#f3dcc0'; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#fff1df'; ctx.fillRect(0, 0, w, h); // same as the track art's ground, so there's no edge
   ctx.save();
   ctx.translate(w / 2, h / 2); ctx.scale(zoom, zoom); ctx.translate(-race.cam.x, -race.cam.y);
   const b = TRACK.bounds;
@@ -787,8 +787,9 @@ function onEnd(m) {
       players: results.map((r) => ({ name: r.name, bot: !!r.bot, place: r.place, score: r.time })),
       winners: results.length ? [results[0].name] : [],
       stats: Object.fromEntries(results.map((r) => [r.name, { ...(stats[r.k] || {}) }])),
-      hits: hits.map((h) => ({ kind: h.item === 'freeze' ? 'freeze' : 'splat', by: nm(h.by), to: nm(h.to) })),
+      hits: hits.map((h) => ({ kind: 'splat', by: nm(h.by), to: nm(h.to) })), // freezes and splats count together
     });
+    if (typeof showRewards === 'function') showRewards($('#awards').parentElement, race.gid); // +XP and new trophies on the end screen
   }
   setTimeout(() => renderEnd(results, stats), 1200);
 }
