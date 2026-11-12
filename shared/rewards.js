@@ -32,10 +32,10 @@ async function showRewards(container, gid) {
   const fresh = p.achievements.filter((a) => a.done && !old.ach.includes(a.id));
   box.innerHTML = `
     <div class="rw-top"><b class="rw-xp">+${gained} XP</b>${level > old.level ? `<span class="rw-up">Level up! ${escapeHtml(title)} 🍦</span>` : `<span class="rw-lv">Lv ${level} ${escapeHtml(title)}</span>`}</div>
-    <div class="rw-bar"><i style="width:${pctThen}%"></i></div>
+    <div class="rw-bar"><i style="--p:${pctThen}%"></i></div>
     <small class="rw-next">${to ? `${to - xp} XP to the next scoop` : 'Top of the cone 👑'}</small>
     ${fresh.length ? `<div class="rw-trophies">${fresh.map((a, i) => `<div class="rw-trophy" style="--d:${0.6 + i * 0.25}s"><span class="rw-medal">${a.icon}</span><b>${escapeHtml(a.name)}</b><small>Trophy unlocked!</small></div>`).join('')}</div>` : ''}`;
-  requestAnimationFrame(() => requestAnimationFrame(() => { box.querySelector('.rw-bar i').style.width = pctNow + '%'; }));
+  requestAnimationFrame(() => requestAnimationFrame(() => { box.querySelector('.rw-bar i').style.setProperty('--p', pctNow + '%'); }));
   if (fresh.length || level > old.level) setTimeout(() => typeof bigConfetti === 'function' && bigConfetti(), 700);
   rememberProgress(p);
 }

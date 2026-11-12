@@ -89,6 +89,7 @@ function applyPalette(p = store.get('ludo-palette', 'sunset')) {
   if (!PALETTES.some(([k]) => k === p)) p = 'sunset';
   document.body.className = document.body.className.replace(/\bpal-\S+/g, '').trim() + ` pal-${p}`;
   document.querySelector('meta[name="theme-color"]').content = THEME_COLOR[p];
+  document.documentElement.style.background = THEME_COLOR[p]; // what shows for a blink between pages
   document.body.classList.toggle('calm', !!store.get('sr-calm', false)); // fewer decorative animations
   return p;
 }
@@ -181,12 +182,14 @@ function wireProfileSheet() {
     // Picking a different critter here keeps your colour and accessory.
   const cur = myAvatar(), tail = cur.includes('~') ? '~' + cur.split('~')[1] : '';
   store.set('ludo-avatar:' + me.user, b.dataset.av + tail);
+    if (typeof records !== 'undefined') records.saveLook();
     renderMeSheet(); pop();
     document.dispatchEvent(new Event('profilechange'));
   });
   $('#palettes').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     store.set('ludo-palette', applyPalette(b.dataset.pal));
+    if (typeof records !== 'undefined') records.saveLook();
     renderMeSheet(); pop();
   });
   $('#btn-me').onclick = () => { renderMeSheet(); sheet.hidden = false; };

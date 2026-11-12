@@ -215,8 +215,8 @@ document.querySelectorAll('.game-card').forEach((card) => card.addEventListener(
   wipe.style.setProperty('--wc', card.dataset.wipe || 'var(--cta)');
   wipe.style.setProperty('--wx', (e.clientX || r.left + r.width / 2) + 'px');
   wipe.style.setProperty('--wy', (e.clientY || r.top + r.height / 2) + 'px');
-  setTimeout(() => wipe.classList.add('go'), 140);
-  setTimeout(() => { location.href = card.href; }, 560);
+  requestAnimationFrame(() => wipe.classList.add('go'));
+  setTimeout(() => { location.href = card.href; }, 300); // the game page then fades in over the wipe
 }));
 // Coming back with the browser's Back button restores this page from cache: undo the wipe.
 addEventListener('pageshow', (e) => {
@@ -242,11 +242,11 @@ function renderLevel(p) {
   const pct = to ? Math.round(((xp - from) / (to - from)) * 100) : 100;
   $('#mini-cone').innerHTML = coneSVG(level);
   $('#lvl-name').innerHTML = `Lv ${level}<span class="lvl-title"> ${escapeHtml(name)}</span>`;
-  $('#mini-xp').style.width = pct + '%';
+  $('#mini-xp').style.setProperty('--p', pct + '%');
   $('#big-cone').innerHTML = coneSVG(level);
   $('#lv-num').textContent = `Level ${level} of ${LEVEL_NAMES.length}`;
   $('#lv-title').textContent = name;
-  $('#xp-fill').style.width = pct + '%';
+  $('#xp-fill').style.setProperty('--p', pct + '%');
   $('.xp-bar').setAttribute('aria-valuenow', pct);
   $('#xp-num').textContent = to ? `${xp} / ${to} XP` : `${xp} XP`;
   $('#xp-text').textContent = to ? `${to - xp} more XP to ${LEVEL_NAMES[level]}. Every game, win, bonk and bomb counts.` : 'Top of the cone. Nothing left to prove 👑';
@@ -390,10 +390,29 @@ function renderEmpty() {
 
 /* ================= putting a profile on screen, and celebrating what's new ================= */
 let profile = null, checkedAt = 0, pendingReaction = null;
+// Redraw only the parts whose data changed, so a refresh that brings nothing new doesn't replay
+// every entry animation (that replay was the flicker right after the menu opened).
+const drawn = {};
+function drawProfile(p, freshTrophies) {
+  const parts = {
+    level: [p.level, () => renderLevel(p)],
+    record: [p.record, () => renderRecordRibbons(p)],
+    trophies: [p.achievements.map((a) => [a.id, a.done, a.have]), () => renderTrophies(p, freshTrophies)],
+    rivals: [[p.rivalry, p.me && p.me.name], () => renderRivals(p)],
+    history: [p.recent.map((g) => g.id), () => renderHistory(p)],
+  };
+  let changed = false;
+  for (const [key, [data, draw]] of Object.entries(parts)) {
+    const sig = JSON.stringify(data);
+    if (drawn[key] === sig && !(key === 'trophies' && freshTrophies.length)) continue;
+    drawn[key] = sig; draw(); changed = true;
+  }
+  return changed;
+}
 function applyProfile(p, { firstLoad = false, cached = false } = {}) {
   const before = profile;
   profile = p;
-  if (cached) { setLive('checking'); renderLevel(p); renderRecordRibbons(p); renderTrophies(p, []); renderRivals(p); renderHistory(p); return; }
+  if (cached) { setLive('checking'); drawProfile(p, []); return; }
   checkedAt = Date.now();
   setLive('live');
   store.set(cacheKey(), p);
@@ -406,8 +425,8 @@ function applyProfile(p, { firstLoad = false, cached = false } = {}) {
   const newGame = !!(seen && newest && seen.lastGame !== undefined && seen.lastGame !== newest.id);
 
   if (typeof rememberProgress === 'function') rememberProgress(p);
-  renderLevel(p); renderRecordRibbons(p); renderTrophies(p, freshTrophies); renderRivals(p); renderHistory(p);
-  if (before) retrigger($('#btn-live'), 'blink');
+  const changed = drawProfile(p, freshTrophies);
+  if (before && changed) retrigger($('#btn-live'), 'blink');
 
   // What happened since you last looked? Saved now, celebrated once the menu is on screen.
   const celebrate = () => {
@@ -487,6 +506,7 @@ function startLive() {
 const avatarKey = () => 'ludo-avatar:' + me.user;
 function setMyAvatar(key) {
   store.set(avatarKey(), key);
+  records.saveLook();
   document.dispatchEvent(new Event('profilechange'));
   renderYou();
   sfx.pop();
@@ -499,6 +519,7 @@ function renderYou() {
   setAvatar($('#me-preview'), key, MOODS[previewMood]);
   $('#me-name').textContent = me.name;
   $('#acct-name').textContent = me.name;
+  $('#acct-login').textContent = me.user;
   if (profile) {
     $('#me-lv').textContent = `Level ${profile.level.level} · ${LEVEL_NAMES[profile.level.level - 1]}`;
     $('#ms-played').textContent = profile.record.played;
@@ -524,7 +545,7 @@ $('#b-random').onclick = () => {
   setMyAvatar(AVATAR_ART.compose(AVATAR_ART.order[pick(AVATAR_ART.order.length)], pick(AVATAR_ART.COLOURS.length), pick(AVATAR_ART.ACCESSORIES.length)));
   reactMe('cheer');
 };
-$('#b-themes').addEventListener('click', (e) => { const b = e.target.closest('[data-pal]'); if (!b) return; store.set('ludo-palette', applyPalette(b.dataset.pal)); renderYou(); sfx.pop(); });
+$('#b-themes').addEventListener('click', (e) => { const b = e.target.closest('[data-pal]'); if (!b) return; store.set('ludo-palette', applyPalette(b.dataset.pal)); records.saveLook(); renderYou(); sfx.pop(); });
 $('#set-sound').onchange = () => { if (player.muted === $('#set-sound').checked) player.toggle(); setIcon($('#btn-sound'), player.muted ? 'mute' : 'volume'); if (!player.muted) sfx.pop(); };
 $('#set-calm').onchange = () => { store.set('sr-calm', $('#set-calm').checked); applyPalette(); };
 $('#set-howto').onclick = () => {
@@ -532,6 +553,47 @@ $('#set-howto').onclick = () => {
   toast('The how-to cards will show again in each game 👍');
 };
 $('#set-logout').onclick = () => { if (confirm('Log out on this device?')) logout(); };
+
+/* ---------- account: change your name or password ---------- */
+function openAcctForm(form, other) {
+  other.hidden = true;
+  form.hidden = false;
+  form.querySelector('.acct-msg').textContent = '';
+  form.querySelector('.acct-msg').classList.remove('ok');
+  form.querySelector('input:not([hidden])').focus();
+}
+document.querySelectorAll('.acct-form [data-cancel]').forEach((b) => (b.onclick = () => { b.closest('form').hidden = true; }));
+$('#acct-edit-name').onclick = () => { $('#acct-name-input').value = me.name; openAcctForm($('#acct-name-form'), $('#acct-pass-form')); $('#acct-name-input').select(); };
+$('#acct-edit-pass').onclick = () => { $('#acct-pass-form').reset(); $('#acct-pass-user').value = me.user; openAcctForm($('#acct-pass-form'), $('#acct-name-form')); };
+async function acctSubmit(form, msg, work) {
+  const btn = form.querySelector('[type=submit]');
+  btn.disabled = true;
+  const err = await work().catch(() => "Couldn't reach the scoreboard. Try again?");
+  btn.disabled = false;
+  msg.classList.toggle('ok', !err);
+  if (err) { msg.textContent = err; retrigger(form, 'shake'); return false; }
+  return true;
+}
+$('#acct-name-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.currentTarget, msg = $('#acct-name-msg'), name = $('#acct-name-input').value.trim().replace(/\s+/g, ' ');
+  if (name === me.name) { form.hidden = true; return; }
+  if (!(await acctSubmit(form, msg, () => records.rename(name)))) return;
+  form.hidden = true;
+  if (profile) profile.me.name = me.name;
+  renderYou(); renderMe();
+  reactMe('cheer'); sfx.pop();
+  toast(`You're ${me.name} now ✨`);
+});
+$('#acct-pass-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.currentTarget, msg = $('#acct-pass-msg'), a = $('#acct-pass-1').value, b = $('#acct-pass-2').value;
+  if (a !== b) { msg.classList.remove('ok'); msg.textContent = "Those two don't match"; retrigger(form, 'shake'); return; }
+  if (!(await acctSubmit(form, msg, () => records.setPassword(a)))) return;
+  form.reset(); form.hidden = true;
+  sfx.pop();
+  toast('Password changed 🔑 Use the new one next time you log in');
+});
 document.addEventListener('profilechange', () => { if (currentTab === 'me') renderYou(); });
 
 /* ================= sound toggle, profile, login, joining ================= */

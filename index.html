@@ -11,8 +11,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@500;600;700;800&family=Lilita+One&family=Gaegu:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="shared/base.css?v=11">
-  <link rel="stylesheet" href="hub/hub.css?v=17">
+  <link rel="stylesheet" href="shared/base.css?v=12">
+  <link rel="stylesheet" href="hub/hub.css?v=19">
 </head>
 <body class="pal-sunset">
   <!-- Sweet Revenge logo: drawn once here, shown with <use href="#logo"> -->
@@ -240,11 +240,34 @@
             <div class="card me-settings">
               <h3>Settings</h3>
               <label class="switch"><input id="set-sound" type="checkbox"><span></span>Sound effects</label>
-              <label class="switch"><input id="set-calm" type="checkbox"><span></span>Calm mode <small>fewer wobbles and floating things</small></label>
+              <label class="switch"><input id="set-calm" type="checkbox"><span></span><div>Calm mode <small>fewer wobbles and floating things</small></div></label>
               <button id="set-howto" class="btn ghost" type="button">Show the how-to-play cards again</button>
               <h3>Account</h3>
-              <p class="sub">Logged in as <b id="acct-name"></b> on this device. Everything you play, say and win stays private to you and your friends.</p>
-              <button id="set-logout" class="btn" type="button">Log out</button>
+              <div class="acct-row" id="acct-name-row">
+                <div><small>Your name</small><b id="acct-name"></b></div>
+                <button id="acct-edit-name" class="btn mini" type="button">✏️ Edit</button>
+              </div>
+              <form id="acct-name-form" class="acct-form" hidden>
+                <label for="acct-name-input">New name <small>(friends see it everywhere)</small></label>
+                <input id="acct-name-input" maxlength="20" autocomplete="nickname" spellcheck="false" required>
+                <p class="acct-msg" id="acct-name-msg" aria-live="polite"></p>
+                <div class="acct-btns"><button class="btn cta" type="submit">Save name</button><button class="btn ghost" type="button" data-cancel>Cancel</button></div>
+              </form>
+              <div class="acct-row">
+                <div><small>Password</small><b>••••••••</b></div>
+                <button id="acct-edit-pass" class="btn mini" type="button">🔑 Change</button>
+              </div>
+              <form id="acct-pass-form" class="acct-form" hidden>
+                <input type="text" autocomplete="username" id="acct-pass-user" hidden>
+                <label for="acct-pass-1">New password</label>
+                <input id="acct-pass-1" type="password" autocomplete="new-password" minlength="6" required>
+                <label for="acct-pass-2">Type it again</label>
+                <input id="acct-pass-2" type="password" autocomplete="new-password" minlength="6" required>
+                <p class="acct-msg" id="acct-pass-msg" aria-live="polite"></p>
+                <div class="acct-btns"><button class="btn cta" type="submit">Save password</button><button class="btn ghost" type="button" data-cancel>Cancel</button></div>
+              </form>
+              <p class="sub">You log in as <b id="acct-login"></b>. That stays the same even when you change your name. Everything you play, say and win stays private to you and your friends.</p>
+              <button id="set-logout" class="btn" type="button">Log out on this device</button>
             </div>
             <div class="card me-build">
               <h3>Critter</h3><div id="b-critters" class="b-grid" role="group" aria-label="Critter"></div>
@@ -278,12 +301,14 @@
   <div id="toast" class="toast" role="status"></div>
   <div id="fx"></div>
 
+  <!-- Start loading a game's page as soon as you hover its card, so it opens instantly. -->
+  <script type="speculationrules">{ "prefetch": [{ "source": "document", "where": { "selector_matches": ".game-card" }, "eagerness": "moderate" }] }</script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
-  <script src="shared/core.js?v=10"></script>
+  <script src="shared/core.js?v=11"></script>
   <script src="shared/avatars.js?v=2"></script>
-  <script src="shared/records.js?v=5"></script>
-  <script src="shared/rewards.js?v=2"></script>
+  <script src="shared/records.js?v=6"></script>
+  <script src="shared/rewards.js?v=3"></script>
   <script src="shared/sound.js?v=1"></script>
-  <script src="hub/hub.js?v=16"></script>
+  <script src="hub/hub.js?v=18"></script>
 </body>
 </html>

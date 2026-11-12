@@ -69,8 +69,13 @@ const records = (() => {
     const now = new Date().toISOString();
     fresh.forEach((a) => (when[a.id] = now));
 
-    // Your display name may have changed on another device: keep this one in step.
-    if (r.me.name !== me.name) { saveMe({ name: r.me.name }); document.dispatchEvent(new Event('profilechange')); }
+    // Your name, critter or theme may have changed on another device: keep this one in step.
+    let changed = false;
+    if (r.me.name !== me.name) { saveMe({ name: r.me.name }); changed = true; }
+    if (r.me.avatar && r.me.avatar !== store.get('ludo-avatar:' + me.user, null) && AVATARS.includes(r.me.avatar)) { store.set('ludo-avatar:' + me.user, r.me.avatar); changed = true; }
+    if (r.me.theme && r.me.theme !== store.get('ludo-palette', null) && PALETTES.some(([k]) => k === r.me.theme)) { store.set('ludo-palette', applyPalette(r.me.theme)); changed = true; }
+    if (!r.me.avatar || !r.me.theme) saveLook(); // first visit since this was added: upload what this device has
+    if (changed) document.dispatchEvent(new Event('profilechange'));
 
     const played = (k) => facts.games.filter((g) => !k || g.kind === k);
     return {
@@ -102,6 +107,12 @@ const records = (() => {
       .subscribe();
   }
 
+  // Save your critter and theme to your account so they follow you to other devices.
+  function saveLook() {
+    if (!me) return;
+    sb.rpc('update_me', { p_avatar: myAvatar(), p_theme: store.get('ludo-palette', 'sunset') }).then(() => {});
+  }
+
   const sent = new Set();
   return {
     // A message this player just sent. `text` is the message, or the sticker's words.
@@ -120,6 +131,7 @@ const records = (() => {
       save('save_game', { g });
     },
     me: profile,
+    saveLook,
     onChange,
     // Change your display name. Resolves with null when it worked, or a short message saying why not.
     async rename(name) {
