@@ -593,6 +593,35 @@ const trackArt = (() => {
     g.fillStyle = SPR[i % SPR.length]; g.globalAlpha = 0.45; roundRect(g, -6, -2, 12, 4, 2); g.fill(); g.restore();
   }
   g.globalAlpha = 1;
+  // Scenery off the road: lollipop trees, candy canes and gumdrops, painted once.
+  const clear = TRACK.width / 2 + TRACK.verge + 40;
+  const lolly = (x, y, sz, col) => {
+    g.strokeStyle = '#2b2140'; g.lineWidth = 3;
+    g.fillStyle = '#fff'; roundRect(g, x - 2.5, y, 5, sz * 1.6, 2); g.fill(); g.stroke();
+    g.beginPath(); g.arc(x, y, sz, 0, Math.PI * 2); g.fillStyle = col; g.fill(); g.stroke();
+    g.beginPath(); for (let a = 0; a < Math.PI * 5; a += 0.3) { const r = (a / (Math.PI * 5)) * sz * 0.85; g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); }
+    g.strokeStyle = '#ffffffcc'; g.lineWidth = 2.5; g.stroke();
+  };
+  const cane = (x, y, sz) => {
+    const hook = new Path2D(); hook.moveTo(x, y + sz * 1.6); hook.lineTo(x, y); hook.arc(x + sz * 0.45, y, sz * 0.45, Math.PI, 0);
+    g.lineCap = 'round'; g.strokeStyle = '#2b2140'; g.lineWidth = 10; g.stroke(hook);
+    g.strokeStyle = '#fff'; g.lineWidth = 6; g.stroke(hook);
+    g.strokeStyle = '#ff5a5f'; g.lineWidth = 6; g.setLineDash([5, 6]); g.stroke(hook); g.setLineDash([]);
+  };
+  const gum = (x, y, sz, col) => {
+    g.beginPath(); g.moveTo(x - sz, y + sz * 0.5); g.quadraticCurveTo(x - sz, y - sz, x, y - sz); g.quadraticCurveTo(x + sz, y - sz, x + sz, y + sz * 0.5); g.closePath();
+    g.fillStyle = col; g.fill(); g.strokeStyle = '#2b2140'; g.lineWidth = 3; g.stroke();
+    g.fillStyle = '#ffffffaa'; for (let k = 0; k < 4; k++) { g.beginPath(); g.arc(x - sz * 0.5 + rnd() * sz, y - sz * 0.4 + rnd() * sz * 0.6, 1.6, 0, Math.PI * 2); g.fill(); }
+  };
+  const SCEN = ['#ff71ce', '#7ee8d8', '#ffce5c', '#9ab8ff', '#c9a7ff', '#2bc48a'];
+  for (let placed = 0, tries = 0; placed < 70 && tries < 2000; tries++) {
+    const x = b.x + rnd() * b.w, y = b.y + rnd() * b.h;
+    if (Math.abs(P.project(TRACK, x, y).d) < clear) continue;
+    const kind = rnd(), col = SCEN[placed % SCEN.length], sz = 12 + rnd() * 10;
+    if (kind < 0.45) lolly(x, y, sz, col); else if (kind < 0.7) cane(x, y, sz); else gum(x, y, sz * 0.9, col);
+    placed++;
+  }
+  g.lineCap = 'butt';
   const path = new Path2D();
   TRACK.pts.forEach(([x, y], i) => (i ? path.lineTo(x, y) : path.moveTo(x, y)));
   path.closePath();
