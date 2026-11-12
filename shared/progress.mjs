@@ -1,6 +1,6 @@
 // Sweet Revenge levels and achievements, worked out from the saved history.
-// Pure: the API gathers the facts from Postgres, this turns them into XP, a level and a trophy shelf.
-// Tested in tests/progress.test.js. The plan behind these numbers is in docs/GAME-IDEAS.md.
+// Pure: shared/records.js gathers the facts from the database, this turns them into XP, a level and a trophy shelf.
+// Tested in tests/progress.test.js. The numbers are listed in docs/PROGRESS.md.
 
 // [XP needed, title]. Each level is one more scoop on the cone.
 export const LEVELS = [

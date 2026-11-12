@@ -1,7 +1,7 @@
 # Secrets: never commit (the site is public on GitHub Pages)
 .env
 .env.*
-.neon
+
 node_modules/
 
 # Claude Code helper worktrees

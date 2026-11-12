@@ -4,7 +4,7 @@
    you just unlocked, popping in. It compares the profile from the database (records.me) with the last
    one this device saw (also kept up to date by the home screen). Needs core.js and records.js.
      showRewards(container, gid)  call once a game is saved; repeat calls for the same game do nothing */
-const REWARD_KEY = () => 'sr-progress:' + (me ? me.name.toLowerCase() : '');
+const REWARD_KEY = () => 'sr-progress:' + (me ? me.user : '');
 function rememberProgress(p) {
   if (p && p.level) store.set(REWARD_KEY(), { xp: p.level.xp, level: p.level.level, ach: p.achievements.filter((a) => a.done).map((a) => a.id) });
 }

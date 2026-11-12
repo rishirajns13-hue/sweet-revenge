@@ -1,7 +1,7 @@
 // Run with: node --test
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const P = require('../api/progress.mjs');
+const P = require('../shared/progress.mjs');
 
 const g = (o = {}) => ({ kind: 'ludo', practice: false, won: false, bonks: 0, bombs: 0, bombCards: 0, score: 0, fastest: 0, ...o });
 const facts = (o = {}) => ({ games: [], bigBomb: 0, maxBonkedInGame: 0, revengeBonk: false, revengeBomb: false, chats: 0, ...o });

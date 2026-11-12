@@ -1007,7 +1007,7 @@ let recorded = null;
 function recordResult(v) {
   if (recorded === v.gid || !me) return;
   recorded = v.gid;
-  const key = 'plusfour-record:' + me.name.toLowerCase(), rec = store.get(key, {});
+  const key = 'plusfour-record:' + me.user, rec = store.get(key, {});
   v.players.forEach((p) => {
     if (p.k === myK || p.bot) return;
     const r = rec[p.name] || { w: 0, l: 0 };

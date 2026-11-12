@@ -55,24 +55,31 @@ Every game has the same chat: messages, game-specific stickers, an emoji wheel (
 Tap your avatar to pick an avatar and a colour palette (Sunset, Lagoon or Lemonade). It applies to every game.
 
 ## History (saved to the database)
-Typed chat messages, stickers and every finished game (players, winner, stats, plus every Ludo bonk and Plus Four bomb) are saved in a Neon Postgres database. Voice notes and emoji reactions are never saved. The site stays static: browsers send these to a small Neon Function (`api/index.ts`). It checks the same login proof the games use before it writes anything, and the database password never reaches the browser. If the API can't be reached, the games work as before; that bit just isn't saved.
-
-- Change the tables: edit `api/schema.sql`, then run `node api/migrate.mjs` (uses `.env.local` from `neon link`).
-- Deploy the API: `neon deploy --env .env.local`. Its URL is `RECORDS_URL` in `shared/records.js`.
-- The home screen opens with a loading screen, then three screens: **Play**, **Trophies** and **Rivals** (keys 1, 2, 3). It refreshes every 20 seconds, and the dot in the top bar turns green when the database is reachable. Levels and achievements are worked out in `api/progress.mjs`.
-- **Works on every network.** Some networks (Jio, for one) block `*.neon.tech` addresses. Then the browser sends its requests, encrypted, through the same public MQTT relays the games use, and a bridge (`api/bridge.ts`, woken every minute by a Neon schedule trigger) answers them. The bridge naps when nobody's around, so on those networks the first scoreboard load after a quiet spell can take up to a minute. Its private key lives only in `.env.local` as `RELAY_PRIVATE_KEY`; deploy with `neon deploy --env .env.local`.
+Typed chat messages, stickers and every finished game (players, winner, stats, plus every Ludo bonk and Plus Four bomb) are saved in a **Supabase** Postgres database. Voice notes and emoji reactions are never saved. The site stays static; browsers talk to Supabase directly with the publishable key, which is safe to be public:
+- **Reading** needs a login, and only friends can log in.
+- **Writing** goes through checked database functions (`save_game`, `save_chat`, `store_progress`, `update_me`); the tables can't be written to directly.
+- Saves wait in an outbox on the device, so a game finished offline is sent the next time a page opens.
+- The home screen opens instantly with what the device saw last time, then swaps in fresh data. New games and trophies arrive live (Supabase Realtime) instead of by polling.
+- Levels and trophies are worked out in the browser from your history (`shared/progress.mjs`).
+- **Keep-alive:** free Supabase projects pause after a week without activity, so a GitHub Action (`.github/workflows/keepalive.yml`) calls the database's `ping()` once a day.
+- The whole database setup is in `supabase/schema.sql`. More in `docs/DATABASE.md`.
 
 ## How logins work
-`shared/core.js` stores only `sha256(sha256(name:password))`. When a friend joins, their browser sends the inner hash, which can't be worked out from the code. The host checks it and drops anyone who can't prove they know a password.
+Supabase Auth, with a name and password. Only the friends listed in the `players` table can have an account; the database refuses any other sign-up. The first time a friend logs in after the move to Supabase (13 Nov 2026), the database checks their password against the old login and creates their account with that same password, so nobody had to sign up again. You stay logged in on each device for weeks.
+
+In a game room, the host checks each friend who joins by asking Supabase who their login belongs to (`checkProof` in `shared/core.js`), so changing your name or password never locks you out of a room.
 
 ## Project layout
 - `index.html`, `hub/`: the Sweet Revenge front door, with login and the game picker. The logo is an inline SVG in `index.html`.
-- `api/`: the history API (a Neon Function) and the database schema
-- `shared/`: design system (`base.css`), login, icons and profile (`core.js`), networking (`net.js`), the chat every game uses (`chat.js`, `chat.css`), saving history (`records.js`), sound clips player (`sound.js`), and card and menu sounds (`sounds/`, CC0 from Kenney)
+- `supabase/schema.sql`: the database (tables, security rules and functions)
+- `.github/workflows/keepalive.yml`: the daily keep-alive ping
+- `shared/`: design system (`base.css`), login, icons and profile (`core.js`), networking (`net.js`), the chat every game uses (`chat.js`, `chat.css`), saving history and your profile (`records.js`), levels and trophies (`progress.mjs`), sound clips player (`sound.js`), and card and menu sounds (`sounds/`, CC0 from Kenney)
 - `doodle.html`, `doodle/`: Doodle Duel (`logic.js` is the pure, tested part; `words.js` has the word packs)
 - `plusfour.html`, `plusfour/`: Plus Four (`rules.js` is the pure, tested part; `cards.js` draws the cards and moves them)
 - `ludo.html`, `ludo/`: Ludo (`rules.js` is the pure, tested part)
 - `docs/`: `PROGRESS.md` (the games, levels and trophies) and `concepts/`, the design mockups the interface was chosen from
 
 ## Running locally
-Serve the folder with any static server, for example `npx serve .`, and open it in two tabs. Run the tests with `node --test`. If you add or change accounts in `shared/core.js`, copy them into `api/index.ts` too and redeploy.
+Serve the folder with any static server, for example `python -m http.server 8765`, and open it in two tabs. Run the tests with `node --test tests/*.test.js`. Nothing needs installing.
+
+To add a friend, add a row to the `players` table with their login name (lowercase) and display name, and set `legacy_hash` to `sha256(sha256("name:password"))` (hex). Their account is created the first time they log in with that password.

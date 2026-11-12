@@ -4,21 +4,29 @@
 const $ = (sel) => document.querySelector(sel);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/* ================= accounts =================
-   Only sha256(proof) is stored, where proof = sha256(lower(name) + ':' + password).
-   A joining friend must send the proof itself, which can't be derived from this file. */
-const ACCOUNTS = {
-  'panchara kunju': { name: 'Panchara Kunju', hash: '1c760216a90d9924ba7ea7afe921cce796b25e5a6e4ba08a27dcb8d39ddab814' },
-  ammu: { name: 'Ammu', hash: 'be56b7ac72bc7a13c0c7134ac0275310dd0c56a004adc0975a72623c2cc35210' },
-};
+/* ================= accounts (Supabase Auth) =================
+   Friends log in with their name and password. The first time after the move to Supabase, the
+   database checks the password against the old login and creates the real account with it
+   (claim_account). Sign-ups for anyone else are refused by the database.
+   Game rooms check a joining friend by their login token (checkProof), not by a stored hash. */
+const SUPABASE_URL = 'https://tzksdygcuykycrmwwxrv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_eMPNQhTIHRUN3X2TugWV0A_wDH9TG71'; // publishable: safe in the browser
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sr-auth' } });
+
 async function sha256(text) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
-const makeProof = (user, pass) => sha256(user.trim().toLowerCase() + ':' + pass);
-async function checkProof(user, proof) {
-  const acc = typeof user === 'string' && ACCOUNTS[user.trim().toLowerCase()];
-  return acc && typeof proof === 'string' && acc.hash === (await sha256(proof)) ? acc.name : null;
+
+// Is `token` a live login for the friend called `user`? Resolves with their display name, or null.
+async function checkProof(user, token) {
+  if (typeof user !== 'string' || typeof token !== 'string' || token.length > 4000) return null;
+  try {
+    const { data, error } = await sb.auth.getUser(token);
+    if (error || !data.user) return null;
+    const { data: who } = await sb.rpc('whois', { p_uid: data.user.id });
+    return who && who.id === user.trim().toLowerCase() ? who.name : null;
+  } catch (e) { return null; }
 }
 
 /* ================= icons (one stroke family, 24px grid) ================= */
@@ -73,7 +81,7 @@ const store = {
 };
 const DEFAULT_AVATAR = { 'panchara kunju': '😎', ammu: '🥰' };
 function myAvatar() {
-  const name = me ? me.name.toLowerCase() : '';
+  const name = me ? me.user : '';
   const a = store.get('ludo-avatar:' + name, null);
   return AVATARS.includes(a) ? a : DEFAULT_AVATAR[name] || '😎';
 }
@@ -91,17 +99,32 @@ function renderMeSheet() {
   $('#palettes').innerHTML = PALETTES.map(([k, label]) => `<button type="button" class="pal-${k}" data-pal="${k}" aria-pressed="${k === pal}"><span></span>${label}</button>`).join('');
 }
 /* ================= login session (shared by every page) ================= */
-let me = null; // { name, proof, user }
+// me = { name (display name), user (login id, e.g. 'ammu'), proof (current login token), uid }
+let me = null;
 const ME_KEY = 'ludo-me';
 async function loadMe() {
-  const saved = store.get(ME_KEY, null);
-  if (!saved) return null;
-  const name = await checkProof(saved.user || saved.name, saved.proof);
-  if (!name) return null;
-  me = { name, proof: saved.proof, user: saved.user };
+  let session = null;
+  try { session = (await sb.auth.getSession()).data.session; } catch (e) { /* offline: no session */ }
+  if (!session) return (me = null);
+  const saved = store.get(ME_KEY, null) || {};
+  const user = (session.user.user_metadata && session.user.user_metadata.username) || saved.user;
+  me = { name: saved.name || user, user, proof: session.access_token, uid: session.user.id };
   return me;
 }
-function saveMe(m) { me = m; store.set(ME_KEY, m); }
+// Keep the token games send fresh (it renews about once an hour).
+sb.auth.onAuthStateChange((event, session) => { if (me && session) me.proof = session.access_token; });
+function saveMe(m) { store.set(ME_KEY, { name: m.name, user: m.user }); if (me) Object.assign(me, m); }
+// Log in with name + password. Resolves with `me`, null for a wrong name/password, or throws when offline.
+async function login(user, pass) {
+  const { data: email, error } = await sb.rpc('claim_account', { p_user: user, p_pass: pass });
+  if (error) throw new Error('offline');
+  if (!email) return null;
+  const r = await sb.auth.signInWithPassword({ email, password: pass });
+  if (r.error) { if (r.error.status >= 500 || r.error.name === 'AuthRetryableFetchError') throw new Error('offline'); return null; }
+  const { data: who } = await sb.rpc('whois', { p_uid: r.data.user.id });
+  saveMe({ name: (who && who.name) || user.trim(), user: (who && who.id) || user.trim().toLowerCase() });
+  return loadMe();
+}
 // Game pages call this first; without a valid login they send you to the front door.
 async function requireLogin() {
   if (await loadMe()) return me;
@@ -111,7 +134,10 @@ async function requireLogin() {
   location.replace('index.html?' + q);
   return new Promise(() => {});
 }
-function logout() { store.del(ME_KEY); me = null; location.href = 'index.html'; }
+async function logout() {
+  try { await sb.auth.signOut({ scope: 'local' }); } catch (e) { /* offline: the local session is gone anyway */ }
+  store.del(ME_KEY); me = null; location.href = 'index.html';
+}
 
 /* ================= little effects ================= */
 function confetti(x, y, n = 30, spread = 220, palette = ['#ff5a5f', '#2bc48a', '#ffc233', '#4d9de0', '#fff', '#8f6bff']) {
@@ -154,7 +180,7 @@ function wireProfileSheet() {
     const b = e.target.closest('button'); if (!b || !me) return;
     // Picking a different critter here keeps your colour and accessory.
   const cur = myAvatar(), tail = cur.includes('~') ? '~' + cur.split('~')[1] : '';
-  store.set('ludo-avatar:' + me.name.toLowerCase(), b.dataset.av + tail);
+  store.set('ludo-avatar:' + me.user, b.dataset.av + tail);
     renderMeSheet(); pop();
     document.dispatchEvent(new Event('profilechange'));
   });

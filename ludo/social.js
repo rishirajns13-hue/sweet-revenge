@@ -5,7 +5,7 @@
 document.addEventListener('profilechange', renderHome);
 
 /* ================= all-time score, kept on this device ================= */
-const recordKey = () => 'ludo-record:' + me.name.toLowerCase();
+const recordKey = () => 'ludo-record:' + me.user;
 function recordResult(s) {
   if (mode === 'cpu' || !s.winners || !me) return;
   const done = store.get('ludo-recorded', []);

@@ -1,166 +1,138 @@
 'use strict';
-/* Sweet Revenge history: saves typed chat, stickers and finished games to the database
-   (the Neon Function in api/). Voice notes and emoji reactions are never sent.
-   Needs shared/core.js (for `me`, the logged-in player and their login proof).
+/* Sweet Revenge history: saves typed chat, stickers and finished games to the Supabase database,
+   and loads your profile (level, trophies, rivals, recent games). Voice notes and emoji reactions
+   are never sent. Needs shared/core.js (for `sb`, the Supabase client, and `me`).
 
-   Two ways in, so it works on every network:
-   1. Direct: a plain HTTPS request to the API. Instant, and used whenever it works.
-   2. Relay: some networks (Jio, for one) block *.neon.tech addresses. Then requests go, encrypted,
-      through the same public MQTT relays the games already use, and the bridge (api/bridge.ts)
-      answers. The bridge naps when nobody's around, so the first answer can take up to a minute.
-   Fire and forget for saves: if neither works the game carries on and that bit just isn't saved. */
-const RECORDS_URL = 'https://br-empty-shadow-a1673mbz-api.compute.c-1.ap-southeast-1.aws.neon.tech';
-
+   Saving goes through checked database functions (save_game, save_chat); the browser can't write
+   to the tables directly. Saves wait in an outbox on this device until the database has them,
+   so a game finished while offline is sent the next time any page opens. */
 const records = (() => {
-  const RELAY_TOPIC = 'sweetrevenge-relay/7c1e93b04fa25d68';
-  const RELAY_BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'];
-  const MQTT_LIB = 'https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js';
-  // The bridge's public key. Only the bridge holds the private half, so only it can read relayed requests.
-  const BRIDGE_KEY = { kty: 'EC', crv: 'P-256', x: 'KvFH5XYiC9otXjgKAAXW1g3Af7fc7Fh-qJ9DxPOSQnM', y: '-wRCoq0xwu4dLtZJkjQEMbvC5dvS3QMjiCXabXDFZnE' };
-  const te = new TextEncoder(), td = new TextDecoder();
-  const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
-  const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
   const cid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-  const hex = (n) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, '0')).join('');
+  let progressLib = null;
+  const loadProgress = () => (progressLib ||= import('./progress.mjs'));
 
-  let viaRelay = false;
-  try { viaRelay = sessionStorage.getItem('sr-relay') === '1'; } catch (e) { /* storage blocked */ }
-
-  /* ---------- relay connection (one per page, opened on first use) ---------- */
-  let client = null;
-  function loadMqtt() {
-    if (typeof mqtt !== 'undefined') return Promise.resolve();
-    return new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = MQTT_LIB; s.onload = resolve; s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
-  function connect() {
-    if (client) return client;
-    client = loadMqtt().then(() => new Promise((resolve, reject) => {
-      let i = 0;
-      const tryNext = () => {
-        if (i >= RELAY_BROKERS.length) { client = null; return reject(new Error('no relay')); }
-        const cl = mqtt.connect(RELAY_BROKERS[i++], { connectTimeout: 8000, reconnectPeriod: 3000, clean: true, clientId: 'sr_' + hex(6) });
-        const fail = () => { cl.end(true); tryNext(); };
-        const t = setTimeout(fail, 9000);
-        cl.once('connect', () => { clearTimeout(t); cl.off('error', fail); resolve(cl); });
-        cl.once('error', () => { clearTimeout(t); fail(); });
-      };
-      tryNext();
-    }));
-    return client;
-  }
-
-  async function requestKey(epkPrivate, id) {
-    const pub = await crypto.subtle.importKey('jwk', BRIDGE_KEY, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
-    const bits = await crypto.subtle.deriveBits({ name: 'ECDH', public: pub }, epkPrivate, 256);
-    const hk = await crypto.subtle.importKey('raw', bits, 'HKDF', false, ['deriveKey']);
-    return crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: te.encode(id), info: te.encode('sweet-revenge relay v1') },
-      hk, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-  }
-
-  // Send one request through the relay and wait for the bridge's answer (resending now and then,
-  // in case the bridge was asleep and a relay dropped it). Resolves with the data, or null.
-  async function relay(path, payload, waitMs) {
-    const cl = await connect();
-    const id = hex(16), eph = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']);
-    const key = await requestKey(eph.privateKey, id), iv = crypto.getRandomValues(new Uint8Array(12));
-    const { kty, crv, x, y } = await crypto.subtle.exportKey('jwk', eph.publicKey);
-    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, te.encode(JSON.stringify({ path, body: payload })));
-    const wire = JSON.stringify({ id, epk: { kty, crv, x, y }, iv: b64(iv), ct: b64(ct) });
-    const resTopic = `${RELAY_TOPIC}/res/${id}`;
-    return new Promise((resolve) => {
-      let done = false;
-      const finish = (v) => {
-        if (done) return;
-        done = true;
-        clearInterval(resend); clearTimeout(giveUp);
-        cl.off('message', onMsg); cl.unsubscribe(resTopic);
-        resolve(v);
-      };
-      const onMsg = async (topic, msg) => {
-        if (topic !== resTopic) return;
-        try {
-          const a = JSON.parse(msg.toString());
-          const out = JSON.parse(td.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(a.iv) }, key, unb64(a.ct))));
-          finish({ status: out.status, data: out.data });
-        } catch (e) { /* not a valid answer */ }
-      };
-      cl.on('message', onMsg);
-      const send = () => cl.publish(`${RELAY_TOPIC}/req`, wire, { qos: 1 });
-      cl.subscribe(resTopic, { qos: 1 }, send);
-      const resend = setInterval(send, 20000);
-      const giveUp = setTimeout(() => finish(null), waitMs);
-    });
-  }
-
-  /* ---------- one request, whichever way works ---------- */
-  // Resolves { status, data } once the server answered, or null if it couldn't be reached.
-  // text/plain keeps the direct request "simple": no CORS preflight, and keepalive works on page close.
-  async function send(path, body, waitMs) {
-    if (!me) return null;
-    const payload = { ...body, user: me.user || me.name, proof: me.proof };
-    if (!viaRelay) {
-      try {
-        const r = await fetch(RECORDS_URL + path, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
-        return { status: r.status, data: await r.json().catch(() => null) };
-      } catch (e) {
-        // The network can't reach the API (blocked or offline): use the relay for the rest of this visit.
-        viaRelay = true;
-        try { sessionStorage.setItem('sr-relay', '1'); } catch (err) { /* storage blocked */ }
-      }
-    }
-    try { return await relay(path, payload, waitMs); } catch (e) { return null; }
-  }
-  async function post(path, body, waitMs = 90000) {
-    const r = await send(path, body, waitMs);
-    return r && r.status < 300 ? r.data : null;
-  }
-
-  /* ---------- outbox: saves wait on this device until the server has them ---------- */
-  // Chat and finished games go in first and leave once the server answers (even with an error,
-  // which won't get better by retrying). Anything left over, e.g. the tab closed on a slow relay,
-  // is sent again the next time any page opens. The server ignores duplicates.
-  const OUTBOX = 'sr-outbox';
+  /* ---------- outbox: saves wait on this device until the database has them ---------- */
+  const OUTBOX = 'sr-outbox2';
   const readBox = () => { const b = store.get(OUTBOX, []); return Array.isArray(b) ? b : []; };
-  function save(path, body) {
-    const item = { id: cid(), path, body, at: Date.now() };
+  function save(fn, args) {
+    const item = { id: cid(), fn, args, at: Date.now() };
     store.set(OUTBOX, readBox().concat(item).slice(-60));
     deliver(item);
   }
+  const offline = (error) => !error.code && /fetch|network|load failed/i.test(error.message || '');
   async function deliver(item) {
-    const r = await send(item.path, item.body, 300000);
-    if (r) store.set(OUTBOX, readBox().filter((x) => x.id !== item.id));
+    if (!me) return;
+    const { error } = await sb.rpc(item.fn, item.args);
+    // Done, or refused for good (a bad save won't get better by retrying): drop it from the outbox.
+    if (!error || !offline(error)) store.set(OUTBOX, readBox().filter((x) => x.id !== item.id));
+    if (error && !offline(error)) console.warn('Not saved:', item.fn, error.message);
   }
   function flush() {
     const week = Date.now() - 7 * 864e5, box = readBox().filter((x) => x.at > week);
     store.set(OUTBOX, box);
-    box.forEach((item, i) => setTimeout(() => deliver(item), i * 400));
+    box.forEach((item, i) => setTimeout(() => deliver(item), i * 300));
   }
-  // Once the login is loaded (core.js sets `me` shortly after the page starts), send any leftovers.
-  const waitForMe = setInterval(() => { if (me) { clearInterval(waitForMe); flush(); } }, 1500);
+  addEventListener('online', flush);
+  // Once the login is loaded (core.js sets `me` when the page starts), send any leftovers.
+  const waitForMe = setInterval(() => { if (me) { clearInterval(waitForMe); flush(); } }, 1000);
   setTimeout(() => clearInterval(waitForMe), 60000);
+
+  /* ---------- your profile ---------- */
+  const num = (o, keys) => { for (const k of keys) if (o && typeof o[k] === 'number') return o[k]; return 0; };
+  async function profile() {
+    if (!me) return null;
+    const [{ data: r, error }, P] = await Promise.all([sb.rpc('my_profile'), loadProgress()]);
+    if (error || !r) return null;
+    const id = r.me.id, none = () => ({ bonks: 0, bombs: 0, bombCards: 0 });
+    const hitsBy = new Map();
+    let bigBomb = 0;
+    for (const h of r.myHits) {
+      const e = hitsBy.get(h.game_id) || none();
+      if (h.kind === 'bonk') e.bonks += h.n;
+      else { e.bombs += h.n; e.bombCards += h.cards; bigBomb = Math.max(bigBomb, h.biggest || 0); }
+      hitsBy.set(h.game_id, e);
+    }
+    const facts = {
+      games: r.games.map((g) => ({
+        kind: g.kind, practice: g.practice, won: g.winners.includes(id), ...(hitsBy.get(g.id) || none()),
+        score: g.kind === 'doodle' ? (g.players.find((p) => p.id === id) || {}).score || 0 : 0,
+        fastest: (g.mine && g.mine.fastest) || 0,
+        snakesSlid: num(g.mine, ['snakes', 'snakesSlid', 'slid']), longestLadder: num(g.mine, ['longestLadder', 'longest']),
+      })),
+      bigBomb, maxBonkedInGame: r.maxBonked, chats: r.chats,
+      revengeBonk: r.revenge.includes('bonk'), revengeBomb: r.revenge.includes('bomb'),
+    };
+    const prog = P.progress(facts), when = r.stored;
+    // Store XP and any trophy that just unlocked, so it keeps its unlock time.
+    const fresh = prog.achievements.filter((a) => a.done && !when[a.id]);
+    sb.rpc('store_progress', { p_xp: prog.xp, p_achievements: prog.achievements.filter((a) => a.done).map((a) => a.id) }).then(() => {});
+    const now = new Date().toISOString();
+    fresh.forEach((a) => (when[a.id] = now));
+
+    // Your display name may have changed on another device: keep this one in step.
+    if (r.me.name !== me.name) { saveMe({ name: r.me.name }); document.dispatchEvent(new Event('profilechange')); }
+
+    const played = (k) => facts.games.filter((g) => !k || g.kind === k);
+    return {
+      me: { id, name: r.me.name, avatar: r.me.avatar, theme: r.me.theme },
+      level: { level: prog.level, title: prog.title, xp: prog.xp, from: prog.from, to: prog.to },
+      record: { played: played().length, won: played().filter((g) => g.won).length,
+        byKind: Object.fromEntries(P.KINDS.map((k) => [k, { played: played(k).length, won: played(k).filter((g) => g.won).length }])) },
+      achievements: prog.achievements.map((a) => ({ ...a, unlockedAt: when[a.id] || null })),
+      rivalry: r.rivalry,
+      recent: r.games.slice(-12).reverse().map((g) => ({
+        id: g.id, kind: g.kind, room: g.room, practice: g.practice, startedAt: g.started_at, endedAt: g.ended_at,
+        won: g.winners.includes(id), winners: g.winners,
+        players: g.players.map((p) => ({ id: p.id, name: p.name, bot: p.bot, place: p.place, score: p.score })),
+        mine: { ...(g.mine || {}), ...(hitsBy.get(g.id) || {}) },
+      })),
+      db: r.db,
+    };
+  }
+
+  /* ---------- live: tell the page when a game or trophy lands, instead of polling ---------- */
+  let channel = null;
+  function onChange(cb) {
+    if (channel || !me) return;
+    let t = 0;
+    const ping = () => { clearTimeout(t); t = setTimeout(cb, 400); }; // a game brings several rows at once
+    channel = sb.channel('sr-live')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'games' }, ping)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'achievements' }, ping)
+      .subscribe();
+  }
 
   const sent = new Set();
   return {
     // A message this player just sent. `text` is the message, or the sticker's words.
     chat(game, room, kind, text) {
-      if ((kind === 'chat' || kind === 'sticker') && text) save('/chat', { game, room: room || null, kind, body: String(text).slice(0, 300), cid: cid() });
+      if ((kind === 'chat' || kind === 'sticker') && text) {
+        save('save_chat', { p_game: game, p_room: room || null, p_kind: kind, p_body: String(text).slice(0, 300), p_cid: cid() });
+      }
     },
-    /* A finished game, sent by every human player's browser; the server keeps the first copy.
+    /* A finished game, sent by every human player's browser; the database keeps the first copy.
        { kind, gid, room, practice, startedAt, players: [{ name, bot, place, score, team }],
          winners: [name], stats: { name: {...} }, hits: [{ kind: 'bonk'|'bomb', by: name, to: name, cards }] } */
     game(g) {
       const key = g.kind + ':' + g.gid;
       if (!g.gid || sent.has(key)) return;
       sent.add(key);
-      save('/game', { game: g });
+      save('save_game', { g });
     },
-    me: () => post('/me', {}),
-    chatHistory: (room, limit) => post('/chat/history', { room, limit }),
-    // How the last requests went: 'direct' or 'relay' (the hub shows this in its status popover).
-    get route() { return viaRelay ? 'relay' : 'direct'; },
+    me: profile,
+    onChange,
+    // Change your display name. Resolves with null when it worked, or a short message saying why not.
+    async rename(name) {
+      const { data, error } = await sb.rpc('update_me', { p_name: name });
+      if (error) return /taken/.test(error.message) ? 'Someone already has that name' : /name:/.test(error.message) ? '2–20 letters, numbers or spaces' : "Couldn't save. Try again?";
+      saveMe({ name: data.name });
+      document.dispatchEvent(new Event('profilechange'));
+      return null;
+    },
+    // Change your password (you stay logged in).
+    async setPassword(pass) {
+      const { error } = await sb.auth.updateUser({ password: pass });
+      return error ? (/weak|short|characters/i.test(error.message) ? 'Pick a longer password (6+ characters)' : /same/i.test(error.message) ? "That's already your password" : "Couldn't change it. Try again?") : null;
+    },
   };
 })();

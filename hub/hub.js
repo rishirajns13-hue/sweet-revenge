@@ -10,7 +10,7 @@ const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'sna
 const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'] };
 const LEVEL_NAMES = ['Sprinkle', 'Single Scoop', 'Double Scoop', 'Waffle Cone', 'Sundae', 'Banana Split', 'Brain Freeze', 'Sweet Revenge Royalty'];
 const TABS = ['play', 'trophies', 'rivals', 'me'];
-const POLL_MS = 20000;
+const POLL_MS = 60000; // a safety net: new games and trophies arrive instantly through records.onChange
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ================= sounds: a few quiet, real clips (shared/sounds/ui-*, CC0 Kenney) ================= */
@@ -48,9 +48,9 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const ordinal = (n) => n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n] || 'th'); // places only go up to 4th
 const shortName = (name) => String(name).split(' ').pop();
 const isBotId = (id) => String(id).startsWith('bot:');
-const avatarFor = (id) => (id === me.user || id === me.name.toLowerCase() ? myAvatar() : isBotId(id) ? '🤖' : DEFAULT_AVATAR[id] || '🙂');
+const avatarFor = (id) => (id === me.user ? myAvatar() : isBotId(id) ? '🤖' : DEFAULT_AVATAR[id] || '🙂');
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const seenKey = () => 'sr-seen:' + me.name.toLowerCase();
+const seenKey = () => 'sr-seen:' + me.user;
 
 // A cone with one scoop per level and a cherry on top.
 function coneSVG(level) {
@@ -89,7 +89,7 @@ const reactMe = (state) => { react($('#big-avatar'), state); react($('#me-avatar
 // The menu opens straight away with what this device saw last time (level, trophies, rivals), and fresh
 // data from the database swaps in quietly. The cone only shows when there's nothing saved yet,
 // e.g. the first login on a device, and it never waits longer than it has to.
-const cacheKey = () => 'sr-profile:' + me.name.toLowerCase();
+const cacheKey = () => 'sr-profile:' + me.user;
 async function boot({ full = false } = {}) {
   if (!(await loadMe())) { showScreen('login'); $('#login-user').focus(); return; }
   if (!routeAway()) return;
@@ -460,8 +460,7 @@ $('#btn-live').onclick = () => { const pop = $('#live-pop'); pop.hidden = !pop.h
 $('#btn-live-retry').onclick = () => refresh();
 document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#live-pop, #btn-live')) $('#live-pop').hidden = true; });
 
-// One profile request at a time. Through the relay an answer can take a while (the bridge may be
-// waking up), so the loading screen, the timer and tab switches all share the same pending request.
+// One profile request at a time: the loading screen, live updates and tab switches share it.
 let mePending = null;
 function fetchMe() {
   if (!mePending) mePending = records.me().finally(() => { mePending = null; });
@@ -479,12 +478,13 @@ function startLive() {
   if (liveTimer) return;
   refresh();
   liveTimer = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, POLL_MS);
+  records.onChange(refresh);
   setInterval(() => { if (!$('#live-pop').hidden) renderLivePop(); }, 5000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
 }
 
 /* ================= YOU: avatar builder, theme, settings, account ================= */
-const avatarKey = () => 'ludo-avatar:' + me.name.toLowerCase();
+const avatarKey = () => 'ludo-avatar:' + me.user;
 function setMyAvatar(key) {
   store.set(avatarKey(), key);
   document.dispatchEvent(new Event('profilechange'));
@@ -544,16 +544,18 @@ $('#login-form').addEventListener('submit', async (e) => {
   const err = $('#login-error');
   if (Date.now() < lockedUntil) { err.textContent = 'Too many tries. Chill for a bit 🧊'; return; }
   const user = $('#login-user').value, pass = $('#login-pass').value;
-  const proof = await makeProof(user, pass);
-  const name = await checkProof(user, proof);
-  if (!name) {
+  const btn = $('#login-form button[type=submit]'); if (btn) btn.disabled = true;
+  let ok = null;
+  try { ok = await login(user, pass); } catch (e) { err.textContent = "Can't reach the scoreboard. Check the internet and try again 📶"; if (btn) btn.disabled = false; return; }
+  if (btn) btn.disabled = false;
+  if (!ok) {
     fails++;
     if (fails >= 5) { lockedUntil = Date.now() + 30000; fails = 0; }
     err.textContent = 'Nope! Wrong name or password 🙈';
     retrigger($('#login-form'), 'shake');
     return;
   }
-  saveMe({ name, proof, user: user.trim().toLowerCase() });
+  err.textContent = '';
   boot({ full: true });
 });
 

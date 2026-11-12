@@ -12,7 +12,7 @@ You earn XP in every game, and it all adds up to one Sweet Revenge level. The le
 - **Level titles:** Sprinkle → Single Scoop → Double Scoop → Waffle Cone → Sundae → Banana Split → Brain Freeze 🥶 → Sweet Revenge Royalty 👑
 - A level-up gets confetti and a toast on the home screen.
 
-The code that works all this out is `api/progress.mjs`; the numbers there are the real ones.
+The code that works all this out is `shared/progress.mjs`; the numbers there are the real ones.
 
 ## Trophies
 | | Name | How you get it |
