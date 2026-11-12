@@ -6,8 +6,8 @@
    - Everything comes from the database (shared/records.js) and refreshes every 20 seconds.
    Needs shared/core.js, shared/records.js and shared/sound.js. */
 
-const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html' }[code[0]] || 'ludo.html');
-const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'] };
+const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html', B: 'sundae.html' }[code[0]] || 'ludo.html');
+const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'], sundae: ['💣', 'Sundae Bomb'] };
 const LEVEL_NAMES = ['Sprinkle', 'Single Scoop', 'Double Scoop', 'Waffle Cone', 'Sundae', 'Banana Split', 'Brain Freeze', 'Sweet Revenge Royalty'];
 const TABS = ['play', 'trophies', 'rivals', 'me'];
 const POLL_MS = 60000; // a safety net: new games and trophies arrive instantly through records.onChange
@@ -157,7 +157,7 @@ async function boot({ full = false } = {}) {
 // Room links and "send me back to the game I came from" skip the menu entirely.
 function routeAway() {
   const q = new URLSearchParams(location.search), next = q.get('next');
-  if (next && /^(ludo|doodle|plusfour|snakes)\.html$/.test(next)) {
+  if (next && /^(ludo|doodle|plusfour|snakes|sundae)\.html$/.test(next)) {
     q.delete('next');
     location.replace(next + (q.toString() ? '?' + q : ''));
     return false;
