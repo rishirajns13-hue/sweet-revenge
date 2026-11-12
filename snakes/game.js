@@ -730,6 +730,7 @@ function saveGame(v, ranked) {
     stats: Object.fromEntries(v.players.map((p) => [p.name, { ...(v.stats || {})[p.k], square: v.pos[p.k] }])),
     hits: (v.hits || []).map((h) => ({ kind: 'bonk', by: nm(h.by), to: nm(h.to) })),
   });
+  if (typeof showRewards === 'function') showRewards($('#awards').parentElement, v.gid); // +XP and new trophies on the end screen
 }
 let saved = null;
 function renderEnd() {
