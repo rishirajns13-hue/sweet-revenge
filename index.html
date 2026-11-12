@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&family=Baloo+2:wght@500;600;700;800&family=Lilita+One&family=Gaegu:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/base.css?v=9">
-  <link rel="stylesheet" href="hub/hub.css?v=14">
+  <link rel="stylesheet" href="hub/hub.css?v=15">
 </head>
 <body class="pal-sunset">
   <!-- Sweet Revenge logo: drawn once here, shown with <use href="#logo"> -->
@@ -119,24 +119,11 @@
             <p id="hello" class="hello"></p>
           </div>
           <a id="resume" class="resume-banner" hidden></a>
-            <div class="games">
-              <a class="game-card plusfour" href="plusfour.html" data-wipe="#6a4dd8">
-                <div class="art" aria-hidden="true">
-                  <svg viewBox="0 0 240 150">
-                    <g transform="translate(64 84) rotate(-16)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#4d9de0"/><rect x="-15" y="-15" width="30" height="30" rx="8" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><text x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#4d9de0" stroke="#2b2140" stroke-width="1.5" paint-order="stroke">2</text></g>
-                    <g transform="translate(120 74) rotate(-2)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#ff5a5f"/><rect x="-15" y="-15" width="30" height="30" rx="8" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><text x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#ff5a5f" stroke="#2b2140" stroke-width="1.5" paint-order="stroke">7</text></g>
-                    <g transform="translate(176 84) rotate(14)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#2b2140"/><g stroke="#2b2140" stroke-width="2"><rect x="-19" y="-10" width="14" height="20" rx="3" fill="#4d9de0" transform="rotate(-14)"/><rect x="-9" y="-12" width="14" height="20" rx="3" fill="#2bc48a" transform="rotate(-4)"/><rect x="1" y="-12" width="14" height="20" rx="3" fill="#ffc233" transform="rotate(6)"/><rect x="10" y="-10" width="14" height="20" rx="3" fill="#ff5a5f" transform="rotate(16)"/></g><text x="-20" y="-25" font-family="Fredoka, sans-serif" font-weight="700" font-size="12" fill="#fff">+4</text></g>
-                  </svg>
-                  <span class="g a">OUCH!</span>
-                </div>
-                <div class="txt">
-                  <h2>Plus Four</h2>
-                  <p>Match colours, stack +4s, and never forget to shout Ouch.</p>
-                  <span class="meta" data-kind="plusfour">2–4 players · about 10 minutes · the mean one</span>
-                </div>
-                <span class="play">Play</span>
-              </a>
-              <a class="game-card doodle" href="doodle.html" data-wipe="#ffc233">
+            <div class="game-shelves">
+            <section class="shelf-group quick" aria-label="Quick rounds">
+              <h3 class="shelf-label">Quick rounds <small>2–5 minutes, instant chaos</small></h3>
+              <div class="games">
+<a class="game-card doodle" href="doodle.html" data-wipe="#ffc233">
                 <div class="art" aria-hidden="true">
                   <svg viewBox="0 0 240 150"><path d="M40 115c6-46 28-78 56-70s6 48 32 52 30-40 52-30 16 38 24 28" fill="none" stroke="#2b2140" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="62" r="5" fill="#2b2140"/><circle cx="100" cy="58" r="5" fill="#2b2140"/></svg>
                   <span class="g a">a dragon?</span><span class="g b">MY UNCLE</span><span class="g c">soup 🍜</span>
@@ -148,38 +135,7 @@
                 </div>
                 <span class="play">Play</span>
               </a>
-              <a class="game-card ludo" href="ludo.html" data-wipe="#2bc48a">
-                <div class="art" aria-hidden="true">
-                  <div class="mini-board"><i></i><i></i><i></i><i></i><b></b></div>
-                </div>
-                <div class="txt">
-                  <h2>Ludo</h2>
-                  <p>Roll, race and bonk each other all the way home.</p>
-                  <span class="meta" data-kind="ludo">2–4 players · 20–40 minutes · the long one</span>
-                </div>
-                <span class="play">Play</span>
-              </a>
-            <a class="game-card snakes" href="snakes.html" data-wipe="#2bc48a" data-new-game>
-              <span class="badge-new">NEW</span>
-              <div class="art" aria-hidden="true">
-                <svg viewBox="0 0 240 150">
-                  <g><rect x="12" y="8" width="36" height="34" fill="#d9f6ea"/><rect x="48" y="8" width="36" height="34" fill="#fff6e0"/><rect x="84" y="8" width="36" height="34" fill="#d9f6ea"/><rect x="120" y="8" width="36" height="34" fill="#fff6e0"/><rect x="156" y="8" width="36" height="34" fill="#d9f6ea"/><rect x="192" y="8" width="36" height="34" fill="#fff6e0"/><rect x="12" y="42" width="36" height="34" fill="#fff6e0"/><rect x="48" y="42" width="36" height="34" fill="#d9f6ea"/><rect x="84" y="42" width="36" height="34" fill="#fff6e0"/><rect x="120" y="42" width="36" height="34" fill="#d9f6ea"/><rect x="156" y="42" width="36" height="34" fill="#fff6e0"/><rect x="192" y="42" width="36" height="34" fill="#d9f6ea"/><rect x="12" y="76" width="36" height="34" fill="#d9f6ea"/><rect x="48" y="76" width="36" height="34" fill="#fff6e0"/><rect x="84" y="76" width="36" height="34" fill="#d9f6ea"/><rect x="120" y="76" width="36" height="34" fill="#fff6e0"/><rect x="156" y="76" width="36" height="34" fill="#d9f6ea"/><rect x="192" y="76" width="36" height="34" fill="#fff6e0"/><rect x="12" y="110" width="36" height="34" fill="#fff6e0"/><rect x="48" y="110" width="36" height="34" fill="#d9f6ea"/><rect x="84" y="110" width="36" height="34" fill="#fff6e0"/><rect x="120" y="110" width="36" height="34" fill="#d9f6ea"/><rect x="156" y="110" width="36" height="34" fill="#fff6e0"/><rect x="192" y="110" width="36" height="34" fill="#d9f6ea"/></g>
-                  <g stroke="#2b2140" stroke-width="3" stroke-linecap="round"><path d="M150 132L176 24M174 132L200 24" fill="none"/><path d="M155 112h22M160 92h22M165 72h22M170 52h22M175 32h22" fill="none"/></g>
-                  <path d="M48 30c30 0 36 26 14 40s-26 40 6 46 40-6 52 8" fill="none" stroke="#2b2140" stroke-width="15" stroke-linecap="round"/>
-                  <path d="M48 30c30 0 36 26 14 40s-26 40 6 46 40-6 52 8" fill="none" stroke="#6fd38b" stroke-width="9" stroke-linecap="round" stroke-dasharray="1 14"/>
-                  <path d="M48 30c30 0 36 26 14 40s-26 40 6 46 40-6 52 8" fill="none" stroke="#2bc48a" stroke-width="9" stroke-linecap="round" opacity=".85"/>
-                  <ellipse cx="44" cy="30" rx="12" ry="9" fill="#2bc48a" stroke="#2b2140" stroke-width="3"/><circle cx="40" cy="27" r="2.6" fill="#2b2140"/><circle cx="48" cy="27" r="2.6" fill="#2b2140"/><path d="M33 33l-7 3m7-3l-6 6" stroke="#ff5a5f" stroke-width="2.5" stroke-linecap="round"/>
-                </svg>
-                <span class="g a">HISSS</span>
-              </div>
-              <div class="txt">
-                <h2>Snakes &amp; Ladders</h2>
-                <p>Climb, slide, scream. Land on a friend to bonk them back down.</p>
-                <span class="meta" data-kind="snakes">2–4 players · about 10 minutes · the screamy one</span>
-              </div>
-              <span class="play">Play</span>
-            </a>
-            <a class="game-card race" href="race.html" data-wipe="#ff71ce" data-new-game>
+<a class="game-card race" href="race.html" data-wipe="#ff71ce" data-new-game>
               <span class="badge-new">NEW</span>
               <div class="art" aria-hidden="true">
                 <svg viewBox="0 0 240 150">
@@ -199,7 +155,7 @@
               </div>
               <span class="play">Play</span>
             </a>
-              <a class="game-card scoop" href="scoop.html" data-wipe="#ff71ce" data-new-game>
+<a class="game-card scoop" href="scoop.html" data-wipe="#ff71ce" data-new-game>
                 <span class="badge-new">NEW</span>
                 <div class="art" aria-hidden="true">
                   <svg viewBox="0 0 240 150">
@@ -221,7 +177,61 @@
                 </div>
                 <span class="play">Play</span>
               </a>
-            </div>
+              </div>
+            </section>
+            <section class="shelf-group long" aria-label="Longer games">
+              <h3 class="shelf-label">Longer games <small>settle in, plot revenge</small></h3>
+              <div class="games">
+<a class="game-card ludo" href="ludo.html" data-wipe="#2bc48a">
+                <div class="art" aria-hidden="true">
+                  <div class="mini-board"><i></i><i></i><i></i><i></i><b></b></div>
+                </div>
+                <div class="txt">
+                  <h2>Ludo</h2>
+                  <p>Roll, race and bonk each other all the way home.</p>
+                  <span class="meta" data-kind="ludo">2–4 players · 20–40 minutes · the long one</span>
+                </div>
+                <span class="play">Play</span>
+              </a>
+<a class="game-card plusfour" href="plusfour.html" data-wipe="#6a4dd8">
+                <div class="art" aria-hidden="true">
+                  <svg viewBox="0 0 240 150">
+                    <g transform="translate(64 84) rotate(-16)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#4d9de0"/><rect x="-15" y="-15" width="30" height="30" rx="8" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><text x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#4d9de0" stroke="#2b2140" stroke-width="1.5" paint-order="stroke">2</text></g>
+                    <g transform="translate(120 74) rotate(-2)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#ff5a5f"/><rect x="-15" y="-15" width="30" height="30" rx="8" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><text x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="24" fill="#ff5a5f" stroke="#2b2140" stroke-width="1.5" paint-order="stroke">7</text></g>
+                    <g transform="translate(176 84) rotate(14)"><rect x="-30" y="-42" width="60" height="84" rx="7" fill="#fffdf8" stroke="#2b2140" stroke-width="2"/><rect x="-26" y="-38" width="52" height="76" rx="4" fill="#2b2140"/><g stroke="#2b2140" stroke-width="2"><rect x="-19" y="-10" width="14" height="20" rx="3" fill="#4d9de0" transform="rotate(-14)"/><rect x="-9" y="-12" width="14" height="20" rx="3" fill="#2bc48a" transform="rotate(-4)"/><rect x="1" y="-12" width="14" height="20" rx="3" fill="#ffc233" transform="rotate(6)"/><rect x="10" y="-10" width="14" height="20" rx="3" fill="#ff5a5f" transform="rotate(16)"/></g><text x="-20" y="-25" font-family="Fredoka, sans-serif" font-weight="700" font-size="12" fill="#fff">+4</text></g>
+                  </svg>
+                  <span class="g a">OUCH!</span>
+                </div>
+                <div class="txt">
+                  <h2>Plus Four</h2>
+                  <p>Match colours, stack +4s, and never forget to shout Ouch.</p>
+                  <span class="meta" data-kind="plusfour">2–4 players · about 10 minutes · the mean one</span>
+                </div>
+                <span class="play">Play</span>
+              </a>
+<a class="game-card snakes" href="snakes.html" data-wipe="#2bc48a" data-new-game>
+              <span class="badge-new">NEW</span>
+              <div class="art" aria-hidden="true">
+                <svg viewBox="0 0 240 150">
+                  <g><rect x="12" y="8" width="36" height="34" fill="#d9f6ea"/><rect x="48" y="8" width="36" height="34" fill="#fff6e0"/><rect x="84" y="8" width="36" height="34" fill="#d9f6ea"/><rect x="120" y="8" width="36" height="34" fill="#fff6e0"/><rect x="156" y="8" width="36" height="34" fill="#d9f6ea"/><rect x="192" y="8" width="36" height="34" fill="#fff6e0"/><rect x="12" y="42" width="36" height="34" fill="#fff6e0"/><rect x="48" y="42" width="36" height="34" fill="#d9f6ea"/><rect x="84" y="42" width="36" height="34" fill="#fff6e0"/><rect x="120" y="42" width="36" height="34" fill="#d9f6ea"/><rect x="156" y="42" width="36" height="34" fill="#fff6e0"/><rect x="192" y="42" width="36" height="34" fill="#d9f6ea"/><rect x="12" y="76" width="36" height="34" fill="#d9f6ea"/><rect x="48" y="76" width="36" height="34" fill="#fff6e0"/><rect x="84" y="76" width="36" height="34" fill="#d9f6ea"/><rect x="120" y="76" width="36" height="34" fill="#fff6e0"/><rect x="156" y="76" width="36" height="34" fill="#d9f6ea"/><rect x="192" y="76" width="36" height="34" fill="#fff6e0"/><rect x="12" y="110" width="36" height="34" fill="#fff6e0"/><rect x="48" y="110" width="36" height="34" fill="#d9f6ea"/><rect x="84" y="110" width="36" height="34" fill="#fff6e0"/><rect x="120" y="110" width="36" height="34" fill="#d9f6ea"/><rect x="156" y="110" width="36" height="34" fill="#fff6e0"/><rect x="192" y="110" width="36" height="34" fill="#d9f6ea"/></g>
+                  <g stroke="#2b2140" stroke-width="3" stroke-linecap="round"><path d="M150 132L176 24M174 132L200 24" fill="none"/><path d="M155 112h22M160 92h22M165 72h22M170 52h22M175 32h22" fill="none"/></g>
+                  <path d="M48 30c30 0 36 26 14 40s-26 40 6 46 40-6 52 8" fill="none" stroke="#2b2140" stroke-width="15" stroke-linecap="round"/>
+                  <path d="M48 30c30 0 36 26 14 40s-26 40 6 46 40-6 52 8" fill="none" stroke="#6fd38b" stroke-width="9" stroke-linecap="round" stroke-dasharray="1 14"/>
+                  <path d="M48 30c30 0 36 26 14 40s-26 40 6 46 40-6 52 8" fill="none" stroke="#2bc48a" stroke-width="9" stroke-linecap="round" opacity=".85"/>
+                  <ellipse cx="44" cy="30" rx="12" ry="9" fill="#2bc48a" stroke="#2b2140" stroke-width="3"/><circle cx="40" cy="27" r="2.6" fill="#2b2140"/><circle cx="48" cy="27" r="2.6" fill="#2b2140"/><path d="M33 33l-7 3m7-3l-6 6" stroke="#ff5a5f" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+                <span class="g a">HISSS</span>
+              </div>
+              <div class="txt">
+                <h2>Snakes &amp; Ladders</h2>
+                <p>Climb, slide, scream. Land on a friend to bonk them back down.</p>
+                <span class="meta" data-kind="snakes">2–4 players · about 10 minutes · the screamy one</span>
+              </div>
+              <span class="play">Play</span>
+            </a>
+              </div>
+            </section>
+          </div>
           <div class="join ticket-join">
             <b>Got a code?</b>
             <div class="join-row">
