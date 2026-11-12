@@ -607,6 +607,7 @@ function applyView(v) {
 function onPhase(v, fresh) {
   if (v.phase === 'pick') {
     ink.reset(v.twist);
+    etch.x = W / 2; etch.y = H / 2; etch.open = false; etch.down = true; chain = null; hideDotPreview(); // fresh pen each drawing
     sfx.whoosh();
     if (v.twist) setTimeout(() => sfx.twist(), 300);
   } else if (v.phase === 'draw') {
@@ -761,10 +762,22 @@ $('#guess-form').addEventListener('submit', (e) => {
 
 /* ---------- drawing tools (only for the drawer) ---------- */
 const pen = { ink: 0, size: 1, tool: 'pen' };
+/* How you draw. Freehand is hard on a trackpad, so there are two laptop-friendly ways too:
+   'etch'  arrow keys draw a continuous line (Shift = faster, Space lifts the pen), like an etch-a-sketch
+   'dots'  each click draws a straight line from the last point (Enter, Esc or a double-click ends it)
+   'free'  the old freehand drawing
+   Everything is sent as the same stroke ops as freehand, so guessers see it live with no changes. */
+const coarse = matchMedia('(pointer: coarse)').matches;
+let drawMode = store.get('doodle-mode', coarse ? 'free' : 'etch');
+if (!['etch', 'dots', 'free'].includes(drawMode)) drawMode = 'etch';
+const etch = { x: W / 2, y: H / 2, down: true, keys: new Set(), raf: 0, last: 0, open: false };
+let chain = null; // dots mode: the open line
 $('#colors').innerHTML = INKS.map((c, i) => `<button type="button" class="swatch" data-ink="${i}" style="--sw:${c}" aria-label="Colour ${i + 1}" aria-pressed="${i === 0}"></button>`).join('');
 $('#sizes').innerHTML = SIZES.map((s, i) => `<button type="button" class="size" data-size="${i}" aria-label="Brush size ${i + 1}" aria-pressed="${i === 1}"><i style="--d:${Math.min(26, s + 4)}px"></i></button>`).join('');
 function renderTools() {
   const mine = iDraw();
+  $$('#modes [data-mode]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mode === drawMode));
+  renderEtch();
   $('#tools').hidden = !mine;
   $('#guess').disabled = !!(view && view.phase === 'draw' && view.drawer === myK);
   $('#guess').placeholder = !view ? '' : view.phase !== 'draw' ? 'Say something…' : view.drawer === myK ? 'You\'re drawing! No hints 😉' : view.word ? 'Chat (no spoilers!)…' : 'Type a guess…';
@@ -779,6 +792,13 @@ $('#colors').addEventListener('click', (e) => { const b = e.target.closest('[dat
 $('#sizes').addEventListener('click', (e) => { const b = e.target.closest('[data-size]'); if (!b) return; pen.size = +b.dataset.size; renderTools(); });
 $('#tool-fill').onclick = () => { pen.tool = pen.tool === 'fill' ? 'pen' : 'fill'; renderTools(); };
 $('#tool-eraser').onclick = () => { pen.tool = pen.tool === 'eraser' ? 'pen' : 'eraser'; renderTools(); };
+$('#modes').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mode]'); if (!b) return;
+  endChain(); endEtch();
+  drawMode = b.dataset.mode; store.set('doodle-mode', drawMode);
+  if (pen.tool === 'fill' && drawMode === 'etch') pen.tool = 'pen';
+  renderTools();
+});
 $('#tool-undo').onclick = () => emit(['u']);
 $('#tool-clear').onclick = () => emit(['c']);
 
@@ -805,13 +825,22 @@ function toLogical(e) {
 canvas.addEventListener('pointerdown', (e) => {
   if (!iDraw()) return;
   e.preventDefault();
-  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
   const [x, y] = toLogical(e);
   if (pen.tool === 'fill') return emit(['f', Math.min(W - 1, x), Math.min(H - 1, y), pen.ink]);
+  if (drawMode === 'dots') {
+    if (e.detail >= 2) return endChain(); // double-click finishes the line
+    if (!chain) { chain = { last: [x, y] }; emit(['s', pen.tool === 'eraser' ? 1 : pen.ink, pen.tool === 'eraser' ? 2 : pen.size, x, y]); }
+    else { chain.last = [x, y]; emit(['p', x, y]); }
+    renderEtch();
+    return;
+  }
+  if (drawMode === 'etch') { endEtch(); etch.x = x; etch.y = y; renderEtch(); return; } // click moves the etch pen
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
   stroke = { last: [x, y] };
   emit(['s', pen.tool === 'eraser' ? 1 : pen.ink, pen.tool === 'eraser' ? 2 : pen.size, x, y]);
 });
 canvas.addEventListener('pointermove', (e) => {
+  if (drawMode === 'dots' && chain && iDraw()) { const [x, y] = toLogical(e); showDotPreview(x, y); return; }
   if (!stroke || !iDraw()) return;
   const [x, y] = toLogical(e);
   if (Math.hypot(x - stroke.last[0], y - stroke.last[1]) < 2) return;
@@ -821,13 +850,77 @@ canvas.addEventListener('pointermove', (e) => {
 const endStroke = () => { if (stroke) { stroke = null; emit(['e']); } };
 canvas.addEventListener('pointerup', endStroke);
 canvas.addEventListener('pointercancel', endStroke);
+const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
 document.addEventListener('keydown', (e) => {
   if (!iDraw() || (e.target instanceof Element && e.target.closest('input, textarea'))) return;
+  if (drawMode === 'etch' && ARROWS[e.key]) { e.preventDefault(); etch.keys.add(e.key); startEtch(); return; }
+  if (drawMode === 'etch' && e.key === ' ') { e.preventDefault(); etch.down = !etch.down; if (!etch.down) endEtch(); renderEtch(); return; }
+  if (drawMode === 'dots' && (e.key === 'Enter' || e.key === 'Escape')) { e.preventDefault(); endChain(); return; }
+  if (/^[4-9]$/.test(e.key) && INKS[+e.key - 4] !== undefined) { pen.ink = +e.key - 4; if (pen.tool === 'eraser') pen.tool = 'pen'; renderTools(); return; }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); emit(['u']); }
   else if (e.key === 'e') $('#tool-eraser').click();
   else if (e.key === 'f') $('#tool-fill').click();
   else if (/^[1-3]$/.test(e.key)) { pen.size = +e.key - 1; renderTools(); }
 });
+
+/* ---------- etch-a-sketch and dot-to-dot drawing ---------- */
+document.addEventListener('keyup', (e) => { if (ARROWS[e.key]) etch.keys.delete(e.key); });
+addEventListener('blur', () => etch.keys.clear());
+function startEtch() {
+  if (etch.raf) return;
+  etch.last = performance.now();
+  const step = (now) => {
+    const dt = Math.min(0.05, (now - etch.last) / 1000); etch.last = now;
+    if (!iDraw() || drawMode !== 'etch' || !etch.keys.size) { etch.raf = 0; return; }
+    let dx = 0, dy = 0;
+    etch.keys.forEach((k) => { dx += ARROWS[k][0]; dy += ARROWS[k][1]; });
+    const len = Math.hypot(dx, dy);
+    if (len) {
+      const speed = etch.keys.has('Shift') || shiftHeld ? 520 : 230;
+      let nx = etch.x + (dx / len) * speed * dt, ny = etch.y + (dy / len) * speed * dt;
+      if (view.twist === 'mirror') nx = etch.x - (nx - etch.x);
+      nx = Math.max(0, Math.min(W, nx)); ny = Math.max(0, Math.min(H, ny));
+      if (etch.down) {
+        if (!etch.open) { etch.open = true; emit(['s', pen.tool === 'eraser' ? 1 : pen.ink, pen.tool === 'eraser' ? 2 : pen.size, Math.round(etch.x), Math.round(etch.y)]); }
+        if (Math.hypot(nx - (etch.sentX ?? etch.x), ny - (etch.sentY ?? etch.y)) >= 3) { etch.sentX = nx; etch.sentY = ny; emit(['p', Math.round(nx), Math.round(ny)]); }
+      }
+      etch.x = nx; etch.y = ny;
+      renderEtch();
+    }
+    etch.raf = requestAnimationFrame(step);
+  };
+  etch.raf = requestAnimationFrame(step);
+}
+let shiftHeld = false;
+document.addEventListener('keydown', (e) => { if (e.key === 'Shift') shiftHeld = true; });
+document.addEventListener('keyup', (e) => { if (e.key === 'Shift') shiftHeld = false; });
+function endEtch() { if (etch.open) { etch.open = false; etch.sentX = etch.sentY = undefined; emit(['e']); } }
+function endChain() { if (chain) { chain = null; emit(['e']); } hideDotPreview(); renderEtch(); }
+// The pen cursor and a one-line hint for the current mode.
+function renderEtch() {
+  const cur = $('#etch-cursor'), hint = $('#draw-hint'), mine = iDraw();
+  cur.hidden = !(mine && drawMode === 'etch');
+  if (!cur.hidden) {
+    const r = canvas.getBoundingClientRect(), wr = $('#canvas-wrap').getBoundingClientRect();
+    cur.style.left = (r.left - wr.left + (etch.x / W) * r.width) + 'px';
+    cur.style.top = (r.top - wr.top + (etch.y / H) * r.height) + 'px';
+    cur.classList.toggle('up', !etch.down);
+    cur.style.setProperty('--pc', pen.tool === 'eraser' ? '#ffffff' : INKS[pen.ink]);
+  }
+  hint.hidden = !mine || drawMode === 'free';
+  hint.textContent = drawMode === 'etch' ? (etch.down ? 'Arrows draw · Shift = faster · Space lifts the pen · 4–9 colours' : 'Pen lifted: move with the arrows, Space to draw again')
+    : chain ? 'Click the next point · Enter or double-click to finish' : 'Click to start a line, then click point to point';
+}
+let dotPrev = null;
+function showDotPreview(x, y) {
+  if (!chain) return;
+  if (!dotPrev) { dotPrev = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); dotPrev.setAttribute('class', 'dot-preview'); dotPrev.setAttribute('viewBox', `0 0 ${W} ${H}`); dotPrev.setAttribute('preserveAspectRatio', 'none'); $('#canvas-wrap').appendChild(dotPrev); }
+  dotPrev.innerHTML = `<line x1="${chain.last[0]}" y1="${chain.last[1]}" x2="${x}" y2="${y}" stroke="${INKS[pen.ink]}" stroke-width="4" stroke-dasharray="8 8" stroke-linecap="round"/>`;
+  const r = canvas.getBoundingClientRect(), wr = $('#canvas-wrap').getBoundingClientRect();
+  Object.assign(dotPrev.style, { left: r.left - wr.left + 'px', top: r.top - wr.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+}
+function hideDotPreview() { if (dotPrev) { dotPrev.remove(); dotPrev = null; } }
+addEventListener('resize', renderEtch);
 
 /* ================= the end: podium, awards, gallery ================= */
 function renderEnd() {

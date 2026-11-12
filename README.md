@@ -31,6 +31,8 @@ One player secretly draws a word, everyone else races to guess it.
 
 **Chaos twists** (on by default) make some rounds harder: 🙈 the drawer is blindfolded, 🪞 the pen is mirrored, 👻 ink disappears, 🫨 wobbly hand, 📏 straight lines only.
 
+**Three ways to draw** (no mouse needed): **⌨️ Etch** draws with the arrow keys like an etch-a-sketch (Shift = faster, Space lifts the pen, 4–9 pick colours), **📍 Dots** draws a straight line from each click to the next (Enter or a double-click finishes), and **✏️ Free** is classic freehand. Etch is the default on laptops, Free on phones and tablets.
+
 Drawing tools: 10 colours, 3 brush sizes, fill bucket, eraser, undo and clear. On a laptop: Ctrl/Cmd+Z undoes, 1–3 change the brush, E is the eraser, F is fill.
 
 ## 🐍 Snakes & Ladders (the screamy one)
