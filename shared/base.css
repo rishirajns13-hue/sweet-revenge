@@ -345,3 +345,27 @@ h1, h2, h3, .hello, .shelf-title, .col-title, .tab .tl, .game-card h2, .lv-title
 .calm .brand svg, .calm .game-card, .calm .actor.big, .calm .resume-banner, .calm .tab-badge, .calm .ribbon, .calm .xp-bar i::before,
 .calm .badge3d.done .disc::after, .calm .av-art .av-eyes, .calm .live-dot i::after { animation: none !important; }
 .palettes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* ---------- the victory moment on every end screen (shared/rewards.js) ---------- */
+.victory { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 16px; margin-bottom: 4px; border: 3px solid var(--ink); border-radius: 20px; box-shadow: 3px 4px 0 var(--ink); animation: v-in .5s cubic-bezier(.3, 1.5, .5, 1); }
+.victory.won { background: linear-gradient(120deg, #fff6c9, #ffe27a); }
+.victory.lost { background: linear-gradient(120deg, #e9eefc, #cfd8f3); }
+.v-critter { position: relative; flex: none; font-size: 64px; line-height: 0; }
+.v-critter.dance { animation: v-dance .9s ease-in-out infinite; transform-origin: 50% 90%; }
+.v-critter.rival { animation: v-smug 2.4s ease-in-out infinite; }
+.v-critter.me-sad { margin-left: auto; font-size: 52px; filter: saturate(.7); }
+.v-critter .cloud { position: absolute; left: 50%; top: -6px; font-size: 26px; font-style: normal; line-height: 1; translate: -50% -100%; animation: v-rain 2.6s ease-in-out infinite; }
+.v-txt { display: grid; min-width: 0; }
+.v-txt b { font-family: var(--title); font-weight: 400; font-size: 26px; line-height: 1.05; }
+.v-txt small { font: 700 14px var(--body); color: var(--muted); }
+.v-sparkles { margin-left: auto; font-size: 26px; animation: v-twinkle 1.4s ease-in-out infinite; }
+.v-stamp { position: absolute; right: 74px; top: -12px; padding: 2px 10px; border: 3px solid #d9233b; border-radius: 8px; color: #d9233b; background: #fffaf2; font: 400 15px var(--title); letter-spacing: 1px; rotate: 8deg; animation: v-stamp .5s .35s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes v-in { from { opacity: 0; transform: translateY(-10px) scale(.96); } }
+@keyframes v-dance { 0%, 100% { transform: rotate(-8deg) translateY(0); } 25% { transform: rotate(0) translateY(-10px); } 50% { transform: rotate(8deg) translateY(0); } 75% { transform: rotate(0) translateY(-10px); } }
+@keyframes v-smug { 50% { transform: rotate(-4deg) scale(1.04); } }
+@keyframes v-rain { 50% { transform: translateX(4px); } }
+@keyframes v-twinkle { 50% { transform: scale(1.15) rotate(6deg); opacity: .8; } }
+@keyframes v-stamp { from { opacity: 0; scale: 2; } }
+@media (prefers-reduced-motion: reduce) { .victory, .v-critter, .v-critter .cloud, .v-sparkles, .v-stamp { animation: none !important; } }
+.calm .v-critter, .calm .v-critter .cloud, .calm .v-sparkles { animation: none !important; }
+@media (max-width: 520px) { .v-critter { font-size: 48px; } .v-critter.me-sad { font-size: 40px; } .v-txt b { font-size: 21px; } .v-stamp { right: 56px; } }

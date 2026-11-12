@@ -9,10 +9,39 @@ function rememberProgress(p) {
   if (p && p.level) store.set(REWARD_KEY(), { xp: p.level.xp, level: p.level.level, ach: p.achievements.filter((a) => a.done).map((a) => a.id) });
 }
 
+/* The victory moment, at the top of every end screen: your critter dances if you won; if you lost, it
+   sulks under a little rain cloud next to the winner's critter, and gets a "revenge owed" stamp. */
+function friendLook(name) {
+  const cached = store.get('sr-profile:' + me.user, null), friends = (cached && cached.friends) || {};
+  const f = Object.entries(friends).find(([id, x]) => x.name === name || id === String(name).toLowerCase());
+  return (f && f[1].avatar) || (f && DEFAULT_AVATAR[f[0]]) || '🙂';
+}
+function showVictory(container, g) {
+  if (!g || !g.winners || !g.players || container.querySelector('.victory')) return;
+  const mine = me.name, iWon = g.winners.includes(mine), solo = g.winners.length > 1 ? 'You all won' : 'You won!';
+  const first = g.winners[0], winnerSeat = g.players.find((p) => p.name === first) || {};
+  const winnerLook = winnerSeat.bot ? '🤖' : friendLook(first);
+  const html = iWon
+    ? `<div class="victory won" aria-live="polite">
+        <span class="v-critter dance">${avatarHTML(myAvatar(), 'cheer')}</span>
+        <div class="v-txt"><b>${g.winners.length > 1 ? solo : 'You won!'}</b><small>${g.practice ? 'Bots crushed. Glory is yours.' : 'Bragging rights unlocked. Use them wisely.'}</small></div>
+        <span class="v-sparkles" aria-hidden="true">✨🏆✨</span>
+      </div>`
+    : `<div class="victory lost" aria-live="polite">
+        <span class="v-critter rival">${avatarHTML(winnerLook, 'smug')}</span>
+        <div class="v-txt"><b>${escapeHtml(String(first).split(' ').pop())} wins</b><small>${winnerSeat.bot ? 'Beaten by a bot. We will never speak of this.' : 'They will not let you forget this.'}</small></div>
+        <span class="v-critter me-sad">${avatarHTML(myAvatar(), 'sulk')}<i class="cloud" aria-hidden="true">🌧️</i></span>
+        ${winnerSeat.bot ? '' : '<span class="v-stamp">REVENGE OWED</span>'}
+      </div>`;
+  container.insertAdjacentHTML('afterbegin', html);
+  if (iWon && typeof bigConfetti === 'function') setTimeout(bigConfetti, 250);
+}
+
 const shownRewards = new Set();
 async function showRewards(container, gid) {
   if (!container || !me || typeof records === 'undefined' || shownRewards.has(gid)) return;
   shownRewards.add(gid);
+  showVictory(container, records.lastGame && records.lastGame(gid));
   const before = store.get(REWARD_KEY(), null);
   container.querySelector('.rewards')?.remove();
   container.insertAdjacentHTML('beforeend', '<div class="rewards" aria-live="polite"><div class="rw-wait"><span class="rw-spin" aria-hidden="true">🍦</span>Tallying your XP…</div></div>');

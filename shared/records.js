@@ -142,6 +142,7 @@ const records = (() => {
   }
 
   let recent = null, recentAt = 0;
+  const lastGames = new Map();
   const sent = new Set();
   return {
     // A message this player just sent. `text` is the message, or the sticker's words.
@@ -154,6 +155,7 @@ const records = (() => {
        { kind, gid, room, practice, startedAt, players: [{ name, bot, place, score, team }],
          winners: [name], stats: { name: {...} }, hits: [{ kind: 'bonk'|'bomb', by: name, to: name, cards }] } */
     game(g) {
+      lastGames.set(g.gid, g); // the end screen's victory moment reads it (shared/rewards.js)
       const key = g.kind + ':' + g.gid;
       if (!g.gid || sent.has(key)) return;
       sent.add(key);
@@ -161,6 +163,8 @@ const records = (() => {
     },
     // Callers on one page (the home screen, Ludo's scores, the end-of-game rewards) share a load
     // that's under 3 seconds old instead of each asking the database again.
+    // The result a game just handed to game(), by game id (null if none yet).
+    lastGame: (gid) => lastGames.get(gid) || null,
     me({ fresh = false } = {}) {
       if (fresh || !recent || Date.now() - recentAt > 3000) { recentAt = Date.now(); recent = profile().catch(() => null); }
       return recent;
