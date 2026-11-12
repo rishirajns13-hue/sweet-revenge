@@ -612,10 +612,15 @@ $('#login-form').addEventListener('submit', async (e) => {
   const err = $('#login-error');
   if (Date.now() < lockedUntil) { err.textContent = 'Too many tries. Chill for a bit 🧊'; return; }
   const user = $('#login-user').value, pass = $('#login-pass').value;
-  const btn = $('#login-form button[type=submit]'); if (btn) btn.disabled = true;
+  const btn = $('#login-form button[type=submit]'), label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Logging in…'; err.textContent = '';
+  const done = () => { btn.disabled = false; btn.textContent = label; };
   let ok = null;
-  try { ok = await login(user, pass); } catch (e) { err.textContent = "Can't reach the scoreboard. Check the internet and try again 📶"; if (btn) btn.disabled = false; return; }
-  if (btn) btn.disabled = false;
+  try { ok = await login(user, pass); } catch (e) {
+    err.textContent = e.message === 'locked' ? 'Too many wrong tries. Wait 10 minutes and try again 🧊' : "Can't reach the scoreboard. Check the internet and try again 📶";
+    done(); return;
+  }
+  done();
   if (!ok) {
     fails++;
     if (fails >= 5) { lockedUntil = Date.now() + 30000; fails = 0; }

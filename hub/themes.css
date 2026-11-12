@@ -99,6 +99,7 @@
 .home.pal-midnight .hello { font-size: clamp(26px, 3.4vw, 40px); }
 .home.pal-midnight .game-shelves .game-card h2 { font-size: 19px; }
 .home.pal-midnight .tab .tl { font-size: 16px; }
+@media (max-width: 760px) { .home.pal-midnight .tab .tl { font-size: 10.5px; letter-spacing: 0; } .home.pal-midnight .shelf-label small { display: block; margin: 2px 0 0; } }
 .home.pal-midnight .brand svg { filter: drop-shadow(0 0 14px #ff71ce99) drop-shadow(0 0 3px #7ee8d8); }
 .home.pal-midnight .lg-rev { fill: #ff71ce; }
 .home.pal-midnight .lg-white { fill: #fdf9ff; }

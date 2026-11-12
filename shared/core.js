@@ -118,7 +118,7 @@ function saveMe(m) { store.set(ME_KEY, { name: m.name, user: m.user }); if (me) 
 // Log in with name + password. Resolves with `me`, null for a wrong name/password, or throws when offline.
 async function login(user, pass) {
   const { data: email, error } = await sb.rpc('claim_account', { p_user: user, p_pass: pass });
-  if (error) throw new Error('offline');
+  if (error) throw new Error(/too many/i.test(error.message || '') ? 'locked' : 'offline');
   if (!email) return null;
   const r = await sb.auth.signInWithPassword({ email, password: pass });
   if (r.error) { if (r.error.status >= 500 || r.error.name === 'AuthRetryableFetchError') throw new Error('offline'); return null; }
