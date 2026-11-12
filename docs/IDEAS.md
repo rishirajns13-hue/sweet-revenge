@@ -2,7 +2,9 @@
 
 _Started 13 Nov 2026. Nothing here is built or promised; we pick together, and new games are only built after we've discussed them._
 
-## Picked on 13 Nov 2026 (to build next, in this order unless we change it)
+## Picked on 13 Nov 2026
+**Shipped the same day:** victory moment on every end screen, message reactions, chat carries over, challenge a friend, grudge series (+ Grudge Champ trophy), seasonal layers, Ludo yard critters. Still to do from the picks: critters in Snakes, Plus Four and Doodle.
+
 - **Interact:** Challenge a friend (from Rivals, pops up on their home screen, one tap and you're both in a room); Grudge series (best-of-5 that runs across days, with a series trophy).
 - **Chat:** React to a message (tap to stick an emoji on it); Chat carries over (the last few lines with the same friend show up again next game).
 - **Look and feel:** Critters on the board (cheer when you bonk, sulk when bonked); Victory screens (winner dances, loser's rain cloud, "revenge owed" stamp); Seasonal themes (Diwali, monsoon, Christmas).
