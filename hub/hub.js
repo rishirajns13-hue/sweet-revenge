@@ -91,6 +91,34 @@ function react(el, state, ms = 2400) {
 }
 const reactMe = (state) => { react($('#big-avatar'), state); react($('#me-avatar'), state); };
 
+/* ================= seasons ================= */
+// A few days a year the home screen gets a festive layer on top of your theme. ?season=diwali previews one.
+const FESTIVALS = {
+  diwali: ['2026-11-08', '2027-10-29', '2028-10-17', '2029-11-05', '2030-10-26'],
+  holi: ['2027-03-22', '2028-03-11', '2029-03-01', '2030-03-20'],
+};
+const SEASON_LINES = {
+  diwali: 'Happy Diwali! May your diyas stay lit and your rivals stay bonked 🪔',
+  holi: 'Happy Holi! Bura na mano, revenge hai 🎨',
+  monsoon: 'Monsoon mode: perfect weather for indoor revenge ☔',
+  christmas: 'Merry Christmas! Santa saw that +4 🎄',
+  newyear: 'New year, same grudges 🎆',
+};
+function seasonNow(d = new Date()) {
+  const forced = new URLSearchParams(location.search).get('season');
+  if (forced && SEASON_LINES[forced]) return forced;
+  const near = (list, before, after) => list.some((x) => { const t = (d - new Date(x + 'T00:00:00')) / 864e5; return t >= -before && t < after + 1; });
+  if (near(FESTIVALS.diwali, 3, 2)) return 'diwali';
+  if (near(FESTIVALS.holi, 1, 1)) return 'holi';
+  const m = d.getMonth() + 1, day = d.getDate();
+  if ((m === 12 && day === 31) || (m === 1 && day === 1)) return 'newyear';
+  if (m === 12 && day >= 20) return 'christmas';
+  if ((m === 6 && day >= 15) || m === 7 || m === 8 || (m === 9 && day <= 15)) return 'monsoon';
+  return null;
+}
+const SEASON = seasonNow();
+if (SEASON) document.body.classList.add('season-' + SEASON);
+
 /* ================= loading screen ================= */
 // The menu opens straight away with what this device saw last time (level, trophies, rivals), and fresh
 // data from the database swaps in quietly. The cone only shows when there's nothing saved yet,
@@ -142,6 +170,7 @@ function routeAway() {
 let hubShown = false;
 function enterHub() {
   renderMe();
+  renderSeasonLine();
   showScreen('hub');
   hubShown = true;
   showTab(tabFromHash(), { animate: false });
@@ -189,6 +218,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ================= PLAY ================= */
+function renderSeasonLine() {
+  let el = $('#season-line');
+  if (!SEASON) { if (el) el.remove(); return; }
+  if (!el) { $('.greet').insertAdjacentHTML('afterend', '<p id="season-line" class="season-line"></p>'); el = $('#season-line'); }
+  el.textContent = SEASON_LINES[SEASON];
+}
 function renderMe() {
   setAvatar($('#me-avatar'), myAvatar());
   setAvatar($('#big-avatar'), myAvatar());
