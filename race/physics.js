@@ -215,7 +215,25 @@
     return { left: diff < -dead, right: diff > dead, gas: Math.abs(diff) < 1.1 || k.v < 120, brake: Math.abs(diff) > 0.9 && k.v > 200 };
   }
 
-  const api = { LAPS, CHECKPOINTS, ROAD, VERGE, MAX_V, SLOW_MAX, BOOST_MAX, FREEZE_T, SPLAT_T, BOOST_T, BOX_R, PUDDLE_R, ITEMS,
+  // Bumper karts: push kart `k` clear of any kart it overlaps and scrub a little speed.
+  // Each browser only moves its own kart (and the host its bots), so bumps never wait for the network.
+  const KART_R = 16;
+  function bump(k, others, r = KART_R) {
+    let hit = false;
+    for (const o of others) {
+      if (!o || o === k) continue;
+      let dx = k.x - o.x, dy = k.y - o.y, d = Math.hypot(dx, dy);
+      if (d >= r * 2) continue;
+      if (d < 1e-6) { dx = 1; dy = 0; d = 1e-6; } // same spot: nudge sideways
+      const push = r * 2 - d;
+      k.x += (dx / d) * push; k.y += (dy / d) * push;
+      k.v *= 0.85;
+      hit = true;
+    }
+    return hit;
+  }
+
+  const api = { LAPS, KART_R, bump, CHECKPOINTS, ROAD, VERGE, MAX_V, SLOW_MAX, BOOST_MAX, FREEZE_T, SPLAT_T, BOOST_T, BOX_R, PUDDLE_R, ITEMS,
     makeTrack, pointAt, project, sectionOf, gridSpot, newKart, step, progress, raceOrder, rollItem, targetAhead, applyEffect, dropSpot, touches, botInput, wrapAngle };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RacePhysics = api;

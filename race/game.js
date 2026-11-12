@@ -167,6 +167,8 @@ function kartInfo(k) {
   const r = race.remote[k];
   return r ? r.last : null;
 }
+// Every other kart's latest position (for bumping).
+const othersThan = (k) => race.players.filter((p) => p.k !== k).map((p) => kartInfo(p.k)).filter((i) => i && i.x != null);
 function currentOrder() {
   const list = race.players.map((p) => { const i = kartInfo(p.k); return i ? { k: p.k, prog: i.prog, done: !!i.done, time: i.time || 0 } : { k: p.k, prog: -1e9, done: false, time: 0 }; });
   return P.raceOrder(list);
@@ -226,6 +228,8 @@ function tick() {
     const lapBefore = mine.lap, bumpBefore = mine.bump;
     P.step(TRACK, mine, myInput(), STEP, race.t);
     if (mine.bump > bumpBefore && mine.v > 60) sfx.bump();
+    // Bumper karts: nudge my kart clear of anyone I run into.
+    if (P.bump(mine, othersThan(myK)) && mine.v > 40 && race.t - (race.lastBumpT || 0) > 0.4) { race.lastBumpT = race.t; sfx.bump(); }
     if (mine.lap !== lapBefore && mine.lap > 1) {
       if (mine.done) { sfx.win(); say(`Finished! ${fmtTime(mine.time * 1000)} 🏁`); }
       else { sfx.lap(); say(mine.lap === P.LAPS ? 'Final lap! 🍭' : `Lap ${mine.lap} of ${P.LAPS}`); }
@@ -280,6 +284,7 @@ function hostTick() {
     const inp = P.botInput(TRACK, k, Math.random, k.skill);
     if (Math.random() > k.skill + 0.05) inp.gas = false;
     P.step(TRACK, k, inp, STEP, race.t);
+    P.bump(k, othersThan(p.k));
     race.puddles.forEach((pz) => {
       if (pz.gone || (pz.by === p.k && nowT - pz.bornT < 1.2) || !P.touches(k, pz, P.PUDDLE_R)) return;
       pz.gone = true;

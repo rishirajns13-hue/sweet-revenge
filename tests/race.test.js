@@ -184,3 +184,16 @@ test('the grid starts behind the line with no progress yet', () => {
     assert.ok(k.prog <= 0);
   }
 });
+
+test('karts bump: an overlapping kart is pushed clear and loses a little speed', () => {
+  const a = { x: 100, y: 100, v: 200 }, b = { x: 110, y: 100, v: 150 };
+  assert.equal(P.bump(a, [b]), true);
+  assert.ok(Math.hypot(a.x - b.x, a.y - b.y) >= P.KART_R * 2 - 1e-9);
+  assert.ok(a.v < 200);
+  const far = { x: 0, y: 0, v: 100 };
+  assert.equal(P.bump(far, [b]), false);
+  assert.equal(far.v, 100);
+  // two karts on exactly the same spot still separate, and a kart never bumps itself
+  const c = { x: 5, y: 5, v: 10 };
+  assert.equal(P.bump(c, [c, { x: 5, y: 5, v: 0 }]), true);
+});
