@@ -648,7 +648,7 @@ function renderEnd(res) {
   }).join('');
   const top = (f) => { const best = ranked.slice().sort((x, y) => (y[f] || 0) - (x[f] || 0))[0]; return best && best[f] > 0 ? best : null; };
   const awards = [
-    ['h', '🍦', 'Tower Boss', (n) => `${n} scoops high`],
+    ['h', '🍦', 'Tower Boss', (n) => `${n} scoop${n === 1 ? '' : 's'} high`],
     ['perfects', '🤌', 'Perfectionist', (n) => `${n} perfect drop${n > 1 ? 's' : ''}`],
     ['wob', '🌀', 'Wobble Master', (n) => `Sent ${n} wobble${n > 1 ? 's' : ''}`],
     ['splats', '🫠', 'Floor Dessert', (n) => `${n} splat${n > 1 ? 's' : ''}`],
