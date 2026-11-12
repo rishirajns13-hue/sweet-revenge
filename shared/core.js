@@ -61,8 +61,11 @@ function setIcon(el, name) { const svg = el.querySelector('svg.ic'); if (svg) sv
 
 /* ================= your look: avatar + colours ================= */
 const AVATARS = ['😎', '🥰', '🤓', '🤠', '😺', '🐼', '🦊', '👻', '🐸', '🦄', '🐯', '🐙'];
-const PALETTES = [['sunset', 'Sunset'], ['lagoon', 'Lagoon'], ['lemonade', 'Lemonade']];
-const THEME_COLOR = { sunset: '#8f6bff', lagoon: '#2ad0c1', lemonade: '#ffb03b' };
+// Avatars can carry a custom colour and accessory ("🦊~3a", see shared/avatars.js). Every game checks
+// a player's avatar with AVATARS.includes(), so that check accepts custom looks too.
+AVATARS.includes = (a) => (typeof AVATAR_ART !== 'undefined' ? AVATAR_ART.valid(a) : Array.prototype.includes.call(AVATARS, a));
+const PALETTES = [['sunset', 'Sunset'], ['lagoon', 'Lagoon'], ['lemonade', 'Lemonade'], ['midnight', 'Midnight'], ['bubblegum', 'Bubblegum'], ['jungle', 'Jungle']];
+const THEME_COLOR = { sunset: '#8f6bff', lagoon: '#2ad0c1', lemonade: '#ffb03b', midnight: '#241a4a', bubblegum: '#ff8fc8', jungle: '#2bc48a' };
 const store = {
   get(k, fallback) { try { const v = localStorage.getItem(k); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } },
@@ -78,12 +81,13 @@ function applyPalette(p = store.get('ludo-palette', 'sunset')) {
   if (!PALETTES.some(([k]) => k === p)) p = 'sunset';
   document.body.className = document.body.className.replace(/\bpal-\S+/g, '').trim() + ` pal-${p}`;
   document.querySelector('meta[name="theme-color"]').content = THEME_COLOR[p];
+  document.body.classList.toggle('calm', !!store.get('sr-calm', false)); // fewer decorative animations
   return p;
 }
 function renderMeSheet() {
   const mine = myAvatar(), pal = store.get('ludo-palette', 'sunset');
   const art = (a) => (typeof avatarHTML === 'function' ? avatarHTML(a) : a);
-  $('#avatars').innerHTML = AVATARS.map((a) => `<button type="button" data-av="${a}" aria-pressed="${a === mine}" aria-label="Avatar ${typeof AVATAR_ART !== 'undefined' ? AVATAR_ART.name(a) : a}">${art(a)}</button>`).join('');
+  $('#avatars').innerHTML = AVATARS.map((a) => `<button type="button" data-av="${a}" aria-pressed="${a === mine.split('~')[0]}" aria-label="Avatar ${typeof AVATAR_ART !== 'undefined' ? AVATAR_ART.name(a) : a}">${art(a)}</button>`).join('');
   $('#palettes').innerHTML = PALETTES.map(([k, label]) => `<button type="button" class="pal-${k}" data-pal="${k}" aria-pressed="${k === pal}"><span></span>${label}</button>`).join('');
 }
 /* ================= login session (shared by every page) ================= */
@@ -148,7 +152,9 @@ function wireProfileSheet() {
   const pop = () => typeof sfx !== 'undefined' && sfx.pop();
   $('#avatars').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b || !me) return;
-    store.set('ludo-avatar:' + me.name.toLowerCase(), b.dataset.av);
+    // Picking a different critter here keeps your colour and accessory.
+  const cur = myAvatar(), tail = cur.includes('~') ? '~' + cur.split('~')[1] : '';
+  store.set('ludo-avatar:' + me.name.toLowerCase(), b.dataset.av + tail);
     renderMeSheet(); pop();
     document.dispatchEvent(new Event('profilechange'));
   });

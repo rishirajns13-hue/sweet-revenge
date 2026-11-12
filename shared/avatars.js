@@ -1,5 +1,7 @@
 'use strict';
 /* Sweet Revenge avatars: twelve sticker critters drawn in SVG, each with a few moods.
+   Custom looks: an avatar can carry a colour and an accessory after a "~", e.g. "🦊~3a" =
+   fox, colour 3, accessory a. Plain "🦊" is the critter's own colours with no accessory.
    Saved avatars are still the old emoji (so saved choices and other players' games keep working);
    this file just draws each one as a character. Load after shared/core.js.
      avatarHTML(key, mood)   → markup sized at 1em (set font-size to size it), mood: happy|cheer|sulk|smug|sweat
@@ -29,6 +31,27 @@ const AVATAR_ART = (() => {
   };
   const order = Object.keys(C).filter((k) => k !== '🤖');
 
+  // Body colours (0 = the critter's own) and accessories (0 = none) for custom looks.
+  const COLOURS = [null, '#ff9ad0', '#ff8a4c', '#ffd56b', '#79d98f', '#7ee8d8', '#9ab8ff', '#c08bff', '#f4f1ff', '#c7a17a', '#ff5a5f', '#5b5f7a'];
+  const ACCESSORIES = [
+    ['None', ''],
+    ['Party hat', `<path d="M38 18L50-6l12 24z" fill="#ff71ce" ${s(3.5)}/><path d="M43 8l12 4M41 14l16 3" stroke="#fff" stroke-width="3"/><circle cx="50" cy="-7" r="5" fill="#ffd56b" ${s(3)}/>`],
+    ['Crown', `<path d="M33 19l2-17 9 9 6-13 6 13 9-9 2 17z" fill="#ffc233" ${s(3.5)}/><circle cx="50" cy="12" r="3" fill="#ff5a5f"/>`],
+    ['Bow', `<g transform="translate(74 18) rotate(18)"><path d="M0 0l-14-9v18zM0 0l14-9v18z" fill="#ff5a5f" ${s(3)}/><circle r="4.5" fill="#ff8a9a" ${s(3)}/></g>`],
+    ['Headphones', `<path d="M15 54C13 12 87 12 85 54" fill="none" stroke="#2b2140" stroke-width="6"/><rect x="5" y="44" width="13" height="22" rx="6" fill="#4d9de0" ${s(3)}/><rect x="82" y="44" width="13" height="22" rx="6" fill="#4d9de0" ${s(3)}/>`],
+    ['Flower', `<g transform="translate(76 20)">${[0, 72, 144, 216, 288].map((a) => `<circle cx="${Math.cos((a * Math.PI) / 180) * 7}" cy="${Math.sin((a * Math.PI) / 180) * 7}" r="6" fill="#fff" ${s(2.5)}/>`).join('')}<circle r="5" fill="#ffc233" ${s(2.5)}/></g>`],
+    ['Heart shades', `<g fill="#ff4d6d" ${s(3)}><path d="M37 60c-9-6-12-10-12-14 0-4 5-6 8-3l4 3 4-3c3-3 8-1 8 3 0 4-3 8-12 14z"/><path d="M63 60c-9-6-12-10-12-14 0-4 5-6 8-3l4 3 4-3c3-3 8-1 8 3 0 4-3 8-12 14z"/></g><path d="M45 50h10" ${s(3)}/>`],
+    ['Scarf', `<path d="M20 80q30 14 60 0l2 10q-32 16-64 0z" fill="#ff5a5f" ${s(3.5)}/><path d="M66 88l4 16 10-4-6-14" fill="#ff5a5f" ${s(3)}/>`],
+    ['Halo', `<ellipse cx="50" cy="0" rx="20" ry="6" fill="none" stroke="#ffc233" stroke-width="5"/>`],
+    ['Devil horns', `<path d="M26 26q-6-16 6-22-2 12 6 18zM74 26q6-16-6-22 2 12-6 18z" fill="#ff5a5f" ${s(3)}/>`],
+  ];
+  // "🦊~3a" → { base: '🦊', colour: 3, acc: 10 } (both parts are base-36 digits)
+  function parse(key) {
+    const [base, tail = ''] = String(key || '').split('~');
+    return { base: C[base] ? base : '😎', colour: parseInt(tail[0] || '0', 36) || 0, acc: parseInt(tail[1] || '0', 36) || 0 };
+  }
+  const compose = (base, colour, acc) => (colour || acc ? `${base}~${(colour || 0).toString(36)}${(acc || 0).toString(36)}` : base);
+
   function eyes(mood, light) {
     const col = light ? '#ffffff' : INK, hl = light ? INK : '#ffffff';
     if (mood === 'cheer') return `<path d="M31 53q6-9 12 0M57 53q6-9 12 0" fill="none" stroke="${col}" stroke-width="4.5" stroke-linecap="round"/>`;
@@ -46,16 +69,27 @@ const AVATAR_ART = (() => {
   const sweat = '<path d="M80 30c-5 7-5 11 0 12 5-1 5-5 0-12z" fill="#7fd3ff" stroke="#2b2140" stroke-width="2.5"/>';
 
   function svg(key, mood = 'happy') {
-    const c = C[key] || C['😎'];
+    const look = parse(key), base = C[look.base];
+    const c = look.colour && COLOURS[look.colour] ? { ...base, body: COLOURS[look.colour] } : base;
+    const extra = (ACCESSORIES[look.acc] || ACCESSORIES[0])[1];
     const face = c.hideEyes ? '' : eyes(mood, c.lightEyes);
     const up = c.eyesUp ? ' transform="translate(0 -26)"' : '';
     return `<svg viewBox="0 -8 100 108" aria-hidden="true" focusable="false">
       ${c.back || ''}<path d="${c.head || HEAD}" fill="${c.body}" ${S}/>
       ${c.under || ''}<g${up}>${face}</g>
       <ellipse cx="26" cy="64" rx="6" ry="4" fill="#ff7aa8" opacity=".45"/><ellipse cx="74" cy="64" rx="6" ry="4" fill="#ff7aa8" opacity=".45"/>
-      ${mouth(mood)}${c.over || ''}${c.top || ''}${mood === 'sweat' ? sweat : ''}</svg>`;
+      ${mouth(mood)}${c.over || ''}${c.top || ''}${extra}${mood === 'sweat' ? sweat : ''}</svg>`;
   }
-  return { C, order, svg, name: (key) => (C[key] || C['😎']).name };
+  // A valid avatar: a known critter, optionally with a colour and accessory we know.
+  function valid(key) {
+    if (typeof key !== 'string' || key.length > 12) return false;
+    const [base, tail] = key.split('~');
+    if (!C[base] || base === '🤖' && tail) return false;
+    if (tail === undefined) return true;
+    const p = parse(key);
+    return /^[0-9a-z]{2}$/.test(tail) && p.colour < COLOURS.length && p.acc < ACCESSORIES.length;
+  }
+  return { C, order, svg, parse, compose, valid, COLOURS, ACCESSORIES, name: (key) => (C[parse(key).base] || C['😎']).name };
 })();
 
 function avatarHTML(key, mood = 'happy') {

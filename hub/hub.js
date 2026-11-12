@@ -9,7 +9,7 @@
 const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html', R: 'race.html', K: 'scoop.html' }[code[0]] || 'ludo.html');
 const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'], race: ['🏎️', 'Sugar Rush'], scoop: ['🍦', 'Scoop Stack'] };
 const LEVEL_NAMES = ['Sprinkle', 'Single Scoop', 'Double Scoop', 'Waffle Cone', 'Sundae', 'Banana Split', 'Brain Freeze', 'Sweet Revenge Royalty'];
-const TABS = ['play', 'trophies', 'rivals'];
+const TABS = ['play', 'trophies', 'rivals', 'me'];
 const POLL_MS = 20000;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -165,6 +165,7 @@ function showTab(name, { animate = true, sound = false } = {}) {
   if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
   if (name === 'trophies') openedTrophies();
   if (name === 'rivals') stampTickets();
+  if (name === 'me') renderYou();
   if (innerWidth < 760) scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
 }
 document.querySelectorAll('.tab').forEach((t) => (t.onclick = () => showTab(t.dataset.tab, { sound: true })));
@@ -173,9 +174,9 @@ document.addEventListener('keydown', (e) => {
   if (!hubShown || !$('#screen-hub').classList.contains('active') || e.target.closest('input, textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
   if (!$('#me-sheet').hidden) return;
   const i = TABS.indexOf(currentTab), onNav = e.target === document.body || !!e.target.closest('.tabs');
-  if (['1', '2', '3'].includes(e.key)) showTab(TABS[+e.key - 1], { sound: true });
-  else if (e.key === 'ArrowRight' && onNav) showTab(TABS[(i + 1) % 3], { sound: true });
-  else if (e.key === 'ArrowLeft' && onNav) showTab(TABS[(i + 2) % 3], { sound: true });
+  if (['1', '2', '3', '4'].includes(e.key)) showTab(TABS[+e.key - 1], { sound: true });
+  else if (e.key === 'ArrowRight' && onNav) showTab(TABS[(i + 1) % TABS.length], { sound: true });
+  else if (e.key === 'ArrowLeft' && onNav) showTab(TABS[(i + TABS.length - 1) % TABS.length], { sound: true });
   else return;
   e.preventDefault();
 });
@@ -479,6 +480,57 @@ function startLive() {
   setInterval(() => { if (!$('#live-pop').hidden) renderLivePop(); }, 5000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
 }
+
+/* ================= YOU: avatar builder, theme, settings, account ================= */
+const avatarKey = () => 'ludo-avatar:' + me.name.toLowerCase();
+function setMyAvatar(key) {
+  store.set(avatarKey(), key);
+  document.dispatchEvent(new Event('profilechange'));
+  renderYou();
+  sfx.pop();
+}
+let previewMood = 0;
+const MOODS = ['happy', 'cheer', 'smug', 'sulk', 'sweat'];
+function renderYou() {
+  if (!me) return;
+  const key = myAvatar(), look = AVATAR_ART.parse(key);
+  setAvatar($('#me-preview'), key, MOODS[previewMood]);
+  $('#me-name').textContent = me.name;
+  $('#acct-name').textContent = me.name;
+  if (profile) {
+    $('#me-lv').textContent = `Level ${profile.level.level} · ${LEVEL_NAMES[profile.level.level - 1]}`;
+    $('#ms-played').textContent = profile.record.played;
+    $('#ms-won').textContent = profile.record.won;
+    $('#ms-trophies').textContent = profile.achievements.filter((a) => a.done).length;
+  } else $('#me-lv').textContent = 'Level –';
+  // Every option shows *your* critter wearing it, so you see what you'll get.
+  const tile = (k, on, label, attr) => `<button type="button" class="b-tile" ${attr} aria-pressed="${on}" aria-label="${escapeHtml(label)}">${avatarHTML(k)}</button>`;
+  $('#b-critters').innerHTML = AVATAR_ART.order.map((b) => tile(AVATAR_ART.compose(b, look.colour, look.acc), b === look.base, AVATAR_ART.name(b), `data-base="${b}"`)).join('');
+  $('#b-colours').innerHTML = AVATAR_ART.COLOURS.map((c, i) => `<button type="button" class="b-swatch" data-colour="${i}" aria-pressed="${i === look.colour}" aria-label="${i ? 'Colour ' + i : 'Original colours'}" style="--sw:${c || 'conic-gradient(#ff9ad0, #ffd56b, #7ee8d8, #9ab8ff, #ff9ad0)'}">${i ? '' : '✨'}</button>`).join('');
+  $('#b-accs').innerHTML = AVATAR_ART.ACCESSORIES.map(([name], i) => tile(AVATAR_ART.compose(look.base, look.colour, i), i === look.acc, name, `data-acc="${i}"`)).join('');
+  const pal = store.get('ludo-palette', 'sunset');
+  $('#b-themes').innerHTML = PALETTES.map(([k, label]) => `<button type="button" class="b-theme pal-${k}" data-pal="${k}" aria-pressed="${k === pal}"><span></span>${label}</button>`).join('');
+  $('#set-sound').checked = !player.muted;
+  $('#set-calm').checked = !!store.get('sr-calm', false);
+}
+$('#me-preview').onclick = () => { previewMood = (previewMood + 1) % MOODS.length; renderYou(); sfx.pop(); };
+$('#b-critters').addEventListener('click', (e) => { const b = e.target.closest('[data-base]'); if (!b) return; const l = AVATAR_ART.parse(myAvatar()); setMyAvatar(AVATAR_ART.compose(b.dataset.base, l.colour, l.acc)); });
+$('#b-colours').addEventListener('click', (e) => { const b = e.target.closest('[data-colour]'); if (!b) return; const l = AVATAR_ART.parse(myAvatar()); setMyAvatar(AVATAR_ART.compose(l.base, +b.dataset.colour, l.acc)); });
+$('#b-accs').addEventListener('click', (e) => { const b = e.target.closest('[data-acc]'); if (!b) return; const l = AVATAR_ART.parse(myAvatar()); setMyAvatar(AVATAR_ART.compose(l.base, l.colour, +b.dataset.acc)); });
+$('#b-random').onclick = () => {
+  const pick = (n) => Math.floor(Math.random() * n);
+  setMyAvatar(AVATAR_ART.compose(AVATAR_ART.order[pick(AVATAR_ART.order.length)], pick(AVATAR_ART.COLOURS.length), pick(AVATAR_ART.ACCESSORIES.length)));
+  reactMe('cheer');
+};
+$('#b-themes').addEventListener('click', (e) => { const b = e.target.closest('[data-pal]'); if (!b) return; store.set('ludo-palette', applyPalette(b.dataset.pal)); renderYou(); sfx.pop(); });
+$('#set-sound').onchange = () => { if (player.muted === $('#set-sound').checked) player.toggle(); setIcon($('#btn-sound'), player.muted ? 'mute' : 'volume'); if (!player.muted) sfx.pop(); };
+$('#set-calm').onchange = () => { store.set('sr-calm', $('#set-calm').checked); applyPalette(); };
+$('#set-howto').onclick = () => {
+  try { Object.keys(localStorage).filter((k) => k.startsWith('sr-howto:')).forEach((k) => localStorage.removeItem(k)); } catch (e) { /* storage blocked */ }
+  toast('The how-to cards will show again in each game 👍');
+};
+$('#set-logout').onclick = () => { if (confirm('Log out on this device?')) logout(); };
+document.addEventListener('profilechange', () => { if (currentTab === 'me') renderYou(); });
 
 /* ================= sound toggle, profile, login, joining ================= */
 $('#btn-sound').onclick = () => { const m = player.toggle(); setIcon($('#btn-sound'), m ? 'mute' : 'volume'); if (!m) sfx.pop(); };

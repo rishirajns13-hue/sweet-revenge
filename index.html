@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&family=Baloo+2:wght@500;600;700;800&family=Lilita+One&family=Gaegu:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="shared/base.css?v=9">
-  <link rel="stylesheet" href="hub/hub.css?v=15">
+  <link rel="stylesheet" href="shared/base.css?v=10">
+  <link rel="stylesheet" href="hub/hub.css?v=16">
 </head>
 <body class="pal-sunset">
   <!-- Sweet Revenge logo: drawn once here, shown with <use href="#logo"> -->
@@ -94,6 +94,7 @@
           <button class="tab" role="tab" type="button" data-tab="play" aria-controls="tab-play"><span class="te" aria-hidden="true">🎮</span><span class="tl">Play</span><kbd>1</kbd></button>
           <button class="tab" role="tab" type="button" data-tab="trophies" aria-controls="tab-trophies"><span class="te" aria-hidden="true">🏆</span><span class="tl">Trophies</span><kbd>2</kbd><b id="tab-badge" class="tab-badge" hidden></b></button>
           <button class="tab" role="tab" type="button" data-tab="rivals" aria-controls="tab-rivals"><span class="te" aria-hidden="true">⚔️</span><span class="tl">Rivals</span><kbd>3</kbd></button>
+          <button class="tab" role="tab" type="button" data-tab="me" aria-controls="tab-me"><span class="te" aria-hidden="true">🧸</span><span class="tl">You</span><kbd>4</kbd></button>
         </nav>
         <div class="me-chip">
           <div class="lvl" aria-label="Your level">
@@ -268,6 +269,40 @@
             <ol id="history" class="tickets"></ol>
           </div>
         </section>
+        <!-- YOU: avatar builder, theme, settings, account -->
+        <section id="tab-me" class="panel me" role="tabpanel" aria-label="You" hidden>
+          <div class="me-grid">
+            <div class="card me-hero">
+              <button id="me-preview" class="me-preview" type="button" aria-label="Your critter. Tap to change its mood"></button>
+              <h2 id="me-name"></h2>
+              <span id="me-lv" class="lv-num"></span>
+              <div class="me-stats">
+                <div><b id="ms-played">–</b><small>games</small></div>
+                <div><b id="ms-won">–</b><small>wins</small></div>
+                <div><b id="ms-trophies">–</b><small>trophies</small></div>
+              </div>
+              <p class="sub">Tap your critter to try its moods.</p>
+            </div>
+            <div class="card me-settings">
+              <h3>Settings</h3>
+              <label class="switch"><input id="set-sound" type="checkbox"><span></span>Sound effects</label>
+              <label class="switch"><input id="set-calm" type="checkbox"><span></span>Calm mode <small>fewer wobbles and floating things</small></label>
+              <button id="set-howto" class="btn ghost" type="button">Show the how-to-play cards again</button>
+              <h3>Account</h3>
+              <p class="sub">Logged in as <b id="acct-name"></b> on this device. Everything you play, say and win stays private to you and your friends.</p>
+              <button id="set-logout" class="btn" type="button">Log out</button>
+            </div>
+            <div class="card me-build">
+              <h3>Critter</h3><div id="b-critters" class="b-grid" role="group" aria-label="Critter"></div>
+              <h3>Colour</h3><div id="b-colours" class="b-grid" role="group" aria-label="Colour"></div>
+              <h3>Accessory</h3><div id="b-accs" class="b-grid" role="group" aria-label="Accessory"></div>
+              <button id="b-random" class="btn" type="button">🎲 Surprise me</button>
+            </div>
+            <div class="card me-theme">
+              <h3>Background</h3><div id="b-themes" class="b-themes" role="group" aria-label="Background theme"></div>
+            </div>
+          </div>
+        </section>
       </div>
       <div id="wipe" class="wipe" aria-hidden="true"></div>
     </section>
@@ -289,11 +324,11 @@
   <div id="toast" class="toast" role="status"></div>
   <div id="fx"></div>
 
-  <script src="shared/core.js?v=8"></script>
-  <script src="shared/avatars.js?v=1"></script>
+  <script src="shared/core.js?v=9"></script>
+  <script src="shared/avatars.js?v=2"></script>
   <script src="shared/records.js?v=4"></script>
   <script src="shared/rewards.js?v=1"></script>
   <script src="shared/sound.js?v=1"></script>
-  <script src="hub/hub.js?v=13"></script>
+  <script src="hub/hub.js?v=14"></script>
 </body>
 </html>
