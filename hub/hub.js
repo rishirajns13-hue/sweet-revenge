@@ -48,7 +48,13 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const ordinal = (n) => n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n] || 'th'); // places only go up to 4th
 const shortName = (name) => String(name).split(' ').pop();
 const isBotId = (id) => String(id).startsWith('bot:');
-const avatarFor = (id) => (id === me.user ? myAvatar() : isBotId(id) ? '🤖' : DEFAULT_AVATAR[id] || '🙂');
+// A friend's own chosen critter when we know it (saved to their account), else their default.
+const avatarFor = (id) => {
+  if (id === me.user) return myAvatar();
+  if (isBotId(id)) return '🤖';
+  const f = profile && profile.friends && profile.friends[id];
+  return f && f.avatar && AVATARS.includes(f.avatar) ? f.avatar : DEFAULT_AVATAR[id] || '🙂';
+};
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const seenKey = () => 'sr-seen:' + me.user;
 
@@ -398,7 +404,7 @@ function drawProfile(p, freshTrophies) {
     level: [p.level, () => renderLevel(p)],
     record: [p.record, () => renderRecordRibbons(p)],
     trophies: [p.achievements.map((a) => [a.id, a.done, a.have]), () => renderTrophies(p, freshTrophies)],
-    rivals: [[p.rivalry, p.me && p.me.name], () => renderRivals(p)],
+    rivals: [[p.rivalry, p.me && p.me.name, p.friends], () => renderRivals(p)],
     history: [p.recent.map((g) => g.id), () => renderHistory(p)],
   };
   let changed = false;

@@ -41,7 +41,8 @@ const records = (() => {
   const num = (o, keys) => { for (const k of keys) if (o && typeof o[k] === 'number') return o[k]; return 0; };
   async function profile() {
     if (!me) return null;
-    const [{ data: r, error }, P] = await Promise.all([sb.rpc('my_profile'), loadProgress()]);
+    // Your profile, plus every friend's name and chosen critter (for rivals and history), in parallel.
+    const [{ data: r, error }, P, { data: friends }] = await Promise.all([sb.rpc('my_profile'), loadProgress(), sb.from('players').select('id, name, avatar')]);
     if (error || !r) return null;
     const id = r.me.id, none = () => ({ bonks: 0, bombs: 0, bombCards: 0 });
     const hitsBy = new Map();
@@ -78,6 +79,22 @@ const records = (() => {
     if (changed) document.dispatchEvent(new Event('profilechange'));
 
     const played = (k) => facts.games.filter((g) => !k || g.kind === k);
+    // Head to head against each friend, per game: a win counts when you won and they didn't (and the
+    // other way round). Practice games against bots don't involve friends, so they never count.
+    const names = Object.fromEntries((friends || []).map((f) => [f.id, f.name]));
+    const looks = Object.fromEntries((friends || []).map((f) => [f.id, f.avatar]));
+    const h2h = {};
+    for (const g of r.games) {
+      const iWon = g.winners.includes(id);
+      for (const p of g.players) {
+        if (p.bot || p.id === id) continue;
+        const theyWon = g.winners.includes(p.id);
+        if (iWon === theyWon) continue;
+        const k = (h2h[g.kind] ||= {}), e = (k[p.id] ||= { name: names[p.id] || p.name, avatar: looks[p.id] || DEFAULT_AVATAR[p.id], w: 0, l: 0, streak: 0, at: 0 });
+        if (iWon) { e.w++; e.streak = e.streak > 0 ? e.streak + 1 : 1; } else { e.l++; e.streak = e.streak < 0 ? e.streak - 1 : -1; }
+        e.at = Date.parse(g.ended_at) || 0;
+      }
+    }
     return {
       me: { id, name: r.me.name, avatar: r.me.avatar, theme: r.me.theme },
       level: { level: prog.level, title: prog.title, xp: prog.xp, from: prog.from, to: prog.to },
@@ -85,6 +102,8 @@ const records = (() => {
         byKind: Object.fromEntries(P.KINDS.map((k) => [k, { played: played(k).length, won: played(k).filter((g) => g.won).length }])) },
       achievements: prog.achievements.map((a) => ({ ...a, unlockedAt: when[a.id] || null })),
       rivalry: r.rivalry,
+      h2h,
+      friends: Object.fromEntries((friends || []).map((f) => [f.id, { name: f.name, avatar: f.avatar }])),
       recent: r.games.slice(-12).reverse().map((g) => ({
         id: g.id, kind: g.kind, room: g.room, practice: g.practice, startedAt: g.started_at, endedAt: g.ended_at,
         won: g.winners.includes(id), winners: g.winners,

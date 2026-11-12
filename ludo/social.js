@@ -3,6 +3,9 @@
    Talks to game.js through sendSocial(), game, myColors, nameOf(), isMine() and sfx. */
 
 document.addEventListener('profilechange', renderHome);
+// Fetch the shared scores once the login is loaded (game.js sets `me` on start).
+const waitSharedRecord = setInterval(() => { if (me) { clearInterval(waitSharedRecord); loadSharedRecord(); } }, 300);
+setTimeout(() => clearInterval(waitSharedRecord), 20000);
 
 /* ================= all-time score, kept on this device ================= */
 const recordKey = () => 'ludo-record:' + me.user;
@@ -24,8 +27,21 @@ function recordResult(s) {
   }
   store.set(recordKey(), rec);
 }
+// Scores from the shared history (every device agrees, and renames don't split them); this
+// device's own tally is only used until the history has loaded, or when offline.
+let sharedRec = null;
+async function loadSharedRecord() {
+  if (typeof records === 'undefined' || !me) return;
+  const p = await records.me().catch(() => null);
+  if (!p || !p.h2h) return;
+  sharedRec = {};
+  const local = store.get(recordKey(), {});
+  for (const e of Object.values(p.h2h.ludo || {})) sharedRec[e.name] = { ...e, avatar: e.avatar || (local[e.name] || {}).avatar };
+  renderHome();
+}
+const scoreBook = () => sharedRec || store.get(recordKey(), {});
 function mainRival() {
-  const rec = store.get(recordKey(), {});
+  const rec = scoreBook();
   let best = null;
   for (const [name, r] of Object.entries(rec)) {
     const n = r.w + r.l;
@@ -34,7 +50,7 @@ function mainRival() {
   return best;
 }
 function rivalLine(name) {
-  const r = store.get(recordKey(), {})[name];
+  const r = scoreBook()[name];
   return r ? `You <b>${r.w} – ${r.l}</b> ${escapeHtml(name)}, all time` : '';
 }
 function renderHome() {
