@@ -89,3 +89,7 @@ body.chat-docked main { padding-right: 410px; }
 body.chat-docked [data-chat-open] { display: none; }
 
 @media (prefers-reduced-motion: reduce) { .m { animation: none; } }
+/* a poke from a friend stands out from the quieter system lines */
+.m.sys.poke { color: var(--ink); background: #ffe27a; border: 2px solid var(--ink); border-radius: 999px; padding: 3px 12px; font-weight: 700; animation: poke-in .45s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes poke-in { 0% { transform: scale(.6) rotate(-6deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .m.sys.poke { animation: none; } }

@@ -26,7 +26,7 @@ const CHAT_STICKERS = {
    room()         the room code they're saved with (optional) */
 function createChat(opts) {
   const o = { stickers: CHAT_STICKERS, dockAt: 0, sound() {}, anchor() { return null; }, stage() { return null; }, room() { return null; }, ...opts };
-  const COOLDOWN = { chat: 0, react: 500, sticker: 2500, voice: 0, typing: 2500 };
+  const COOLDOWN = { chat: 0, react: 500, sticker: 2500, voice: 0, typing: 2500, poke: 8000 };
   const lastSent = {};
   let unread = 0, inGame = false;
 
@@ -58,16 +58,17 @@ function createChat(opts) {
   }
   const avatarOfK = (k) => { const p = o.players().find((x) => x.k === k); return p && p.avatar; };
   // Each message sits in a row with the sender's critter; a run of messages from one sender shows it once.
+  const stamp = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   function addMsg(html, cls, k) {
     msgs.querySelector('.empty')?.remove();
     hideTyping(k);
     if (!k) {
-      msgs.insertAdjacentHTML('beforeend', `<div class="m ${cls}">${html}</div>`);
+      msgs.insertAdjacentHTML('beforeend', `<div class="m ${cls}" title="${stamp()}">${html}</div>`);
     } else {
       const last = msgs.lastElementChild, cont = !!(last && last.dataset.k === k);
       const av = avatarOfK(k), art = av && typeof avatarHTML === 'function' ? avatarHTML(av, cls.includes('me') ? 'happy' : 'happy') : '';
       msgs.insertAdjacentHTML('beforeend', `<div class="m-row ${cls.split(' ')[0]}${cont ? ' cont' : ''}" data-k="${k}" style="--c:${colorOf(k)}">
-        <span class="m-av" aria-hidden="true">${cont ? '' : art}</span><div class="m ${cls}" style="--c:${colorOf(k)}">${html}</div></div>`);
+        <span class="m-av" aria-hidden="true">${cont ? '' : art}</span><div class="m ${cls}" style="--c:${colorOf(k)}" title="${stamp()}">${html}</div></div>`);
     }
     while (msgs.children.length > 80) msgs.firstElementChild.remove();
     msgs.scrollTop = msgs.scrollHeight;
@@ -149,6 +150,17 @@ function createChat(opts) {
     if (m.t === 'chat' && typeof m.text === 'string' && m.text.trim() && m.text.length <= 300) {
       addMsg(who + escapeHtml(m.text), cls, m.from);
       if (!mine) showBubble(m.from, m.text);
+    } else if (m.t === 'poke') {
+      // A poke: "your move!" The other players' screens give a little shake.
+      if (mine) { addMsg('👉 You poked everyone. No pressure.', 'sys'); return true; }
+      addMsg(`👉 <b>${escapeHtml(nameOf(m.from))}</b> poked you. Your move!`, 'sys poke');
+      const stage = o.stage();
+      if (stage) retrigger(stage, 'shake');
+      floatEmoji(m.from, '👉');
+      toast(`👉 ${nameOf(m.from)} poked you. Hurry up!`, 2600);
+      try { navigator.vibrate && navigator.vibrate([60, 40, 60]); } catch (e) { /* not on laptops */ }
+      o.sound('in');
+      return true;
     } else if (m.t === 'react' && CHAT_EMOTES.concat(CHAT_QUICK).includes(m.e)) {
       floatEmoji(m.from, m.e);
       return true; // reactions don't go in the chat or count as unread
@@ -300,12 +312,15 @@ function createChat(opts) {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeWheel(); close(); } });
 
   /* ---------- the sheet's own controls ---------- */
-  sheet.querySelector('.quick').innerHTML = Object.entries(o.stickers).map(([id, [text, bg]]) => `<button type="button" class="stk" data-sticker="${id}" style="--sbg:${bg}">${escapeHtml(text)}</button>`).join('')
+  sheet.querySelector('.quick').innerHTML = '<button type="button" class="stk poke-btn" data-poke style="--sbg:#ffe27a">👉 Poke</button>' + Object.entries(o.stickers).map(([id, [text, bg]]) => `<button type="button" class="stk" data-sticker="${id}" style="--sbg:${bg}">${escapeHtml(text)}</button>`).join('')
     + CHAT_QUICK.map((e) => `<button type="button" class="emo" data-text="${e}">${e}</button>`).join('');
   sheet.querySelector('.quick').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
-    if (b.dataset.sticker) emit({ t: 'sticker', id: b.dataset.sticker }); else emit({ t: 'chat', text: b.dataset.text });
+    if (b.dataset.poke !== undefined) {
+      if (Date.now() - (lastSent.poke || 0) < COOLDOWN.poke) { toast('Give them a second 😅', 1400); return; }
+      emit({ t: 'poke' });
+    } else if (b.dataset.sticker) emit({ t: 'sticker', id: b.dataset.sticker }); else emit({ t: 'chat', text: b.dataset.text });
   });
   // Let the others see you're typing (at most every few seconds).
   input.addEventListener('input', () => { if (input.value.trim()) emit({ t: 'typing' }); });

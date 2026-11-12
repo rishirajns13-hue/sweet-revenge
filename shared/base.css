@@ -311,6 +311,7 @@ h1, h2, h3, .hello, .shelf-title, .col-title, .tab .tl, .game-card h2, .lv-title
 .rw-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .rw-xp { font-family: var(--title); font-weight: 400; font-size: 34px; line-height: 1; color: var(--red); -webkit-text-stroke: 1.5px var(--ink); animation: rw-pop .6s cubic-bezier(.3, 1.8, .5, 1); }
 @keyframes rw-pop { 0% { transform: scale(.3) rotate(-10deg); opacity: 0; } }
+.rw-xp.rw-zero { font-size: 26px; color: var(--ink); -webkit-text-stroke: 0; }
 .rw-lv { font-family: var(--body); font-weight: 800; color: var(--muted); }
 .rw-up { padding: 2px 10px; border-radius: 10px; background: var(--ink); color: #fff; font-weight: 600; animation: rw-pop .6s .3s cubic-bezier(.3, 1.8, .5, 1) both; }
 .rw-bar { height: 18px; border: 3px solid var(--ink); border-radius: 999px; overflow: hidden; background: #fff; }

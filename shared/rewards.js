@@ -31,6 +31,13 @@ async function showRewards(container, gid) {
   const pctNow = to ? Math.round(((xp - from) / (to - from)) * 100) : 100;
   const pctThen = level > old.level ? 0 : to ? Math.max(0, Math.round(((old.xp - from) / (to - from)) * 100)) : 100;
   const fresh = p.achievements.filter((a) => a.done && !old.ach.includes(a.id));
+  // A practice game (against bots) gives no XP: say so with a wink instead of a sad "+0 XP".
+  if (!gained && !fresh.length) {
+    box.innerHTML = `<div class="rw-top"><b class="rw-xp rw-zero">Just for glory</b><span class="rw-lv">Lv ${level} ${escapeHtml(title)}</span></div>
+      <small class="rw-next">Practice rounds don't give XP. Beat a real friend for that 😈</small>`;
+    rememberProgress(p);
+    return;
+  }
   box.innerHTML = `
     <div class="rw-top"><b class="rw-xp">+${gained} XP</b>${level > old.level ? `<span class="rw-up">Level up! ${escapeHtml(title)} 🍦</span>` : `<span class="rw-lv">Lv ${level} ${escapeHtml(title)}</span>`}</div>
     <div class="rw-bar"><i style="--p:${pctThen}%"></i></div>

@@ -8,7 +8,7 @@
 
 ## Levels
 You earn XP in every game, and it all adds up to one Sweet Revenge level. The level shows next to your avatar everywhere.
-- **XP:** play a game +10 · win +25 · each bonk +3 · each bomb +1 per card · Doodle +1 per 20 points. Practice games against bots give half XP.
+- **XP:** play a game +10 · win +25 · each bonk +3 · each bomb +1 per card · Doodle +1 per 20 points. Practice games against bots give no XP (they still count for trophies).
 - **Level titles:** Sprinkle → Single Scoop → Double Scoop → Waffle Cone → Sundae → Banana Split → Brain Freeze 🥶 → Sweet Revenge Royalty 👑
 - A level-up gets confetti and a toast on the home screen.
 
@@ -34,4 +34,4 @@ The code that works all this out is `shared/progress.mjs`; the numbers there are
 | 🪜 | Sky High | Climb a ladder 30+ squares long |
 
 ## Still to decide
-- Should bonks and bombs against bots count? For now everything counts, and practice gives half XP.
+- Should practice games count for trophies too? Today they give no XP but do count for trophies.

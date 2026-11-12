@@ -7,11 +7,11 @@ const g = (o = {}) => ({ kind: 'ludo', practice: false, won: false, bonks: 0, bo
 const facts = (o = {}) => ({ games: [], bigBomb: 0, maxBonkedInGame: 0, revengeBonk: false, revengeBomb: false, chats: 0, ...o });
 const ach = (f, id) => P.progress(f).achievements.find((a) => a.id === id);
 
-test('XP: play +10, win +25, bonk +3, bomb +1 per card; practice is half', () => {
+test('XP: play +10, win +25, bonk +3, bomb +1 per card; practice gives none', () => {
   assert.equal(P.xpFor(facts({ games: [g()] })), 10);
   assert.equal(P.xpFor(facts({ games: [g({ won: true, bonks: 2 })] })), 41);
   assert.equal(P.xpFor(facts({ games: [g({ kind: 'plusfour', bombCards: 6 })] })), 16);
-  assert.equal(P.xpFor(facts({ games: [g({ practice: true, won: true })] })), 17);
+  assert.equal(P.xpFor(facts({ games: [g({ practice: true, won: true })] })), 0);
 });
 
 test('levels climb by XP thresholds and the last level has no ceiling', () => {

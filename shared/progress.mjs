@@ -15,7 +15,7 @@ export const KINDS = ['ludo', 'plusfour', 'doodle', 'snakes'];
 export function xpFor(f) {
   return f.games.reduce((sum, g) => {
     const xp = 10 + (g.won ? 25 : 0) + g.bonks * 3 + g.bombCards + Math.floor((g.score || 0) / 20);
-    return sum + (g.practice ? Math.floor(xp / 2) : xp);
+    return sum + (g.practice ? 0 : xp); // practice games against bots give no XP (the user's rule, 13 Nov 2026)
   }, 0);
 }
 
