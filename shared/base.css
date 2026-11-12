@@ -303,3 +303,18 @@ h1, h2, h3, .hello, .shelf-title, .col-title, .tab .tl, .game-card h2, .lv-title
 .rw-trophy small { font-family: var(--body); font-weight: 800; font-size: 11px; color: var(--muted); }
 @keyframes rw-trophy { 0% { transform: scale(0) rotate(-20deg); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .rewards, .rw-xp, .rw-up, .rw-trophy, .rw-spin { animation: none; } .rw-bar i { transition: none; } }
+
+/* ---------- first-play "how to play" card (shared/howto.js) ---------- */
+.howto { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 16px; background: #2b214066; animation: howto-fade .2s; }
+.howto.bye { opacity: 0; transition: opacity .2s; }
+@keyframes howto-fade { from { opacity: 0; } }
+.howto-card { width: min(440px, 100%); display: grid; gap: 14px; padding: 22px; border: 3px solid var(--ink); border-radius: 24px; background: var(--paper); box-shadow: 6px 7px 0 var(--ink); animation: pop-in .4s cubic-bezier(.3, 1.6, .5, 1); }
+.howto-card h2 { margin: 0; font-size: 30px; }
+.howto-card ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.howto-card li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 2.5px solid var(--ink); border-radius: 16px; background: #fff; animation: pop-in .4s calc(.1s + var(--i) * .12s) cubic-bezier(.3, 1.6, .5, 1) both; }
+.howto-card .hi { flex: none; width: 46px; height: 46px; display: grid; place-items: center; font-size: 26px; border-radius: 14px; border: 2.5px solid var(--ink); background: var(--yellow); rotate: -6deg; }
+.howto-card li:nth-child(2) .hi { background: #7ee8d8; rotate: 5deg; }
+.howto-card li:nth-child(3) .hi { background: #ff9ad0; rotate: -3deg; }
+.howto-card li b { display: block; font-size: 17px; }
+.howto-card li small { font-family: var(--body); font-weight: 700; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .howto, .howto-card, .howto-card li { animation: none; } }

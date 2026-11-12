@@ -720,5 +720,6 @@ document.addEventListener('DOMContentLoaded', () => {
     goHome();
     const code = new URLSearchParams(location.search).get('room');
     if (code) { history.replaceState(null, '', location.pathname); $('#join-code').value = code.toUpperCase(); joinRoom(code); }
+    else if (typeof showHowTo === 'function') showHowTo('scoop', [{ icon: "🍦", title: "Drop", text: "Press Space or tap when the swinging scoop is over your tower." }, { icon: "🎯", title: "Aim for Perfect", text: "Only the overlap stays. A dead-centre drop grows it back." }, { icon: "🌀", title: "Wobble them", text: "3 perfects in a row charge a Wobble: press W to shake your rival." }], { title: 'How to play Scoop Stack' });
   });
 });

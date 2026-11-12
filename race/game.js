@@ -892,5 +892,6 @@ document.addEventListener('DOMContentLoaded', () => {
     goHome();
     const code = new URLSearchParams(location.search).get('room');
     if (code) { history.replaceState(null, '', location.pathname); $('#join-code').value = code.toUpperCase(); joinRoom(code); }
+    else if (typeof showHowTo === 'function') showHowTo('race', [{ icon: "⬆️", title: "Drive", text: "Arrow keys or WASD. On a phone it drives itself; steer with the buttons." }, { icon: "🍬", title: "Grab candies", text: "Drive through a wrapped candy for an item, then press Space to use it." }, { icon: "🥶", title: "Get revenge", text: "Brain Freeze hits whoever is just ahead. Last place gets the best candies." }], { title: 'How to play Sugar Rush' });
   });
 });

@@ -794,5 +794,6 @@ document.addEventListener('DOMContentLoaded', () => {
     goHome();
     const code = new URLSearchParams(location.search).get('room');
     if (code) { history.replaceState(null, '', location.pathname); $('#join-code').value = code.toUpperCase(); joinRoom(code); }
+    else if (typeof showHowTo === 'function') showHowTo('snakes', [{ icon: "🎲", title: "Roll", text: "Press Space or tap the die. A 6 rolls again." }, { icon: "🪜", title: "Climb and slide", text: "Ladders lift you up, snakes drop you down. Exact roll to land on 100." }, { icon: "💥", title: "Bonk a friend", text: "Land right on someone and they slide back to their last ladder." }], { title: 'How to play Snakes & Ladders' });
   });
 });
