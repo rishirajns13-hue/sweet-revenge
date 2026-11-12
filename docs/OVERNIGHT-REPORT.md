@@ -76,10 +76,11 @@ I ran two separate headless browsers on this laptop, one logged in as Ammu (host
 
 ## Also improved
 - **Sugar Rush bumper karts:** karts now bump off each other instead of driving through. Each player's own kart gets nudged, so it stays lag-free.
+- **Storage:** I deleted about 563 MB of my own test-browser profiles from my scratch folder, and my test scripts now clean up after themselves. Your files were not touched.
 - The game cards on the home screen centre their last row; Plus Four no longer says NEW; small text and plural fixes.
 
 ## Not done / rough
-- **No host handover in Sugar Rush or Scoop Stack.** If the host closes their tab mid-round, the round ends for everyone; a rematch starts a fresh one. Ludo, Plus Four and Snakes do hand over.
+- **No full host handover in Sugar Rush or Scoop Stack.** In Sugar Rush, if the host leaves mid-race, everyone else keeps racing and finishes "just for glory", but that race isn't saved (tested with two browsers). In Scoop Stack the round ends with the last scoreboard. Ludo, Plus Four and Snakes hand over fully.
 - **No joining mid-round** in Sugar Rush or Scoop Stack: a late player waits for the next round.
 - **Sugar Rush trusts each player's own finish time**, which is fine between friends.
 - **Not tested on real phones or real touch screens:** I checked phone-sized layouts in an emulated browser, but no actual device.

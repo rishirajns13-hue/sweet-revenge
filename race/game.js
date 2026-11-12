@@ -231,7 +231,10 @@ function tick() {
     // Bumper karts: nudge my kart clear of anyone I run into.
     if (P.bump(mine, othersThan(myK)) && mine.v > 40 && race.t - (race.lastBumpT || 0) > 0.4) { race.lastBumpT = race.t; sfx.bump(); }
     if (mine.lap !== lapBefore && mine.lap > 1) {
-      if (mine.done) { sfx.win(); say(`Finished! ${fmtTime(mine.time * 1000)} 🏁`); }
+      if (mine.done) {
+        sfx.win(); say(`Finished! ${fmtTime(mine.time * 1000)} 🏁`);
+        if (mode === 'solo') setTimeout(() => goHome(), 4000); // host gone: nothing to wait for
+      }
       else { sfx.lap(); say(mine.lap === P.LAPS ? 'Final lap! 🍭' : `Lap ${mine.lap} of ${P.LAPS}`); }
     }
     // Puddles: I check my own kart, so a splat never waits for the network.
@@ -536,6 +539,13 @@ function wireGuest(link, giveUp, code) {
   link.on('close', () => {
     if (mode !== 'guest' || conn !== link) return;
     const finished = race && race.results;
+    // Mid-race: don't yank everyone home. Keep driving and finish for glory (it can't be saved
+    // without the host, who keeps the official results).
+    if (race && !finished && race.phase !== 'end') {
+      conn = null; mode = 'solo';
+      say("The host left 👋 Finish anyway, just for glory 🏁 (this race won't be saved)");
+      return;
+    }
     goHome(finished ? '' : 'The host left the race 👋 Tap Join to hop back in if they come back.');
     $('#join-code').value = code;
   });
