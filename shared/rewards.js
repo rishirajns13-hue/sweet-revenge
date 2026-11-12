@@ -19,9 +19,10 @@ async function showRewards(container, gid) {
   const box = container.querySelector('.rewards');
   // Give the save a moment to land, then ask (a few times: the game may still be on its way).
   let p = null;
-  for (let tries = 0; tries < 4; tries++) {
-    await new Promise((r) => setTimeout(r, tries ? 6000 : 2500));
-    p = await records.me();
+  // Supabase saves in well under a second, so the first look comes quickly.
+  for (let tries = 0; tries < 6; tries++) {
+    await new Promise((r) => setTimeout(r, tries ? 3000 : 1200));
+    p = await records.me({ fresh: true });
     if (p && p.level && (!before || p.level.xp !== before.xp)) break;
   }
   if (!p || !p.level) { box.remove(); return; } // scoreboard unreachable: just don't show the strip
