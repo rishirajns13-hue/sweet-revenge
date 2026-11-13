@@ -62,9 +62,9 @@ function makeLink(client, keys, myId, peerId, sendTopic, { dial = false } = {}) 
   let pc = null, dc = null, lastDirect = 0;
   let seqOut = 0, expect = 1, gapTimer = null;
   const held = new Map();
-  const viaBroker = (msg) => {
+  const viaBroker = (msg, qos = 1) => {
     chain = chain.then(() => seal(keys.key, { ...msg, from_: myId, to: peerId }))
-      .then((p) => client.publish(sendTopic, p, { qos: 1 })).catch(() => {});
+      .then((p) => client.publish(sendTopic, p, { qos })).catch(() => {});
   };
   const link = {
     open: true, peerId,
@@ -79,6 +79,13 @@ function makeLink(client, keys, myId, peerId, sendTopic, { dial = false } = {}) 
       }
       viaBroker(out);
     },
+    // For a stream where only the newest message matters (positions in an action game): not numbered,
+    // so a lost one never holds anything back, and sent on the broker without delivery receipts.
+    sendFast(msg) {
+      if (!link.open) return;
+      if (link.direct) { try { dc.send(JSON.stringify(msg)); return; } catch (e) { /* fall back to the broker */ } }
+      viaBroker(msg, 0);
+    },
     receive(m, direct = false) {
       lastSeen = Date.now();
       if (direct) lastDirect = lastSeen;
@@ -89,9 +96,18 @@ function makeLink(client, keys, myId, peerId, sendTopic, { dial = false } = {}) 
       if (m.n < expect) return;
       held.set(m.n, m);
       flush();
-      clearTimeout(gapTimer);
-      // A message that never turns up (it shouldn't) only holds the rest back for a moment.
-      if (held.size) gapTimer = setTimeout(() => { expect = Math.min(...held.keys()); flush(); }, 1500);
+      // A message that never turns up (it shouldn't) only holds the rest back for a moment. The timer
+      // starts when the gap appears and is not pushed back by later messages, or a steady stream
+      // (walkie-talkie slices, positions) would keep everything held forever.
+      if (!held.size) { clearTimeout(gapTimer); gapTimer = null; }
+      else if (!gapTimer) {
+        gapTimer = setTimeout(function skip() {
+          gapTimer = null;
+          if (!held.size) return;
+          expect = Math.min(...held.keys()); flush();
+          if (held.size) gapTimer = setTimeout(skip, 1500);
+        }, 1500);
+      }
     },
     drop() {
       if (!link.open) return;
