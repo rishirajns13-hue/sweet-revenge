@@ -230,7 +230,8 @@ function readable(fg, bg, toward) {
   return toHex(c);
 }
 
-export function paletteFromPixels(data) {
+// forceDark: the chat is always dark, so the photo's colours are fitted to a dark chat.
+export function paletteFromPixels(data, { forceDark = false } = {}) {
   // Group the clearly coloured pixels by hue (12 slices); each slice's colour is the average of its
   // vivid pixels only, so a gradient doesn't wash out to grey.
   const buckets = new Map(), total = [0, 0, 0];
@@ -265,7 +266,7 @@ export function paletteFromPixels(data) {
     for (let i = 0; i < 20 && contrast(textMine, toHex(rgbOf(c))) < 4.5; i++) c = [c[0], c[1], c[2] - 0.025];
     return toHex(rgbOf(c));
   });
-  const dark = n ? lSum / n < 0.4 : false;
+  const dark = forceDark || (n ? lSum / n < 0.4 : false);
   const textTheirs = dark ? '#f4f0fb' : '#241c33';
   const theirs = readable(textTheirs, toHex(mix(avg, dark ? [29, 24, 48] : [255, 255, 255], 0.7)), dark ? [0, 0, 0] : [255, 255, 255]);
   const accent = mine.reduce((a, b) => (hsl(fromHex(b))[1] > hsl(fromHex(a))[1] ? b : a));

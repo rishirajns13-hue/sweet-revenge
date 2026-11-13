@@ -531,3 +531,15 @@ body.typing #dm-root .dm-nav { display: none; }
 @media (prefers-reduced-motion: reduce) {
   #dm-root .hi-card, #dm-root .divider, #dm-root .sysline, #dm-root .jump-down { animation: none; }
 }
+
+/* ===== Dark like Instagram DMs: near-black, wallpaper patterns barely there, a faint haze of the theme ===== */
+#dm-root.dark {
+  background:
+    radial-gradient(60% 45% at 0% 0%, color-mix(in srgb, var(--m1) 13%, transparent), transparent 70%),
+    radial-gradient(60% 50% at 100% 100%, color-mix(in srgb, var(--m3) 12%, transparent), transparent 70%),
+    var(--chat-bg);
+}
+#dm-root.dark:is([data-wall="sprinkles"], [data-wall="hearts"], [data-wall="stars"], [data-wall="critters"], [data-wall="doodles"])::after { opacity: .17; }
+#dm-root.dark[data-wall="dots"]::after { opacity: .28; }
+#dm-root.dark .dm-head { background: color-mix(in srgb, var(--chat-bg) 78%, transparent); box-shadow: 0 1px 0 #ffffff0d; }
+#dm-root.dark .divider { background: #ffffff0f; }

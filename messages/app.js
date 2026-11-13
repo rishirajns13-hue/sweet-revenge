@@ -1,9 +1,9 @@
 // Messages: the private chat between the two friends. This file draws the chat and handles every
 // gesture; data.js talks to the database, logic.mjs holds the tested pure parts.
 // Needs the classic scripts loaded first: shared/core.js, shared/avatars.js, shared/sound.js.
-import * as L from './logic.mjs?v=2';
+import * as L from './logic.mjs?v=3';
 const { WALLS, wallKind } = L;
-import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=2';
+import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=3';
 import * as D from './data.js?v=2';
 import * as V from './voice.js?v=2';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=2';
@@ -751,7 +751,7 @@ function applyLook() {
 // (logic.mjs paletteFromPixels), so both phones get the same ones without saving anything. Picking a
 // theme while a photo is up goes back to theme colours on this device; "From your photo" turns it back on.
 let wallFor = '';
-const palKey = (w) => 'dm-wall-pal:' + w, palOffKey = (w) => 'dm-wall-pal-off:' + w;
+const palKey = (w) => 'dm-wall-pal2:' + w, palOffKey = (w) => 'dm-wall-pal-off:' + w;
 const photoColoursOn = (w) => !store.get(palOffKey(w), false);
 function applyWall() {
   const w = String(S.state.wallpaper || 'dots'), kind = wallKind(w);
@@ -780,7 +780,7 @@ function photoColours(url) {
         const c = document.createElement('canvas'); c.width = c.height = 64;
         const g = c.getContext('2d', { willReadFrequently: true });
         g.drawImage(img, 0, 0, 64, 64);
-        resolve(L.paletteFromPixels(g.getImageData(0, 0, 64, 64).data));
+        resolve(L.paletteFromPixels(g.getImageData(0, 0, 64, 64).data, { forceDark: true }));
       } catch (e) { reject(e); }
     };
     img.onerror = reject;

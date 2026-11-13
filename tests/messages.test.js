@@ -177,3 +177,19 @@ test('the same photo always gives the same colours', () => {
   const a = px('#ffb36b', '#2bc48a', '#8f6bff');
   assert.deepEqual(L.paletteFromPixels(a), L.paletteFromPixels(a));
 });
+
+/* ---------- the chat is dark, like Instagram DMs ---------- */
+test('every chat theme is dark, and both bubble kinds read', async () => {
+  const { THEMES } = await import('../messages/themes.js');
+  for (const [k, t] of Object.entries(THEMES)) {
+    assert.equal(t.dark, true, k + ' is dark');
+    assert.ok(L.contrast('#f5f3f7', t.theirs) >= 4.5, `${k}: their bubbles ${t.theirs}`);
+    for (const c of t.mine) assert.ok(L.contrast('#ffffff', c) >= 3, `${k}: white on ${c}`);
+  }
+});
+
+test('a photo can be forced to dark colours (the chat is always dark)', () => {
+  const p = L.paletteFromPixels(px('#ffffff'), { forceDark: true });
+  assert.equal(p.dark, true);
+  assert.ok(L.contrast(p.textTheirs, p.theirs) >= 4.5, `${p.textTheirs} on ${p.theirs}`);
+});
