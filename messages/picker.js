@@ -160,7 +160,7 @@ async function showEmoji() {
   if (tab !== 'emoji') return;
   body.innerHTML = '';
   const el = document.createElement('emoji-picker');
-  el.className = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  el.className = (document.getElementById('dm-root') || document.documentElement).classList.contains('dark') ? 'dark' : 'light';
   el.addEventListener('emoji-click', (e) => {
     opts.onEmoji && opts.onEmoji(e.detail.unicode);
     if (opts.react) closePicker();

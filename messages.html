@@ -12,9 +12,11 @@
   <link rel="preconnect" href="https://tzksdygcuykycrmwwxrv.supabase.co" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/base.css?v=16">
-  <link rel="stylesheet" href="messages/messages.css?v=4">
+  <link rel="stylesheet" href="messages/messages.css?v=5">
+  <style>html, body.dm { height: 100%; margin: 0; overflow: hidden; }</style>
 </head>
 <body class="dm">
+ <div id="dm-root" class="dm-root">
   <div class="dm-app" id="app">
     <header class="dm-head">
       <a class="dm-icon" id="btn-back" href="index.html#home" aria-label="Back to Home" data-icon="back"></a>
@@ -34,7 +36,7 @@
 
     <div class="scroller" id="scroller" tabindex="-1">
       <div class="older" id="older" hidden><i class="spinner" aria-hidden="true"></i></div>
-      <div class="hi-card" id="hello" hidden></div>
+      <div class="hi-card" id="dm-hello" hidden></div>
       <div class="thread" id="thread" role="log" aria-live="polite" aria-relevant="additions"></div>
       <div class="row theirs typing" id="typing" hidden aria-label="Typing">
         <span class="face sm" id="typing-face"></span>
@@ -169,6 +171,7 @@
     </div>
   </aside>
 
+ </div>
   <div id="fx" aria-hidden="true"></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
@@ -176,6 +179,6 @@
   <script src="shared/core.js?v=14"></script>
   <script src="shared/avatars.js?v=4"></script>
   <script src="shared/sound.js?v=1"></script>
-  <script type="module" src="messages/app.js?v=3"></script>
+  <script type="module">import { mountChat } from './messages/app.js?v=4'; mountChat();</script>
 </body>
 </html>

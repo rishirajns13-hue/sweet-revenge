@@ -9,10 +9,13 @@ import * as V from './voice.js';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js';
 
 const S = D.S;
+// Everything the chat draws lives inside #dm-root, so its theme and classes never leak into the rest of the app.
+const ROOT = document.getElementById('dm-root');
+let shown = true; // false while the app shows another section (Home, Games…)
 const coarse = matchMedia('(pointer: coarse)').matches;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const els = {
-  app: $('#app'), scroller: $('#scroller'), thread: $('#thread'), typing: $('#typing'), hello: $('#hello'), older: $('#older'),
+  app: $('#app'), scroller: $('#scroller'), thread: $('#thread'), typing: $('#typing'), hello: $('#dm-hello'), older: $('#older'),
   input: $('#input'), field: $('.field'), send: $('#btn-send'), ctx: $('#context-bar'), compose: $('#compose-row'), rec: $('#rec-bar'),
   menu: $('#menu'), details: $('#details'), jump: $('#jump-down'), pull: $('#vanish-pull'),
 };
@@ -273,18 +276,18 @@ function showTyping() {
 }
 
 /* ---------------- reading, presence, the tab title ---------------- */
-const looking = () => !document.hidden && document.hasFocus();
+const looking = () => shown && !document.hidden && document.hasFocus();
 function readIfLooking() { if (looking()) D.markRead(); }
-function setTitle() { document.title = (hiddenUnread ? `(${hiddenUnread}) ` : '') + 'Messages · Sweet Revenge'; }
-addEventListener('focus', () => { readIfLooking(); D.setHere(true); });
+function setTitle() { if (shown) document.title = (hiddenUnread ? `(${hiddenUnread}) ` : '') + 'Messages · Sweet Revenge'; }
+addEventListener('focus', () => { readIfLooking(); D.setHere(shown); });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     D.setHere(false);
     D.sendTyping(false);
-    if (coarse) D.vanishSweepOnLeave(); // on phones, switching away is leaving
+    if (coarse && shown) D.vanishSweepOnLeave(); // on phones, switching away is leaving
   } else {
     hiddenUnread = 0; setTitle();
-    D.setHere(true);
+    D.setHere(shown);
     readIfLooking();
     D.reconnect();
     D.refresh().catch(() => {});
@@ -323,6 +326,7 @@ input.addEventListener('keydown', (e) => {
 input.addEventListener('blur', () => D.sendTyping(false));
 input.addEventListener('focus', () => { if (matchMedia('(pointer: coarse)').matches) document.body.classList.add('typing'); });
 input.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== input) document.body.classList.remove('typing'); }, 120));
+// (body.typing on purpose: the app's bottom nav, outside the chat, hides while the keyboard is up)
 els.send.addEventListener('click', () => {
   if (input.value.trim() || (ctx && ctx.type === 'edit')) submit();
   else sendLike();
@@ -501,7 +505,7 @@ function heart(row, x, y) {
   const b = document.createElement('span');
   b.className = 'burst'; b.textContent = '❤️';
   b.style.left = x + 'px'; b.style.top = y + 'px';
-  $('#fx').appendChild(b);
+  ROOT.appendChild(b);
   setTimeout(() => b.remove(), 900);
   if (navigator.vibrate) navigator.vibrate(8);
   sfx.react();
@@ -711,7 +715,7 @@ function ink(on) {
   const d = document.createElement('div');
   d.className = 'ink' + (on ? '' : ' out');
   d.style.setProperty('--ink-s', Math.ceil((2 * Math.hypot(innerWidth, innerHeight)) / 40) + 1);
-  document.body.appendChild(d);
+  ROOT.appendChild(d);
   setTimeout(() => d.classList.add('done'), 650);
   setTimeout(() => d.remove(), 1050);
 }
@@ -721,8 +725,8 @@ function applyLook() {
   const v = !!S.state.vanish_on;
   if (lastVanish !== null && lastVanish !== v && !document.querySelector('.ink')) ink(v); // the other person flipped it
   lastVanish = v;
-  applyTheme(S.state.theme, v);
-  document.body.classList.toggle('vanish', v);
+  applyTheme(S.state.theme, v, ROOT, { page: shown });
+  ROOT.classList.toggle('vanish', v);
   applyWall();
   $('#vanish-banner').hidden = !v;
   $('#vanish-switch').setAttribute('aria-checked', v);
@@ -733,18 +737,18 @@ function applyLook() {
 let wallFor = '';
 function applyWall() {
   const w = String(S.state.wallpaper || 'dots'), kind = wallKind(w);
-  document.body.dataset.wall = kind;
-  if (kind !== 'photo') { document.body.style.removeProperty('--wall-img'); wallFor = ''; return; }
+  ROOT.dataset.wall = kind;
+  if (kind !== 'photo') { ROOT.style.removeProperty('--wall-img'); wallFor = ''; return; }
   if (wallFor === w) return;
   wallFor = w;
-  D.fileUrl('pics', w.slice(6)).then((url) => { if (url && wallFor === w) document.body.style.setProperty('--wall-img', `url("${url}")`); });
+  D.fileUrl('pics', w.slice(6)).then((url) => { if (url && wallFor === w) ROOT.style.setProperty('--wall-img', `url("${url}")`); });
 }
 
 // Bubble shape and text size: a per-device choice.
 const look = Object.assign({ shape: 'round', size: 'm' }, store.get('dm-look', {}));
 function applyBubbleLook() {
-  document.body.classList.toggle('bub-bouncy', look.shape === 'bouncy');
-  document.body.classList.remove('text-s', 'text-m', 'text-l'); document.body.classList.add('text-' + look.size);
+  ROOT.classList.toggle('bub-bouncy', look.shape === 'bouncy');
+  ROOT.classList.remove('text-s', 'text-m', 'text-l'); ROOT.classList.add('text-' + look.size);
   document.querySelectorAll('[data-shape]').forEach((b) => b.setAttribute('aria-checked', b.dataset.shape === look.shape));
   document.querySelectorAll('[data-size]').forEach((b) => b.setAttribute('aria-checked', b.dataset.size === look.size));
 }
@@ -923,16 +927,50 @@ function transcript(data) {
 }
 
 /* ---------------- start ---------------- */
-(async function start() {
-  await requireLogin();
+// The app shell calls this once (the chat can be loaded while another section is showing: show = false).
+// Returns the controls the shell uses when you switch to and away from Chat.
+let mounted = null;
+export function mountChat(root = ROOT, { show = true } = {}) {
+  if (root !== ROOT) throw new Error('mountChat: the chat markup must be #dm-root');
+  shown = show;
+  mounted = mounted || start();
+  const api = {
+    isShown: () => shown,
+    show() {
+      if (shown) return;
+      shown = true;
+      hiddenUnread = 0; setTitle();
+      D.setHere(true);
+      readIfLooking();
+      if (!coarse) input.focus({ preventScroll: true });
+    },
+    // Leaving the chat for another section counts as leaving: vanish-mode messages go, presence and typing stop.
+    hide() {
+      if (!shown) return;
+      shown = false;
+      D.vanishSweepOnLeave(); render();
+      D.sendTyping(false);
+      D.setHere(false);
+      closeMenu(); if (pickerOpen()) closePicker(); if (!det.hidden) closeDetails();
+      input.blur(); document.body.classList.remove('typing');
+    },
+  };
+  return mounted.then(() => api);
+}
+
+async function start() {
+  if (!me) await requireLogin();
   document.body.classList.toggle('calm', !!store.get('sr-calm', false));
-  hydrateIcons();
-  mountPicker(document.body);
+  hydrateIcons(ROOT);
+  mountPicker(ROOT);
   const cached = D.loadCache();
   applyLook();
   renderHeader();
   if (cached) { render(); toBottom(false); }
   else els.older.hidden = false;
+  goLive(cached); // the network part carries on by itself; the chat is already drawn from the device
+}
+async function goLive(cached) {
   D.connect();
   try { await D.refresh(); }
   catch (e) { if (!cached) toast('Can\'t reach the chat right now. Check the connection.', 4000); }
@@ -941,5 +979,5 @@ function transcript(data) {
   D.flushOutbox();
   readIfLooking();
   D.vanishSweep().catch(() => {});
-  if (!coarse) input.focus({ preventScroll: true });
-})();
+  if (shown && !coarse) input.focus({ preventScroll: true });
+}

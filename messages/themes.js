@@ -14,10 +14,11 @@ export const THEMES = {
 export const THEME_ORDER = Object.keys(THEMES);
 export const themeName = (k) => (THEMES[k] || THEMES.candy).name;
 
-// Sets the CSS variables the chat is drawn with.
-export function applyTheme(key, vanish = false) {
+// Sets the CSS variables the chat is drawn with, on the chat's own element (so nothing else is recoloured).
+// `page`: the chat is what's on screen, so the browser's bar and the page edge take its colour too.
+export function applyTheme(key, vanish = false, el = document.documentElement, { page = true } = {}) {
   const th = THEMES[key] || THEMES.candy;
-  const root = document.documentElement.style;
+  const root = el.style;
   const dark = th.dark || vanish;
   root.setProperty('--m1', th.mine[0]); root.setProperty('--m2', th.mine[1]); root.setProperty('--m3', th.mine[2]);
   root.setProperty('--theirs', vanish ? '#262330' : th.theirs);
@@ -29,7 +30,8 @@ export function applyTheme(key, vanish = false) {
   root.setProperty('--bar', dark ? (vanish ? '#0b0a10cc' : th.bg + 'b3') : th.bg + 'b8');
   root.setProperty('--sheet', dark ? '#1d1830' : '#ffffff');
   root.setProperty('--chip', dark ? '#ffffff14' : '#2b214010');
-  document.documentElement.classList.toggle('dark', dark);
+  el.classList.toggle('dark', dark);
+  if (!page) return;
   document.documentElement.style.background = vanish ? '#0b0a10' : th.bg;
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = vanish ? '#0b0a10' : th.bg;
