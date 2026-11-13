@@ -304,15 +304,88 @@ revoke execute on function public.claim_account(text, text) from public;
 grant execute on function public.claim_account(text, text) to anon, authenticated;
 
 /* ===================== 4. (13 Nov 2026) practice games don't count toward trophies ===================== */
--- my_profile() was replaced so 'maxBonked' and 'revenge' skip practice games: in both subqueries the hits
--- are joined to public.games and filtered with "and not g.practice". The rest of the function is as in
--- section 2. XP and the other trophies skip practice games in shared/progress.mjs.
+-- my_profile() is replaced so 'maxBonked' and 'revenge' skip practice games (the hits are joined to
+-- public.games and filtered with "not g.practice"). XP and the other trophies skip practice games in
+-- shared/progress.mjs. This is the live version (checked against the database on 13 Nov 2026).
+create or replace function public.my_profile() returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare me text := public.my_id(); out jsonb;
+begin
+  if me is null then raise exception 'not logged in'; end if;
+  update public.players set last_seen = now() where id = me;
+  select jsonb_build_object(
+    'me', (select jsonb_build_object('id', id, 'name', name, 'avatar', avatar, 'theme', theme) from public.players where id = me),
+    'games', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'kind', kind, 'room', room, 'practice', practice,
+        'started_at', started_at, 'ended_at', ended_at, 'winners', winners, 'players', players, 'mine', stats -> me) order by ended_at)
+      from public.games where players @> jsonb_build_array(jsonb_build_object('id', me))), '[]'),
+    'myHits', coalesce((select jsonb_agg(t) from (select game_id, kind, count(*)::int as n, coalesce(sum(cards), 0)::int as cards,
+        max(cards)::int as biggest from public.hits where by_player = me group by game_id, kind) t), '[]'),
+    'maxBonked', (select coalesce(max(n), 0)::int from (select count(*) as n from public.hits h join public.games g on g.id = h.game_id
+        where h.kind = 'bonk' and h.to_player = me and not g.practice group by h.game_id) t),
+    'revenge', coalesce((select jsonb_agg(distinct a.kind) from public.hits a join public.games g on g.id = a.game_id
+        where a.to_player = me and not g.practice and exists (
+        select 1 from public.hits b where b.game_id = a.game_id and b.kind = a.kind and b.by_player = me
+        and b.to_player = a.by_player and b.id > a.id)), '[]'),
+    'chats', (select count(*)::int from public.chat_messages where sender = me),
+    'rivalry', coalesce((select jsonb_agg(r) from (select r.*, coalesce(pb.name, replace(r.by_player, 'bot:', '')) as by_name,
+        coalesce(pt.name, replace(r.to_player, 'bot:', '')) as to_name
+        from public.rivalry r left join public.players pb on pb.id = r.by_player left join public.players pt on pt.id = r.to_player
+        where r.by_player = me or r.to_player = me order by r.times desc) r), '[]'),
+    'db', jsonb_build_object('games', (select count(*) from public.games), 'messages', (select count(*) from public.chat_messages),
+        'hits', (select count(*) from public.hits), 'last_game', (select max(ended_at) from public.games), 'at', now()),
+    'stored', coalesce((select jsonb_object_agg(achievement, unlocked_at) from public.achievements where player_id = me), '{}')
+  ) into out;
+  return out;
+end $$;
 
 /* ===================== 5. (13 Nov 2026) challenges ===================== */
--- Table public.challenges (from_player, to_player, kind, room, status open|accepted|declined|cancelled),
--- readable by either player; RPCs send_challenge(to, kind), challenge_room(id, room) and
--- answer_challenge(id, accept); added to the supabase_realtime publication. Applied as migration "challenges".
--- Its kind check allows ('ludo', 'plusfour', 'doodle', 'snakes', 'sundae', 'sticky'); 'sticky' added 13 Nov 2026 by migration "add_sticky_kind" (also in save_game and save_chat).
+-- "Kunju challenges you to Ludo!" Applied as migration "challenges"; 'sundae' and 'sticky' were added to the
+-- kind check later (migration "add_sticky_kind" for sticky, which also widened save_game and save_chat).
+-- Written out from the live database on 13 Nov 2026.
+create table public.challenges (
+  id          bigint generated always as identity primary key,
+  from_player text not null references public.players(id),
+  to_player   text not null references public.players(id),
+  kind        text not null check (kind in ('ludo', 'plusfour', 'doodle', 'snakes', 'sundae', 'sticky')),
+  room        text check (room ~ '^[A-Z0-9]{6}$'),
+  status      text not null default 'open' check (status in ('open', 'accepted', 'declined', 'cancelled')),
+  created_at  timestamptz not null default now()
+);
+create index challenges_to_idx on public.challenges (to_player, created_at desc);
+create index challenges_from_idx on public.challenges (from_player, created_at desc);
+alter table public.challenges enable row level security;
+create policy "see your own challenges" on public.challenges for select
+  using (exists (select 1 from public.players p where p.uid = auth.uid() and p.id = any (array[challenges.from_player, challenges.to_player])));
+
+-- Challenge a friend (cancels your earlier open challenge to them). Returns the challenge id.
+create or replace function public.send_challenge(p_to text, p_kind text) returns bigint
+language plpgsql security definer set search_path = '' as $$
+declare me text := public.my_id(); cid bigint;
+begin
+  if me is null then raise exception 'not logged in'; end if;
+  if p_to = me or not exists (select 1 from public.players where id = p_to and uid is not null) then raise exception 'no such friend'; end if;
+  update public.challenges set status = 'cancelled' where from_player = me and to_player = p_to and status = 'open';
+  insert into public.challenges (from_player, to_player, kind) values (me, p_to, p_kind) returning id into cid;
+  return cid;
+end $$;
+
+-- The challenger's game page tells the database its room code, so Accept can drop the friend in.
+create or replace function public.challenge_room(p_id bigint, p_room text) returns void
+language sql security definer set search_path = '' as $$
+  update public.challenges set room = p_room where id = p_id and from_player = public.my_id() and status = 'open' and p_room ~ '^[A-Z0-9]{6}$'
+$$;
+
+create or replace function public.answer_challenge(p_id bigint, p_accept boolean) returns void
+language sql security definer set search_path = '' as $$
+  update public.challenges set status = case when p_accept then 'accepted' else 'declined' end
+  where id = p_id and to_player = public.my_id() and status = 'open'
+$$;
+
+revoke execute on function public.send_challenge(text, text), public.challenge_room(bigint, text),
+  public.answer_challenge(bigint, boolean) from public, anon;
+grant execute on function public.send_challenge(text, text), public.challenge_room(bigint, text),
+  public.answer_challenge(bigint, boolean) to authenticated;
+alter publication supabase_realtime add table public.challenges;
 
 /* ===================== 6. (13 Nov 2026) Messages ===================== */
 -- The private chat (messages.html): tables dm_messages, dm_reactions, dm_state; players.pic / pic_mode;
