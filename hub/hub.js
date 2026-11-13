@@ -198,6 +198,8 @@ function showTab(name, { animate = true, sound = false } = {}) {
   if (animate && from !== -1 && from !== to) $('#tab-' + name).classList.add(to > from ? 'from-right' : 'from-left');
   if (sound) sfx.pop();
   currentTab = name;
+  $('#screen-hub').dataset.tab = name;
+  document.querySelectorAll('[data-sub]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.sub === name));
   if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
   if (name === 'trophies') openedTrophies();
   if (name === 'rivals') stampTickets();
@@ -206,6 +208,7 @@ function showTab(name, { animate = true, sound = false } = {}) {
   if (innerWidth < 760) scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
 }
 document.querySelectorAll('.tab[data-tab]').forEach((t) => (t.onclick = () => showTab(t.dataset.tab, { sound: true })));
+document.querySelectorAll('[data-sub]').forEach((b) => (b.onclick = () => showTab(b.dataset.sub, { sound: true })));
 document.querySelectorAll('[data-go]').forEach((a) => (a.onclick = (e) => { e.preventDefault(); showTab(a.dataset.go, { sound: true }); }));
 addEventListener('hashchange', () => { if (hubShown && tabFromHash() !== currentTab) showTab(tabFromHash(), { sound: true }); });
 document.addEventListener('keydown', (e) => {

@@ -506,3 +506,13 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) { .hc-art i { animation: none; } }
 .calm .hc-art i { animation: none !important; }
+
+/* Phones: Trophies and Rivals live under Games, so the bottom bar is Home / Games / Chat / You */
+.games-sub { display: none; }
+@media (max-width: 760px) {
+  .tab[data-tab="trophies"], .tab[data-tab="rivals"] { display: none; }
+  #screen-hub:is([data-tab="play"], [data-tab="trophies"], [data-tab="rivals"]) .games-sub { display: flex; gap: 8px; justify-content: center; }
+  .games-sub button { flex: 1; min-height: 40px; border: 3px solid var(--ink); border-radius: 999px; background: var(--paper); font: 700 14px var(--body); color: var(--ink); }
+  .games-sub button[aria-pressed="true"] { background: var(--cta); color: var(--cta-ink); box-shadow: 2px 3px 0 var(--ink); }
+  #screen-hub:is([data-tab="trophies"], [data-tab="rivals"]) .tab[data-tab="play"] { background: var(--cta); color: var(--cta-ink); border-color: var(--ink); box-shadow: 2px 3px 0 var(--ink); }
+}

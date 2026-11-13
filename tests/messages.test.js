@@ -134,3 +134,13 @@ test('export keeps everything except vanish messages and unsent drafts', () => {
   assert.equal(out.messages[1].voice_file, 'voice/abc.webm');
   assert.equal(out.people[0].nickname, 'Bunny');
 });
+
+test('wallpapers: names, photo detection, and the system line', () => {
+  assert.equal(L.wallKind('photo:abc/wall-1.webp'), 'photo');
+  assert.equal(L.wallKind('hearts'), 'hearts');
+  assert.equal(L.wallKind('nonsense'), 'dots');
+  assert.equal(L.wallKind(null), 'dots');
+  const name = (id) => (id === 'ammu' ? 'Ammu' : 'Kunju');
+  assert.equal(L.systemText({ sender: 'ammu', meta: { event: 'wall', value: 'stars' } }, 'ammu', name), 'You changed the wallpaper to Starry night');
+  assert.equal(L.systemText({ sender: 'panchara kunju', meta: { event: 'wall', value: 'photo' } }, 'ammu', name), 'Kunju set a photo as the wallpaper');
+});

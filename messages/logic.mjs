@@ -153,10 +153,15 @@ export function preview(m) {
 }
 
 // The small grey line a theme / nickname / vanish change leaves. `name(id)` gives a display name.
+// Chat wallpapers (synced for both people). 'photo' is someone's own picture.
+export const WALLS = { dots: 'Dots', sprinkles: 'Sprinkles', hearts: 'Hearts', stars: 'Starry night', critters: 'Critters', doodles: 'Doodles', plain: 'Plain', photo: 'a photo' };
+export const wallKind = (w) => (String(w || 'dots').startsWith('photo:') ? 'photo' : WALLS[w] ? w : 'dots');
+
 export function systemText(m, meId, name, themeName = (k) => k) {
   const who = m.sender === meId ? 'You' : name(m.sender);
   const e = m.meta || {};
   if (e.event === 'theme') return `${who} changed the theme to ${themeName(e.value)}`;
+  if (e.event === 'wall') return e.value === 'photo' ? `${who} set a photo as the wallpaper` : `${who} changed the wallpaper to ${WALLS[e.value] || e.value}`;
   if (e.event === 'vanish') return e.value ? `${who} turned on vanish mode` : `${who} turned off vanish mode`;
   if (e.event === 'nick') {
     const target = e.for === m.sender ? (m.sender === meId ? 'your' : 'their') : e.for === meId ? 'your' : `${name(e.for)}'s`;

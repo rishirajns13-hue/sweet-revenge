@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://tzksdygcuykycrmwwxrv.supabase.co" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/base.css?v=16">
-  <link rel="stylesheet" href="messages/messages.css?v=2">
+  <link rel="stylesheet" href="messages/messages.css?v=4">
 </head>
 <body class="dm">
   <div class="dm-app" id="app">
@@ -77,13 +77,13 @@
           <svg class="ic arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
         </button>
       </div>
+    </footer>
       <nav class="dm-nav" aria-label="Sections">
         <a href="index.html#home"><span aria-hidden="true">🏠</span><b>Home</b></a>
         <a href="index.html#play"><span aria-hidden="true">🎮</span><b>Games</b></a>
         <a href="messages.html" aria-current="page"><span aria-hidden="true">💬</span><b>Chat</b></a>
         <a href="index.html#me"><span aria-hidden="true">🧸</span><b>You</b></a>
       </nav>
-    </footer>
   </div>
 
   <!-- long-press / right-click menu -->
@@ -111,6 +111,27 @@
         </section>
 
         <section class="d-sec">
+          <h3>Wallpaper</h3>
+          <div class="wall-grid" id="wall-grid"></div>
+          <label class="d-btn file"><input type="file" accept="image/*" id="wall-file" hidden>Use a photo</label>
+        </section>
+
+        <section class="d-sec">
+          <h3>Bubbles <small class="d-note">just on this device</small></h3>
+          <div class="look-row"><span>Shape</span>
+            <div class="seg" role="radiogroup" aria-label="Bubble shape" id="seg-shape">
+              <button type="button" role="radio" data-shape="round">Round</button>
+              <button type="button" role="radio" data-shape="bouncy">Bouncy</button>
+            </div></div>
+          <div class="look-row"><span>Text size</span>
+            <div class="seg" role="radiogroup" aria-label="Text size" id="seg-size">
+              <button type="button" role="radio" data-size="s">S</button>
+              <button type="button" role="radio" data-size="m">M</button>
+              <button type="button" role="radio" data-size="l">L</button>
+            </div></div>
+        </section>
+
+        <section class="d-sec">
           <h3>Nicknames</h3>
           <form class="nick" data-for="other"><label><span id="nick-other-label">Their nickname</span><input maxlength="30" placeholder="Add a nickname" autocomplete="off"></label><button class="d-btn" type="submit">Save</button></form>
           <form class="nick" data-for="me"><label><span>Your nickname</span><input maxlength="30" placeholder="Add a nickname" autocomplete="off"></label><button class="d-btn" type="submit">Save</button></form>
@@ -120,7 +141,7 @@
           <h3>Your profile picture</h3>
           <div class="pic-row">
             <span class="face lg" id="d-my-face"></span>
-            <div class="seg" role="radiogroup" aria-label="Show">
+            <div class="seg" id="seg-pic" role="radiogroup" aria-label="Show">
               <button type="button" role="radio" data-pic="photo">Photo</button>
               <button type="button" role="radio" data-pic="critter">Critter</button>
             </div>
@@ -155,6 +176,6 @@
   <script src="shared/core.js?v=14"></script>
   <script src="shared/avatars.js?v=4"></script>
   <script src="shared/sound.js?v=1"></script>
-  <script type="module" src="messages/app.js?v=2"></script>
+  <script type="module" src="messages/app.js?v=3"></script>
 </body>
 </html>

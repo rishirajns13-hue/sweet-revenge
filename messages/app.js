@@ -2,6 +2,7 @@
 // gesture; data.js talks to the database, logic.mjs holds the tested pure parts.
 // Needs the classic scripts loaded first: shared/core.js, shared/avatars.js, shared/sound.js.
 import * as L from './logic.mjs';
+const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js';
 import * as D from './data.js';
 import * as V from './voice.js';
@@ -722,10 +723,34 @@ function applyLook() {
   lastVanish = v;
   applyTheme(S.state.theme, v);
   document.body.classList.toggle('vanish', v);
+  applyWall();
   $('#vanish-banner').hidden = !v;
   $('#vanish-switch').setAttribute('aria-checked', v);
   setPull(0);
 }
+
+// The wallpaper is shared; a photo wallpaper loads through a private link.
+let wallFor = '';
+function applyWall() {
+  const w = String(S.state.wallpaper || 'dots'), kind = wallKind(w);
+  document.body.dataset.wall = kind;
+  if (kind !== 'photo') { document.body.style.removeProperty('--wall-img'); wallFor = ''; return; }
+  if (wallFor === w) return;
+  wallFor = w;
+  D.fileUrl('pics', w.slice(6)).then((url) => { if (url && wallFor === w) document.body.style.setProperty('--wall-img', `url("${url}")`); });
+}
+
+// Bubble shape and text size: a per-device choice.
+const look = Object.assign({ shape: 'round', size: 'm' }, store.get('dm-look', {}));
+function applyBubbleLook() {
+  document.body.classList.toggle('bub-bouncy', look.shape === 'bouncy');
+  document.body.classList.remove('text-s', 'text-m', 'text-l'); document.body.classList.add('text-' + look.size);
+  document.querySelectorAll('[data-shape]').forEach((b) => b.setAttribute('aria-checked', b.dataset.shape === look.shape));
+  document.querySelectorAll('[data-size]').forEach((b) => b.setAttribute('aria-checked', b.dataset.size === look.size));
+}
+applyBubbleLook();
+$('#seg-shape').addEventListener('click', (e) => { const b = e.target.closest('[data-shape]'); if (!b) return; look.shape = b.dataset.shape; store.set('dm-look', look); applyBubbleLook(); });
+$('#seg-size').addEventListener('click', (e) => { const b = e.target.closest('[data-size]'); if (!b) return; look.size = b.dataset.size; store.set('dm-look', look); applyBubbleLook(); });
 
 /* ---------------- details panel ---------------- */
 const det = els.details;
@@ -747,8 +772,11 @@ function renderDetails() {
   $('#d-real').textContent = o && nick(o) ? (S.players[o] || {}).name : '';
   $('#theme-grid').innerHTML = THEME_ORDER.map((k) => {
     const t = THEMES[k];
-    return `<button type="button" data-theme="${k}" aria-pressed="${S.state.theme === k}"><span class="sw" style="--a:${t.mine[0]};--b:${t.mine[1]};--c:${t.mine[2]};--bg:${t.bg}"></span>${t.name}</button>`;
+    return `<button type="button" data-theme="${k}" aria-pressed="${S.state.theme === k}"><span class="pv" style="--a:${t.mine[0]};--b:${t.mine[1]};--c:${t.mine[2]};--bg:${t.bg};--th:${t.theirs}"><i class="p1"></i><i class="p2"></i><i class="p3"></i></span>${t.name}</button>`;
   }).join('');
+  const cur = wallKind(S.state.wallpaper);
+  $('#wall-grid').innerHTML = Object.keys(WALLS).filter((k) => k !== 'photo' || cur === 'photo').map((k) =>
+    `<button type="button" data-wallpick="${k}" aria-pressed="${cur === k}"><span class="wp" data-wall="${k}"${k === 'photo' ? ` style="background-image:var(--wall-img)"` : ''}><i class="p1"></i><i class="p2"></i></span>${k === 'photo' ? 'Your photo' : WALLS[k]}</button>`).join('');
   $('#nick-other-label').textContent = o ? `${(S.players[o] || {}).name || 'Their'}'s nickname` : 'Their nickname';
   const [fo, fm] = document.querySelectorAll('.nick');
   if (document.activeElement !== fo.querySelector('input')) fo.querySelector('input').value = (o && nick(o)) || '';
@@ -765,6 +793,29 @@ $('#theme-grid').addEventListener('click', (e) => {
   applyLook(); renderDetails();
   D.setState({ theme: b.dataset.theme }).catch(() => { S.state = { ...S.state, theme: before }; applyLook(); renderDetails(); toast('The theme didn\'t change. Check the connection.'); });
 });
+$('#wall-grid').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-wallpick]'); if (!b) return;
+  const k = b.dataset.wallpick;
+  if (k === 'photo' || k === wallKind(S.state.wallpaper)) return;
+  D.setWall(k).catch(() => toast('The wallpaper didn\'t change. Check the connection.'));
+});
+$('#wall-file').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    toast('Uploading the wallpaper…', 5000);
+    await D.setWallPhoto(await fitPhoto(file, 1600));
+    toast('Wallpaper updated');
+  } catch (err) { toast('That photo didn\'t upload. Try a different one.'); }
+});
+async function fitPhoto(file, max) {
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('encode'))), 'image/webp', 0.82));
+}
 document.querySelectorAll('.nick').forEach((f) => f.addEventListener('submit', (e) => {
   e.preventDefault();
   const id = f.dataset.for === 'me' ? me.user : otherId();
@@ -772,7 +823,7 @@ document.querySelectorAll('.nick').forEach((f) => f.addEventListener('submit', (
   if ((nick(id) || '') === v) return;
   D.setState({ nickFor: id, nick: v }).then(() => toast(v ? 'Nickname saved' : 'Nickname cleared'), () => toast('The nickname didn\'t save. Check the connection.'));
 }));
-document.querySelector('.seg').addEventListener('click', (e) => {
+$('#seg-pic').addEventListener('click', (e) => {
   const b = e.target.closest('[data-pic]'); if (!b) return;
   if (b.dataset.pic === 'photo' && !(S.players[me.user] || {}).pic) { $('#pic-file').click(); return; }
   D.setPicMode(b.dataset.pic).catch(() => toast('That didn\'t save. Check the connection.'));

@@ -271,6 +271,24 @@ export async function setState(fields) {
   S.state = data; emit('state'); saveCache();
 }
 
+// Chat wallpaper, for both people. A photo is shrunk to 1600 px and kept in the pics bucket.
+export async function setWall(value) {
+  const before = S.state.wallpaper;
+  S.state = { ...S.state, wallpaper: value }; emit('state');
+  const { data, error } = await sb.rpc('dm_wall', { p_wall: value });
+  if (error) { S.state = { ...S.state, wallpaper: before }; emit('state'); throw error; }
+  S.state = data; emit('state'); saveCache();
+}
+export async function setWallPhoto(blob) {
+  const type = /png|jpeg/.test(blob.type) ? blob.type : 'image/webp';
+  const path = `${me.uid}/wall-${Date.now()}.${type.split('/')[1].replace('jpeg', 'jpg')}`;
+  const up = await sb.storage.from('pics').upload(path, blob, { contentType: type });
+  if (up.error) throw up.error;
+  const old = String(S.state.wallpaper || '');
+  await setWall('photo:' + path);
+  if (old.startsWith('photo:' + me.uid + '/')) sb.storage.from('pics').remove([old.slice(6)]).then(() => {});
+}
+
 // Marks the other person's messages seen (only while the chat is on screen).
 let readT = 0;
 export function markRead() {

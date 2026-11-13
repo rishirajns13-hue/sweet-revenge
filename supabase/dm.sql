@@ -213,3 +213,20 @@ create policy "friends use dm channel" on realtime.messages for select to authen
   using (realtime.topic() = 'dm' and (select public.dm_member()));
 create policy "friends send on dm channel" on realtime.messages for insert to authenticated
   with check (realtime.topic() = 'dm' and (select public.dm_member()));
+
+-- 13 Nov 2026: shared chat wallpaper (applied as migration dm_wallpaper).
+alter table public.dm_state add column if not exists wallpaper text not null default 'dots';
+create or replace function public.dm_wall(p_wall text) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare me text := public.my_id(); st public.dm_state%rowtype;
+begin
+  if me is null or me not in ('ammu', 'panchara kunju') then raise exception 'not in this chat'; end if;
+  if p_wall is null or not (p_wall ~ '^(plain|dots|sprinkles|hearts|stars|critters|doodles)$'
+      or p_wall ~ ('^photo:' || (select auth.uid())::text || '/[A-Za-z0-9._-]{1,80}$')) then raise exception 'bad wallpaper'; end if;
+  update public.dm_state set wallpaper = p_wall, updated_at = now() where id = 1;
+  insert into public.dm_messages (id, sender, kind, meta)
+  values (gen_random_uuid(), me, 'system', jsonb_build_object('event', 'wall', 'value', case when p_wall like 'photo:%' then 'photo' else p_wall end));
+  select * into st from public.dm_state where id = 1;
+  return to_jsonb(st);
+end $$;
+grant execute on function public.dm_wall(text) to authenticated;
