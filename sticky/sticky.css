@@ -52,3 +52,12 @@ kbd { display: inline-block; min-width: 22px; padding: 0 6px; margin: 0 1px; bor
 @media (prefers-reduced-motion: reduce) { .st-best.new { animation: none; } }
 .st-stat { margin: 0; text-align: center; font-weight: 700; color: var(--muted); }
 .st-end-actions { display: grid; gap: 10px; }
+/* Phones: leave, meter and sound on the first line; chat buttons, then fall counters, on their own lines. */
+@media (max-width: 600px) {
+  .st-hud { flex-wrap: wrap; gap: 8px; }
+  .st-meter { min-width: 0; flex: 1; }
+  #btn-mute { order: 3; }
+  .st-tools { order: 4; flex-basis: 100%; }
+  .st-falls { order: 5; flex-basis: 100%; margin-left: 0; flex-wrap: wrap; gap: 6px; }
+  .st-falls span { white-space: nowrap; font-size: 12px; padding: 3px 10px; border-width: 2px; }
+}
