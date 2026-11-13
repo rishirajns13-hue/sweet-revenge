@@ -6,7 +6,7 @@
 //  2. Sending shows the bubble at once; the database write happens behind it, and failed sends wait in
 //     an outbox (kept with the cache) and are retried.
 //  3. One realtime channel brings new messages, edits, reactions, seen receipts, typing and "active now".
-import { merge } from './logic.mjs?v=3';
+import { merge } from './logic.mjs?v=5';
 
 const CACHE_MAX = 400, WINDOW = 200, PAGE = 50;
 const listeners = new Set();
@@ -315,18 +315,26 @@ export function markRead() {
 // closing, so it's a plain keepalive request instead of supabase-js.
 export function vanishSweepOnLeave() {
   if (!S.messages.some((m) => m.vanish && m.seen_at && m.sender !== me.user)) return;
+  const post = (fn, body) => fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, {
+    method: 'POST', keepalive: true, body: JSON.stringify(body),
+    headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + me.proof, 'Content-Type': 'application/json' },
+  });
+  // The server only deletes vanish messages it knows were seen. A "seen" still waiting (it goes out
+  // 250 ms after reading) is sent first, and the delete only after it has landed.
+  const pending = !!readT;
+  if (pending) { clearTimeout(readT); readT = 0; }
   try {
-    fetch(`${SUPABASE_URL}/rest/v1/rpc/dm_vanish_sweep`, {
-      method: 'POST', keepalive: true,
-      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + me.proof, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_mine_only: true }),
-    });
+    (pending ? post('dm_read', {}).catch(() => {}) : Promise.resolve())
+      .then(() => post('dm_vanish_sweep', { p_mine_only: true }))
+      .catch(() => { /* the next open sweeps instead */ });
   } catch (e) { /* the next open sweeps instead */ }
   S.messages = S.messages.filter((m) => !(m.vanish && m.seen_at && m.sender !== me.user));
   saveCache();
 }
-export async function vanishSweep() {
-  const { data } = await sb.rpc('dm_vanish_sweep', { p_mine_only: true });
+// mineOnly = false: every seen vanish message, both directions (used when vanish mode is turned off).
+export async function vanishSweep(mineOnly = true) {
+  const { data, error } = await sb.rpc('dm_vanish_sweep', { p_mine_only: mineOnly });
+  if (error) throw error;
   return data || [];
 }
 

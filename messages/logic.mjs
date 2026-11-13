@@ -263,7 +263,8 @@ export function paletteFromPixels(data, { forceDark = false } = {}) {
   const textMine = '#ffffff';
   const mine = picked.map(([h, s, l]) => {
     let c = [h, Math.max(s, 0.62), Math.min(0.58, Math.max(0.45, l))];
-    for (let i = 0; i < 20 && contrast(textMine, toHex(rgbOf(c))) < 4.5; i++) c = [c[0], c[1], c[2] - 0.025];
+    // 5:1, not 4.5: the bubble gradient blends these, and a blend can land a little lighter than either end
+    for (let i = 0; i < 24 && contrast(textMine, toHex(rgbOf(c))) < 5; i++) c = [c[0], c[1], c[2] - 0.025];
     return toHex(rgbOf(c));
   });
   const dark = forceDark || (n ? lSum / n < 0.4 : false);

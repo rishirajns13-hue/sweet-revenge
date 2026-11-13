@@ -1,12 +1,12 @@
 // Messages: the private chat between the two friends. This file draws the chat and handles every
 // gesture; data.js talks to the database, logic.mjs holds the tested pure parts.
 // Needs the classic scripts loaded first: shared/core.js, shared/avatars.js, shared/sound.js.
-import * as L from './logic.mjs?v=3';
+import * as L from './logic.mjs?v=5';
 const { WALLS, wallKind } = L;
-import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=3';
-import * as D from './data.js?v=3';
-import * as V from './voice.js?v=2';
-import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=2';
+import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
+import * as D from './data.js?v=5';
+import * as V from './voice.js?v=4';
+import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=4';
 
 const S = D.S;
 // Everything the chat draws lives inside #dm-root, so its theme and classes never leak into the rest of the app.
@@ -296,7 +296,8 @@ function showTyping() {
 /* ---------------- reading, presence, the tab title ---------------- */
 const looking = () => inThread() && !document.hidden && document.hasFocus();
 function readIfLooking() { if (looking()) D.markRead(); }
-function setTitle() { if (shown) document.title = (hiddenUnread ? `(${hiddenUnread}) ` : '') + 'Messages · Sweet Revenge'; }
+// The app shell owns the tab title (it shows the unread count everywhere); this just asks it to update.
+function setTitle() { if (window.srSetTitle) window.srSetTitle(); else if (shown) document.title = (hiddenUnread ? `(${hiddenUnread}) ` : '') + 'Messages · Sweet Revenge'; }
 addEventListener('focus', () => { readIfLooking(); D.setHere(inThread()); });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
@@ -471,6 +472,18 @@ async function finishRec(send) {
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && rec) cancelRec(); });
 
 function voiceEl(id) { return els.thread.querySelector(`.row[data-id="${CSS.escape(id)}"] .voice`); }
+
+// The hover buttons (reply, react, more) sit level with the bubble, not with the middle of the whole
+// row: a reply has its quote above the bubble and reactions can hang below it.
+function placeTools(row) {
+  const tools = row.querySelector('.tools'), bub = row.querySelector('.bub');
+  if (!tools || !bub || !tools.offsetParent) return;
+  const r = row.getBoundingClientRect(), b = bub.getBoundingClientRect();
+  tools.style.alignSelf = 'flex-start';
+  tools.style.marginTop = Math.max(0, b.top - r.top + b.height / 2 - tools.offsetHeight / 2) + 'px';
+}
+els.thread.addEventListener('pointerover', (e) => { const row = e.target.closest('.row'); if (row && !row.contains(e.relatedTarget)) placeTools(row); });
+els.thread.addEventListener('focusin', (e) => { const row = e.target.closest('.row'); if (row) placeTools(row); });
 function nextVoiceButton(id) {
   const i = S.messages.findIndex((m) => m.id === id);
   const n = S.messages[i + 1];
@@ -725,7 +738,10 @@ function toggleVanish(on = !S.state.vanish_on) {
   ink(on);
   S.state = { ...S.state, vanish_on: on };
   setTimeout(applyLook, reduced ? 0 : 320);
-  D.setState({ vanish: on }).catch(() => { S.state = { ...S.state, vanish_on: !on }; applyLook(); toast('Vanish mode didn\'t change. Check the connection.'); });
+  D.setState({ vanish: on })
+    // Turning it off clears what was seen in vanish mode, for both of you (as on Instagram).
+    .then(() => { if (!on) return D.vanishSweep(false).then(() => D.refresh()); })
+    .catch(() => { S.state = { ...S.state, vanish_on: !on }; applyLook(); toast('Vanish mode didn\'t change. Check the connection.'); });
 }
 let lastVanish = null;
 function ink(on) {
@@ -756,7 +772,7 @@ function applyLook() {
 // (logic.mjs paletteFromPixels), so both phones get the same ones without saving anything. Picking a
 // theme while a photo is up goes back to theme colours on this device; "From your photo" turns it back on.
 let wallFor = '';
-const palKey = (w) => 'dm-wall-pal2:' + w, palOffKey = (w) => 'dm-wall-pal-off:' + w;
+const palKey = (w) => 'dm-wall-pal3:' + w, palOffKey = (w) => 'dm-wall-pal-off:' + w;
 const photoColoursOn = (w) => !store.get(palOffKey(w), false);
 function applyWall() {
   const w = String(S.state.wallpaper || 'dots'), kind = wallKind(w);
@@ -785,7 +801,7 @@ function photoColours(url) {
         const c = document.createElement('canvas'); c.width = c.height = 64;
         const g = c.getContext('2d', { willReadFrequently: true });
         g.drawImage(img, 0, 0, 64, 64);
-        resolve(L.paletteFromPixels(g.getImageData(0, 0, 64, 64).data, { forceDark: true }));
+        resolve(L.paletteFromPixels(g.getImageData(0, 0, 64, 64).data));
       } catch (e) { reject(e); }
     };
     img.onerror = reject;

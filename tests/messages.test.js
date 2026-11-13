@@ -178,18 +178,21 @@ test('the same photo always gives the same colours', () => {
   assert.deepEqual(L.paletteFromPixels(a), L.paletteFromPixels(a));
 });
 
-/* ---------- the chat is dark, like Instagram DMs ---------- */
-test('every chat theme is dark, and both bubble kinds read', async () => {
+/* ---------- chat themes: the light ones are back, plus one Instagram-dark choice ---------- */
+test('every chat theme keeps their bubbles readable, and Insta Night is one of the choices', async () => {
   const { THEMES } = await import('../messages/themes.js');
   for (const [k, t] of Object.entries(THEMES)) {
-    assert.equal(t.dark, true, k + ' is dark');
-    assert.ok(L.contrast('#f5f3f7', t.theirs) >= 4.5, `${k}: their bubbles ${t.theirs}`);
-    for (const c of t.mine) assert.ok(L.contrast('#ffffff', c) >= 3, `${k}: white on ${c}`);
+    const text = t.dark ? '#f4f0fb' : '#241c33';
+    assert.ok(L.contrast(text, t.theirs) >= 4.5, `${k}: their bubbles ${t.theirs}`);
+    for (const c of t.mine) assert.ok(L.contrast('#ffffff', c) >= 3.5, `${k}: white on my bubble ${c}`);
   }
+  assert.ok(Object.values(THEMES).some((t) => !t.dark), 'there are light themes');
+  const insta = THEMES.insta;
+  assert.ok(insta && insta.dark && insta.bg === '#000000', 'Insta Night: black');
+  assert.deepEqual(insta.mine, ['#a033ff', '#6a4dff', '#2f7bff']);
 });
 
-test('a photo can be forced to dark colours (the chat is always dark)', () => {
-  const p = L.paletteFromPixels(px('#ffffff'), { forceDark: true });
-  assert.equal(p.dark, true);
-  assert.ok(L.contrast(p.textTheirs, p.theirs) >= 4.5, `${p.textTheirs} on ${p.theirs}`);
+test('photo bubbles stay readable even where the gradient blends two colours', () => {
+  const p = L.paletteFromPixels(px('#ff2e6e', '#2bc48a', '#3459e6'));
+  for (const c of p.mine) assert.ok(L.contrast('#ffffff', c) >= 5, `white on ${c}`);
 });

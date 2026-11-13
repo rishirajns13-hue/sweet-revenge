@@ -14,16 +14,15 @@
   <link rel="stylesheet" href="shared/base.css?v=16">
   <link rel="stylesheet" href="hub/hub.css?v=27">
   <link rel="stylesheet" href="shared/themes.css?v=5">
-  <link rel="stylesheet" href="hub/night.css?v=5">
-  <link rel="stylesheet" href="messages/messages.css?v=8">
-  <link rel="stylesheet" href="hub/shell.css?v=4">
-  <link rel="stylesheet" href="hub/home.css?v=4">
-  <link rel="modulepreload" href="messages/app.js?v=11">
-  <link rel="modulepreload" href="messages/data.js?v=3">
-  <link rel="modulepreload" href="messages/logic.mjs?v=3">
-  <link rel="modulepreload" href="messages/themes.js?v=3">
-  <link rel="modulepreload" href="messages/picker.js?v=2">
-  <link rel="modulepreload" href="messages/voice.js?v=2">
+  <link rel="stylesheet" href="messages/messages.css?v=11">
+  <link rel="stylesheet" href="hub/shell.css?v=5">
+  <link rel="stylesheet" href="hub/home.css?v=5">
+  <link rel="modulepreload" href="messages/app.js?v=15">
+  <link rel="modulepreload" href="messages/data.js?v=5">
+  <link rel="modulepreload" href="messages/logic.mjs?v=5">
+  <link rel="modulepreload" href="messages/themes.js?v=5">
+  <link rel="modulepreload" href="messages/picker.js?v=4">
+  <link rel="modulepreload" href="messages/voice.js?v=4">
 </head>
 <body class="home pal-sunset">
   <div id="scene" aria-hidden="true"><i class="a up"></i><i class="b up"></i><i class="season"></i></div>
@@ -125,49 +124,42 @@
         <button type="button" data-sub="rivals">⚔️ Rivals</button>
       </nav>
       <div class="panels">
-        <!-- HOME: what to play next, the chat at a glance, the grudge, the games, your level -->
+        <!-- HOME: what's going on between you two right now -->
         <section id="tab-home" class="panel home" role="tabpanel" aria-label="Home" hidden>
           <header class="hm-head">
             <h1 id="home-hello" class="hm-hello"></h1>
             <p id="home-sub" class="hm-sub"></p>
           </header>
           <div class="hm-grid">
-            <!-- the hero: the one game that makes most sense right now, in its own art -->
-            <article class="hm-next" id="home-next" aria-labelledby="home-next-title">
-              <a class="hm-next-art" id="home-next-link" href="ludo.html" tabindex="-1" aria-hidden="true"><span id="home-next-art"></span></a>
-              <div class="hm-next-txt">
-                <span class="hm-kicker" id="home-next-kicker">Up next</span>
-                <h2 id="home-next-title"></h2>
-                <p id="home-next-sub"></p>
-                <div class="hm-next-btns">
-                  <a class="hm-btn" id="home-next-play" href="ludo.html">Play</a>
-                  <button class="hm-btn ghost" type="button" id="home-challenge">Challenge</button>
-                </div>
-              </div>
+            <!-- the chat, in miniature: their critter peeks over the top -->
+            <article class="hm-chat" id="hm-chat">
+              <span class="hm-peek" aria-hidden="true"><span class="actor" id="home-chat-face"></span></span>
+              <a class="hm-chat-head" href="#chat" data-go="chat">
+                <span class="hm-who"><b id="home-chat-name">Chat</b><small id="home-chat-status"></small></span>
+                <em id="home-chat-count" class="hm-count" hidden></em>
+                <span class="hm-open">Open chat</span>
+              </a>
+              <a class="hm-thread" href="#chat" data-go="chat" aria-label="Open the chat" tabindex="-1">
+                <ol id="home-thread"></ol>
+                <span class="hm-typing" id="home-typing" hidden><i></i><i></i><i></i></span>
+              </a>
+              <form class="hm-reply" id="home-reply" autocomplete="off">
+                <input id="home-reply-input" maxlength="4000" placeholder="Message…" aria-label="Quick reply" enterkeyhint="send">
+                <button type="submit" aria-label="Send"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+              </form>
             </article>
 
-            <!-- the chat at a glance; tapping it opens the inbox -->
-            <a class="hm-msgs" href="#chat" data-go="chat" aria-label="Open Messages">
-              <span class="hm-peek" aria-hidden="true"><span class="actor" id="home-chat-face"></span></span>
-              <span class="hm-msgs-face" aria-hidden="true"><span class="actor" id="home-chat-face-sm"></span><i class="hm-dot" id="home-chat-dot" hidden></i></span>
-              <span class="hm-msgs-txt">
-                <b id="home-chat-name">Messages</b>
-                <small id="home-chat-status"></small>
-              </span>
-              <em id="home-chat-count" class="hm-count" hidden></em>
-              <span class="hm-msgs-total" id="home-chat-total"></span>
-              <svg class="ic hm-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
-            </a>
+            <section class="hm-play" aria-labelledby="hm-play-title">
+              <div class="hm-card-head"><h2 id="hm-play-title">Play</h2><a href="#play" data-go="play">All games</a></div>
+              <a class="hm-continue" id="home-continue" hidden></a>
+              <div class="hm-tiles" id="home-tiles"></div>
+            </section>
 
             <section class="hm-grudge" aria-labelledby="hm-grudge-title">
               <div class="hm-card-head"><h2 id="hm-grudge-title">The grudge</h2><a href="#rivals" data-go="rivals">Rivals</a></div>
               <div class="hm-score" id="home-score"></div>
               <p class="hm-note" id="home-score-note"></p>
-            </section>
-
-            <section class="hm-games" aria-labelledby="hm-games-title">
-              <div class="hm-card-head"><h2 id="hm-games-title">Games</h2><a href="#play" data-go="play">All games</a></div>
-              <div class="hm-tiles" id="home-tiles"></div>
+              <button class="hm-btn" type="button" id="home-challenge">Challenge</button>
             </section>
 
             <section class="hm-level" aria-labelledby="hm-level-title">
@@ -596,11 +588,11 @@
   <!-- Start loading a game's page as soon as you hover its card, so it opens instantly. -->
   <script type="speculationrules">{ "prefetch": [{ "source": "document", "where": { "selector_matches": ".game-card" }, "eagerness": "moderate" }] }</script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
-  <script src="shared/core.js?v=16"></script>
+  <script src="shared/core.js?v=17"></script>
   <script src="shared/avatars.js?v=4"></script>
   <script src="shared/records.js?v=13"></script>
   <script src="shared/rewards.js?v=7"></script>
   <script src="shared/sound.js?v=3"></script>
-  <script src="hub/hub.js?v=34"></script>
+  <script src="hub/hub.js?v=36"></script>
 </body>
 </html>

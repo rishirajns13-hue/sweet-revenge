@@ -264,8 +264,9 @@ function applyTab(name, from, animate) {
   document.querySelectorAll('[data-sub]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.sub === name));
   if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
   // Chat: opening it shows the (already drawn) conversation; leaving it counts as leaving the chat.
-  if (name === 'chat') { document.title = 'Messages · Sweet Revenge'; ensureChat(true); }
-  else if (from === 'chat') { if (chatApi) chatApi.hide(); document.title = 'Sweet Revenge'; applyPalette(); countUnread(); }
+  setDocTitle();
+  if (name === 'chat') ensureChat(true);
+  else if (from === 'chat') { if (chatApi) chatApi.hide(); applyPalette(); countUnread(); }
   if (name === 'trophies') openedTrophies();
   if (name === 'rivals') stampTickets();
   if (name === 'me') renderYou();
@@ -292,7 +293,7 @@ let chatApi = null, chatLoad = null;
 function ensureChat(show) {
   if (!me) return Promise.resolve(null);
   if (!chatLoad) {
-    chatLoad = loginReady.then(() => import(new URL('messages/app.js?v=11', document.baseURI).href))
+    chatLoad = loginReady.then(() => import(new URL('messages/app.js?v=15', document.baseURI).href))
       .then((mod) => mod.mountChat(undefined, { show: currentTab === 'chat' }))
       .then((api) => { chatApi = api; renderHome(); return api; })
       .catch((e) => { chatLoad = null; console.error(e); toast('The chat didn\'t load. Check the connection.'); return null; });
@@ -879,85 +880,88 @@ document.addEventListener('DOMContentLoaded', () => {
   boot();
 });
 
-/* ================= HOME: what to play next, the chat at a glance, the grudge, the games, your level ================= */
-const dmPeek = { names: {}, last: null, count: 0, other: null, total: null, since: null };
+/* ================= HOME: what's going on between you two right now ================= */
+const dmPeek = { names: {}, last: null, count: 0, other: null };
 const PAIR_IDS = ['ammu', 'panchara kunju'];
 const otherOf = () => PAIR_IDS.find((id) => id !== me.user) || PAIR_IDS[0];
-// The chat at a glance: live from the chat once it has loaded, else this device's copy and the counts.
+const KIND_TEXT = { voice: 'Voice message', gif: 'GIF', sticker: 'Sticker', like: '❤️' };
+// The chat card's data: live from the chat once it has loaded, else this device's saved copy of the chat.
 function homeChatData() {
-  const o = otherOf();
-  if (chatApi) { const p = chatApi.peek(1); return { ...p, total: dmPeek.total ?? p.total, since: dmPeek.since ?? p.since }; }
-  const c = store.get('dm-cache:' + me.user, null) || {};
+  if (chatApi) return chatApi.peek(6);
+  const c = store.get('dm-cache:' + me.user, null) || {}, o = otherOf();
+  const msgs = (c.messages || []).filter((m) => m.kind !== 'system' && !(m.vanish && m.sender !== me.user)).slice(-6);
   const nick = ((c.state && c.state.nicknames) || {})[o];
-  const msgs = (c.messages || []).filter((m) => m.kind !== 'system');
-  const last = msgs[msgs.length - 1];
   return {
+    messages: msgs.map((m) => ({ id: m.id, mine: m.sender === me.user, kind: m.kind, text: m.kind === 'text' || m.kind === 'like' ? m.body : KIND_TEXT[m.kind] || '' })),
     other: o, name: nick || dmPeek.names[o] || (c.players && c.players[o] && c.players[o].name) || o.replace(/\b\w/g, (ch) => ch.toUpperCase()),
-    online: false, typing: false, status: '', unread: dmPeek.count, lastAt: last && last.created_at, total: dmPeek.total, since: dmPeek.since,
+    online: false, typing: false, status: '', unread: dmPeek.count, look: null,
   };
+}
+// The card wears the chat's own theme and wallpaper (read from the chat once it's drawn).
+const LOOK_VARS = ['--m1', '--m2', '--m3', '--theirs', '--chat-bg', '--text', '--sub', '--pat', '--ps', '--wall-img', '--wall-blur'];
+function copyChatLook() {
+  const root = $('#dm-root'), card = $('#hm-chat');
+  if (!root || !root.dataset.wall) return;
+  const cs = getComputedStyle(root);
+  LOOK_VARS.forEach((v) => { const val = cs.getPropertyValue(v).trim(); if (val) card.style.setProperty(v, val); else card.style.removeProperty(v); });
+  card.dataset.wall = root.dataset.wall;
+  card.classList.toggle('dark', root.classList.contains('dark'));
 }
 function resumeGame() {
   const games = [['plusfour-lastroom', 'plusfour.html', 'Plus Four'], ['doodle-lastroom', 'doodle.html', 'Doodle Duel'], ['ludo-lastroom', 'ludo.html', 'Ludo']];
   return games.map(([key, page, label]) => ({ ...store.get(key, {}), page, label }))
     .filter((g) => g.code && Date.now() - g.at < 3 * 3600e3).sort((a, b) => b.at - a.at)[0] || null;
 }
-// The one game that makes most sense right now: an unfinished one, then revenge for a fresh loss, then
-// the one you play most. Returns { kind, kicker, title, sub, href }.
-function upNext(them) {
-  const last = resumeGame();
-  if (last) return { kind: last.page.replace('.html', ''), kicker: 'Pick up where you left off', title: `Your ${last.label} game`, sub: `Room ${last.code} is still open.`, href: `${last.page}?room=${encodeURIComponent(last.code)}` };
-  const g = profile && profile.recent.find((x) => !x.practice);
-  const winner = g && !g.won && Date.now() - new Date(g.endedAt) < 864e5 && g.players.find((x) => !x.bot && x.id !== profile.me.id && g.winners.includes(x.id));
-  if (winner) { const label = (GAMES[g.kind] || [, g.kind])[1]; return { kind: g.kind, kicker: 'Revenge', title: `Rematch at ${label}`, sub: `${them} won ${timeAgo(g.endedAt)}. They're probably still gloating.`, href: `${g.kind}.html` }; }
-  const by = profile && profile.record && profile.record.byKind;
-  const fav = by && Object.entries(by).filter(([k]) => GAMES[k]).sort((a, b) => b[1].played - a[1].played)[0];
-  if (fav && fav[1].played) { const label = GAMES[fav[0]][1]; return { kind: fav[0], kicker: 'Up next', title: `${label} again?`, sub: `You've won ${fav[1].won} of ${plural(fav[1].played, 'game')}. ${them} wants a rematch.`, href: `${fav[0]}.html` }; }
-  return { kind: 'ludo', kicker: 'Up next', title: 'Start with Ludo', sub: 'Roll, race and bonk each other all the way home.', href: 'ludo.html' };
-}
-const cardFor = (kind) => document.querySelector(`#tab-play .game-card[href="${kind}.html"]`);
+const homeShownIds = new Set();
 function renderHome() {
-  if (!me || !$('#home-next')) return;
+  if (!me || !$('#hm-chat')) return;
   const d = homeChatData(), them = shortName(d.name), hour = new Date().getHours();
   const greet = hour < 5 ? 'Still up' : hour < 12 ? 'Good morning' : hour < 17 ? 'Hey' : hour < 22 ? 'Evening' : 'Late night';
   $('#home-hello').textContent = `${greet}, ${shortName(me.name)}.`;
+
+  // one line on what matters most right now
   const g = profile && profile.grudge && profile.grudge[d.other];
+  const lost = profile && profile.recent.find((x) => !x.practice);
+  const lostTo = lost && !lost.won && Date.now() - new Date(lost.endedAt) < 864e5 && lost.players.find((x) => x.id === d.other && lost.winners.includes(x.id));
   $('#home-sub').textContent = d.typing ? `${them} is typing…`
     : d.unread ? `${them} sent you ${d.unread === 1 ? 'a message' : d.unread + ' messages'}.`
+    : lostTo ? `${them} beat you at ${(GAMES[lost.kind] || [, lost.kind])[1]} ${timeAgo(lost.endedAt)}. Revenge?`
     : SEASON ? SEASON_LINES[SEASON]
     : g && g.me > g.them ? `You're ${g.me}–${g.them} up on ${them} in this series.`
     : g && g.them > g.me ? `${them} leads this series ${g.them}–${g.me}. Not for long.`
     : 'Pick a game, or say hi.';
 
-  // up next, drawn with that game's own card art
-  const n = upNext(them), art = $('#home-next-art');
-  if (art.dataset.kind !== n.kind) {
-    const card = cardFor(n.kind) || cardFor('ludo');
-    art.className = `${card.className} hm-art`;
-    art.innerHTML = `<span class="art">${card.querySelector('.art').innerHTML}</span>`;
-    art.dataset.kind = n.kind;
-    $('#home-next').style.setProperty('--tc', card.dataset.wipe || 'var(--accent)');
-  }
-  $('#home-next-kicker').textContent = n.kicker;
-  $('#home-next-title').textContent = n.title;
-  $('#home-next-sub').textContent = n.sub;
-  $('#home-next-play').href = $('#home-next-link').href = n.href;
-  $('#home-next-play').dataset.wipe = $('#home-next').style.getPropertyValue('--tc');
-  $('#home-challenge').textContent = `Challenge ${them}`;
-  $('#home-challenge').dataset.friend = d.other;
-
-  // the chat at a glance
-  $('#home-chat-face').innerHTML = avatarHTML(avatarFor(d.other), d.typing ? 'cheer' : d.unread ? 'smug' : 'happy');
-  $('#home-chat-face-sm').innerHTML = $('#nav-chat-face').innerHTML = avatarHTML(avatarFor(d.other));
+  // chat card
+  const face = avatarHTML(avatarFor(d.other), d.typing ? 'cheer' : d.unread ? 'smug' : 'happy');
+  $('#home-chat-face').innerHTML = face;
+  $('#nav-chat-face').innerHTML = avatarHTML(avatarFor(d.other));
   $('#home-chat-name').textContent = d.name;
-  const ago = d.lastAt ? timeAgo(d.lastAt) : '';
-  $('#home-chat-status').textContent = d.typing ? 'typing…' : d.unread ? `${d.unread > 9 ? '9+' : d.unread} new message${d.unread === 1 ? '' : 's'}${ago ? ' · ' + ago : ''}` : d.status || (ago ? 'Last message ' + ago : 'Say hi');
-  $('#home-chat-status').classList.toggle('on', !!(d.typing || d.unread));
-  $('#home-chat-dot').hidden = !d.online;
-  const c = $('#home-chat-count'); c.hidden = !d.unread; c.textContent = d.unread > 9 ? '9+' : d.unread;
-  $('#home-chat-total').textContent = d.total ? `${d.total.toLocaleString()} message${d.total === 1 ? '' : 's'} so far${d.since ? ' · since ' + new Date(d.since).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''}` : '';
+  $('#home-chat-status').textContent = d.typing ? 'typing…' : d.status;
+  $('#home-chat-status').classList.toggle('on', d.online || d.typing);
+  const c = $('#home-chat-count'); c.hidden = !d.unread; c.textContent = d.unread > 9 ? '9+ new' : `${d.unread} new`;
+  $('#home-reply-input').placeholder = `Message ${them}…`;
+  const list = $('#home-thread');
+  list.innerHTML = d.messages.length ? d.messages.map((m) => {
+    const fresh = homeShownIds.size && !homeShownIds.has(m.id);
+    const big = m.kind === 'like' || /^\p{Extended_Pictographic}{1,3}$/u.test((m.text || '').replace(/\s|️/g, ''));
+    return `<li class="${m.mine ? 'mine' : 'theirs'}${big ? ' big' : ''}${fresh ? ' in' : ''}">${escapeHtml(m.text)}</li>`;
+  }).join('') : `<li class="empty">No messages yet. Say hi to ${escapeHtml(them)}.</li>`;
+  d.messages.forEach((m) => homeShownIds.add(m.id));
+  $('#home-typing').hidden = !d.typing;
+  copyChatLook();
 
-  // the games, one tile each (colour and one emoji; the full card art is on the Games screen)
+  // play: pick up where you left off, or get revenge
+  const last = resumeGame(), cont = $('#home-continue');
+  if (last) {
+    cont.href = `${last.page}?room=${encodeURIComponent(last.code)}`;
+    cont.innerHTML = `${ic('play')}<span><b>Back to your ${escapeHtml(last.label)} game</b><small>Room ${escapeHtml(last.code)}</small></span>`;
+  } else if (lostTo) {
+    cont.href = `${lost.kind}.html`;
+    cont.innerHTML = `<span class="hm-mini" aria-hidden="true">${avatarHTML(avatarFor(d.other), 'smug')}</span><span><b>Revenge at ${escapeHtml((GAMES[lost.kind] || [, lost.kind])[1])}</b><small>${escapeHtml(them)} won ${escapeHtml(timeAgo(lost.endedAt))}</small></span>`;
+  }
+  cont.hidden = !last && !lostTo;
   if (!$('#home-tiles').children.length) {
+    // one tile per game: its colour and one big emoji (the full card art lives on the Games screen)
     const EMOJI = { sticky: '🍬', sundae: '💣', doodle: '🖍️', ludo: '🎲', plusfour: '🃏', snakes: '🐍' };
     $('#home-tiles').innerHTML = [...document.querySelectorAll('#tab-play .game-card')].map((card) => {
       const href = card.getAttribute('href'), kind = href.replace('.html', ''), col = card.dataset.wipe || '#ff71ce';
@@ -967,13 +971,15 @@ function renderHome() {
 
   // the grudge: a best-of-5 series against them
   const s = g || { me: 0, them: 0, won: 0, lost: 0 };
-  const pips = (k) => [0, 1, 2].map((i) => `<i class="${i < k ? 'on' : ''}"></i>`).join('');
+  const pips = (n) => [0, 1, 2].map((i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
   $('#home-score').innerHTML = `<span class="side me"><b>${s.me}</b><small>You</small><span class="pips">${pips(s.me)}</span></span>
     <span class="vs" aria-hidden="true">–</span>
     <span class="side them"><b>${s.them}</b><small>${escapeHtml(them)}</small><span class="pips">${pips(s.them)}</span></span>`;
   $('#home-score').setAttribute('aria-label', `This series: you ${s.me}, ${them} ${s.them}. First to 3 wins.`);
   $('#home-score-note').textContent = !profile ? 'Loading the scores…'
-    : s.won || s.lost ? `First to 3 wins. Series: you ${s.won}, ${them} ${s.lost}.` : 'First to 3 wins the series.';
+    : s.won || s.lost ? `First to 3 wins the series. Series so far: you ${s.won}, ${them} ${s.lost}.` : 'First to 3 wins the series.';
+  $('#home-challenge').textContent = `Challenge ${them}`;
+  $('#home-challenge').dataset.friend = d.other;
 
   // level and trophies
   if (profile) {
@@ -996,23 +1002,33 @@ function renderHome() {
   }
 }
 document.addEventListener('dm:change', () => { if (currentTab === 'home' || currentTab === null) renderHome(); });
+$('#home-reply').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const input = $('#home-reply-input'), text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  ensureChat(false).then((api) => { if (!api || !api.sendText(text)) { input.value = text; toast('That didn\'t send. Check the connection.'); } });
+});
 $('#home-challenge').addEventListener('click', (e) => openChallengePick(e.currentTarget.dataset.friend));
 async function loadDmPeek() {
-  const [{ data: ps }, { data: last }, { data: st }, { count }, { data: first }] = await Promise.all([
+  const [{ data: ps }, { data: last }, { data: st }] = await Promise.all([
     sb.from('players').select('id, name, avatar, last_seen').in('id', PAIR_IDS),
-    sb.from('dm_messages').select('sender, kind, body, vanish, created_at').neq('kind', 'system').order('created_at', { ascending: false }).limit(1),
+    sb.from('dm_messages').select('sender, kind, body, vanish').neq('kind', 'system').order('created_at', { ascending: false }).limit(1),
     sb.from('dm_state').select('nicknames').eq('id', 1).maybeSingle(),
-    sb.from('dm_messages').select('id', { count: 'exact', head: true }).neq('kind', 'system'),
-    sb.from('dm_messages').select('created_at').neq('kind', 'system').order('created_at', { ascending: true }).limit(1),
   ]);
   (ps || []).forEach((p) => { dmPeek.names[p.id] = p.name; });
   Object.assign(dmPeek.names, (st && st.nicknames) || {});
   dmPeek.other = (ps || []).find((p) => p.id !== me.user) || null;
   dmPeek.last = last && last[0] && !last[0].vanish ? last[0] : null;
-  dmPeek.total = typeof count === 'number' ? count : null;
-  dmPeek.since = first && first[0] ? first[0].created_at : null;
   renderHome();
 }
+
+// The browser tab shows the unread count, like "(1) Instagram", whichever section is open.
+function setDocTitle() {
+  const n = dmPeek.count, base = currentTab === 'chat' ? 'Messages · Sweet Revenge' : 'Sweet Revenge';
+  document.title = (n ? `(${n > 99 ? '99+' : n}) ` : '') + base;
+}
+window.srSetTitle = setDocTitle; // the chat asks for it when it reads messages
 
 /* ================= Messages: the Chat tab's unread count, live ================= */
 // Counts what the friend sent that you haven't seen; a new message while you're here shows a banner.
@@ -1025,7 +1041,7 @@ async function countUnread() {
   b.hidden = !count;
   b.textContent = count > 9 ? '9+' : count;
   $('#btn-dm').setAttribute('aria-label', count ? `Chat, ${count} new` : 'Chat');
-  dmPeek.count = count || 0; renderHome();
+  dmPeek.count = count || 0; renderHome(); setDocTitle();
 }
 function startMessages() {
   if (dmChannel || !me) return;
@@ -1038,7 +1054,7 @@ function startMessages() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_messages' }, (e) => {
       recount();
       const m = e.new;
-      if (e.eventType === 'INSERT' && m && m.kind !== 'system') { if (!m.vanish) dmPeek.last = m; if (dmPeek.total != null) dmPeek.total++; renderHome(); }
+      if (e.eventType === 'INSERT' && m && m.kind !== 'system' && !m.vanish) { dmPeek.last = m; renderHome(); }
       if (e.eventType !== 'INSERT' || !m || m.sender === me.user || m.kind === 'system' || currentTab === 'chat') return;
       const what = m.vanish ? 'sent a message' : m.kind === 'text' ? '' : m.kind === 'voice' ? 'sent a voice message'
         : m.kind === 'gif' ? 'sent a GIF' : m.kind === 'sticker' ? 'sent a sticker' : 'sent a ❤️';
