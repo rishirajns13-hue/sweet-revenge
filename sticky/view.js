@@ -138,7 +138,10 @@ const StickyView = (() => {
       const c = w[k], s = critters[k];
       if (!s) continue;
       s.position.set(c.x, c.y + 0.25, 0.6);
-      const stretch = Math.max(-0.25, Math.min(0.25, c.vy * 0.02));
+      let stretch = Math.max(-0.25, Math.min(0.25, c.vy * 0.02));
+      // a hard landing squashes the critter flat for a moment, then it springs back
+      const sq = squashes[k];
+      if (sq) { const age = t - sq.at; if (age > 0.35) squashes[k] = null; else stretch = -sq.hard * 0.35 * Math.cos((age / 0.35) * Math.PI / 2); }
       s.scale.set(1.25 * (1 - stretch * 0.5), 1.35 * (1 + stretch), 1);
     }
     updateRope(w.a, w.b);
@@ -157,5 +160,8 @@ const StickyView = (() => {
     renderer.render(scene, camera);
   }
 
-  return { init, setCritters, setLook, render, critters: () => critters, resize };
+  const squashes = {};
+  function squash(k, hard) { squashes[k] = { at: performance.now() / 1000, hard: 0.4 + 0.6 * (hard || 0) }; }
+
+  return { init, setCritters, setLook, render, squash, critters: () => critters, resize };
 })();

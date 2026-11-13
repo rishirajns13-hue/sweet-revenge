@@ -133,3 +133,61 @@ test('online: respawn puts both on the checkpoint and bumps the life counter', (
   assert.equal(w.life, life + 1);
   assert.equal(w.a.x, w.a.checkpoint.x); assert.equal(w.a.vy, 0);
 });
+
+/* ---------- polish: events the sounds hang off ---------- */
+test('grabbing a ledge makes one grab event and counts it', () => {
+  const w = S.newWorld(level());
+  run(w, 60);
+  w.a.x = 3.6; w.a.y = 0.5; // beside the step
+  run(w, 5, { grab: true });
+  assert.equal(w.events.filter((e) => e.t === 'grab' && e.k === 'a').length, 1);
+  assert.equal(w.a.grabs, 1);
+});
+test('a long drop lands with a hard landing; a small hop does not', () => {
+  const w = S.newWorld(level());
+  run(w, 60); w.events.length = 0;
+  run(w, 60, (i) => ({ jump: i === 0 }));
+  assert.ok(!w.events.some((e) => e.t === 'land'), 'plain jump is not a hard landing');
+  w.a.y = 6; w.b.y = 6; w.a.vy = w.b.vy = 0;
+  run(w, 90);
+  const land = w.events.find((e) => e.t === 'land');
+  assert.ok(land && land.hard > 0 && land.hard <= 1);
+});
+test('the rope snapping taut yanks once until it goes slack again', () => {
+  const w = S.newWorld(level());
+  run(w, 30); w.events.length = 0;
+  run(w, 90, { right: true }, { left: true });
+  assert.equal(w.events.filter((e) => e.t === 'yank').length, 1);
+});
+
+/* A simple bot really plays each hop of the cake route (from a few spots, jump points and moments
+   on the moving platforms). Every hop has to be makeable a fair share of the time. */
+test('the cake: a bot can make every hop on the route', () => {
+  const lvl = Levels.cake, route = lvl.route;
+  function attempt(i, startFrac, jumpAt, t0) {
+    const a = route[i - 1], b = route[i], ai = lvl.platforms.indexOf(a), bi = lvl.platforms.indexOf(b);
+    const w = Phys.newWorld(lvl); w.referee = false; w.t = t0; w.b.remote = true;
+    const c = w.a, A = Phys.boxesAt(lvl, w.t)[ai], fromAir = !!a.bounce;
+    c.x = A.x + A.w * startFrac; c.y = fromAir ? A.y + A.h + 2.5 : A.y + A.h + Phys.P.radius + 0.01;
+    let jumped = false;
+    for (let s = 0; s < 180; s++) {
+      Object.assign(w.b, { x: c.x, y: c.y, vx: c.vx, vy: c.vy }); // partner tags along: no rope pull
+      const boxes = Phys.boxesAt(lvl, w.t), B = boxes[bi], A2 = boxes[ai];
+      const d = B.x + B.w / 2 > c.x ? 1 : -1, inp = { left: d < 0, right: d > 0, jump: false };
+      if (s < 10 && !fromAir) inp.left = inp.right = false;
+      else if (!jumped && !fromAir && (d > 0 ? A2.x + A2.w - c.x : c.x - A2.x) <= jumpAt) inp.jump = jumped = true;
+      if (!c.ground && c.vy < 0 && c.x > B.x + 0.3 && c.x < B.x + B.w - 0.3) inp.left = inp.right = false;
+      Phys.step(w, inp, null);
+      if (jumped || fromAir) {
+        if ((c.ground && c.onIndex === bi) || (b.bounce && w.events.some((e) => e.t === 'bounce'))) return true;
+        if (c.y < A2.y - 3) return false;
+      }
+    }
+    return false;
+  }
+  for (let i = 1; i < route.length; i++) {
+    let ok = 0, n = 0;
+    for (const sf of [0.2, 0.5, 0.8]) for (const ja of [0.1, 0.4, 0.8, 1.2, 1.8, 2.5]) for (let t0 = 0; t0 < 5; t0 += 0.5) { n++; if (attempt(i, sf, ja, t0)) ok++; }
+    assert.ok(ok / n >= 0.25, `hop ${i} (${route[i - 1].y} m to ${route[i].y} m) only made ${Math.round((ok / n) * 100)}% of the time`);
+  }
+});

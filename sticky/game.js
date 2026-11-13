@@ -13,11 +13,14 @@ const firstName = (name) => String(name).split(' ').pop();
 const avHTML = (a) => (typeof avatarHTML === 'function' ? avatarHTML(a) : escapeHtml(a));
 
 const sfx = (() => {
-  const p = createSamplePlayer({ takes: { pop: ['ui-pop-1.ogg', 'ui-pop-2.ogg'], drop: ['ui-drop-1.ogg', 'ui-drop-2.ogg'], shine: ['ui-shine.ogg'], win: ['ui-levelup.ogg'], slide: ['card-slide-1.ogg', 'card-slide-2.ogg'], pick: ['ui-pick.ogg'] } });
+  const p = createSamplePlayer({ takes: { pop: ['ui-pop-1.ogg', 'ui-pop-2.ogg'], drop: ['ui-drop-1.ogg', 'ui-drop-2.ogg'], shine: ['ui-shine.ogg'], win: ['ui-levelup.ogg'], slide: ['card-slide-1.ogg', 'card-slide-2.ogg'], pick: ['ui-pick.ogg'], stick: ['card-place-1.ogg', 'card-place-2.ogg'], shove: ['card-shove-1.ogg', 'card-shove-2.ogg'] } });
   return {
     load: p.load,
     jump() { p.sample('pop', { vol: 0.22, rate: 1.3 }); },
     bounce() { p.sample('pop', { vol: 0.5, rate: 0.7 }); },
+    grab() { p.sample('stick', { vol: 0.32, rate: 1.25 }); },               // a little frosting slap
+    land(hard) { p.sample('drop', { vol: 0.2 + hard * 0.35, rate: 0.75 }); },
+    yank() { p.sample('shove', { vol: 0.28, rate: 0.85 }); },              // the rope snapping taut
     checkpoint() { p.sample('shine', { vol: 0.5 }); },
     fall() { p.sample('slide', { vol: 0.7, rate: 0.6 }); p.sample('drop', { vol: 0.6, rate: 0.7, when: 0.3 }); },
     win() { p.sample('win', { vol: 0.7 }); },
@@ -35,7 +38,7 @@ let players = [];             // [{ k, name, avatar }]
 let world = null, running = false, last = 0, acc = 0, fallsShown = '';
 let climb = null;             // { gid, at } of the current climb
 let incoming = null, sendTimer = 0, partnerAway = false, posSeq = 0, lastQ = -1;
-let savedGid = null;
+let savedGid = null, lastYank = 0;
 const alive = (my) => () => my === session;
 const later = (ms, fn) => timers.push(setTimeout(fn, ms));
 const online = () => mode === 'host' || mode === 'guest';
@@ -148,6 +151,9 @@ function onEvent(e) {
   const cr = StickyView.critters();
   if (e.t === 'jump') { if (mode === 'couch' || e.k === myK) sfx.jump(); }
   else if (e.t === 'bounce') sfx.bounce();
+  else if (e.t === 'grab') { if (mode === 'couch' || e.k === myK) sfx.grab(); }
+  else if (e.t === 'land') { if (mode === 'couch' || e.k === myK) { sfx.land(e.hard); StickyView.squash(e.k, e.hard); } }
+  else if (e.t === 'yank') { if (performance.now() - lastYank > 900) { lastYank = performance.now(); sfx.yank(); } }
   else if (e.t === 'checkpoint') { sfx.checkpoint(); toast('🕯️ Candle lit! You\'ll come back here if you fall', 2200); }
   else if (e.t === 'fall') {
     sfx.fall();
@@ -201,12 +207,18 @@ function showEnd(secs) {
       stats: Object.fromEntries(players.map((p) => [p.name, { falls: world[p.k].falls, teamFalls: total, secs: whole }])), hits: [] });
     if (typeof showRewards === 'function') showRewards($('#awards'), climb.gid);
   }
+  // Your best climb on this laptop (couch and online kept apart, since online is the harder one).
+  const bestKey = mode === 'couch' ? 'sticky-best-couch' : 'sticky-best-online';
+  const best = store.get(bestKey, null), isBest = !best || whole < best.secs;
+  if (isBest) store.set(bestKey, { secs: whole, falls: total, at: Date.now() });
+  const clock = (n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
   $('#end-title').textContent = total === 0 ? 'Flawless! Not a single slip 🍒' : 'You made it! 🍒';
   const worst = world.a.falls === world.b.falls ? null : world.a.falls > world.b.falls ? 'a' : 'b';
   $('#results').innerHTML = ['a', 'b'].map((k) => {
     const p = playerOf(k), av = p ? p.avatar : k === 'a' ? myAvatar() : '🐼';
-    return `<div class="st-res"><span class="av">${avHTML(av)}</span><div><b>${escapeHtml(nameOf(k))}</b><small>${k === worst ? 'Dragged you both down the most 😈' : world[k].falls ? 'Slipped now and then' : 'Rock solid'}</small></div><span class="st-blame">${world[k].falls} 😭</span></div>`;
-  }).join('') + `<p class="st-stat">Climbed in ${mins}:${String(s).padStart(2, '0')} · ${total} fall${total === 1 ? '' : 's'} together</p>`;
+    return `<div class="st-res"><span class="av">${avHTML(av)}</span><div><b>${escapeHtml(nameOf(k))}</b><small>${k === worst ? 'Dragged you both down the most 😈' : world[k].falls ? 'Slipped now and then' : 'Rock solid'}</small></div><span class="st-blame" title="falls caused">${world[k].falls} 😭</span><span class="st-grabs" title="times held on">${world[k].grabs || 0} ✋</span></div>`;
+  }).join('') + `<p class="st-stat">Climbed in ${mins}:${String(s).padStart(2, '0')} · ${total} fall${total === 1 ? '' : 's'} together</p>`
+    + `<p class="st-best${isBest && best ? ' new' : ''}">${!best ? 'Your first climb! That\'s the time to beat 🏁' : isBest ? `🏆 New best! ${clock(best.secs - whole)} faster than before` : `Your best is ${clock(best.secs)}. ${clock(whole - best.secs)} off it`}</p>`;
   $('#btn-again').hidden = mode === 'guest';
   $('#end-wait').hidden = mode !== 'guest';
   $('#end-wait').textContent = 'Waiting for the host to start another climb…';
@@ -262,7 +274,7 @@ function sendPosition() {
   // Over the shared public relay (before the direct link opens), every third tick is plenty and polite.
   const link = mode === 'host' ? room && room.seats[1] && room.seats[1].link : conn;
   if (link && !link.direct && posSeq % 3) return;
-  send({ t: 'p', q: posSeq, x: r2(c.x), y: r2(c.y), vx: r2(c.vx), vy: r2(c.vy), g: c.ground ? 1 : 0, gr: c.grab ? 1 : 0, l: world.life, tt: r2(world.t) }, true);
+  send({ t: 'p', q: posSeq, x: r2(c.x), y: r2(c.y), vx: r2(c.vx), vy: r2(c.vy), g: c.ground ? 1 : 0, gr: c.grab ? 1 : 0, gb: c.grabs || 0, l: world.life, tt: r2(world.t) }, true);
 }
 // The partner's latest position. Old lives (from before a respawn) are dropped.
 function onPosition(m) {
@@ -271,6 +283,7 @@ function onPosition(m) {
   if (![m.x, m.y, m.vx, m.vy].every(Number.isFinite)) return;
   if (Number.isFinite(m.q)) { if (m.q <= lastQ && lastQ - m.q < 1000) return; lastQ = m.q; } // unordered: skip older ones
   incoming = { x: m.x, y: m.y, vx: m.vx, vy: m.vy, ground: !!m.g, grab: !!m.gr };
+  if (Number.isFinite(m.gb)) world[partnerK()].grabs = m.gb;
   // The guest keeps its moving platforms in time with the host's.
   if (mode === 'guest' && Number.isFinite(m.tt)) {
     const d = m.tt + 0.06 - world.t;

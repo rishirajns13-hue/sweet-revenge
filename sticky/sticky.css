@@ -45,5 +45,10 @@ kbd { display: inline-block; min-width: 22px; padding: 0 6px; margin: 0 1px; bor
 .st-res b { font: 400 22px var(--title); }
 .st-res small { display: block; font-weight: 600; color: var(--muted); }
 .st-res .st-blame { margin-left: auto; font: 400 26px var(--title); }
+.st-res .st-grabs { font: 400 20px var(--title); color: var(--muted); min-width: 3.2em; text-align: right; }
+.st-best { margin: 0; text-align: center; font-weight: 800; }
+.st-best.new { color: #ff5a5f; animation: st-best .6s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes st-best { from { transform: scale(.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .st-best.new { animation: none; } }
 .st-stat { margin: 0; text-align: center; font-weight: 700; color: var(--muted); }
 .st-end-actions { display: grid; gap: 10px; }

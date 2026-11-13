@@ -66,6 +66,7 @@
   // input: { left, right, jump (pressed this step), grab (held) }
   function moveCritter(c, input, boxes, dt) {
     const at = input.grab ? touchIndex(c, boxes) : -1;
+    if (at >= 0 && !c.grab) c.grabbed = true; // just stuck on (for the sound)
     c.grab = at >= 0;
     c.holdIndex = c.grab ? at : null;
     if (c.grab) { c.vx = 0; c.vy = 0; return; } // stuck to the frosting
@@ -107,12 +108,13 @@
     if (c.ground && c.onIndex != null && boxes[c.onIndex].src) {
       c.x += boxes[c.onIndex].x - prev[c.onIndex].x; c.y += boxes[c.onIndex].y - prev[c.onIndex].y;
     }
-    const falling = c.vy;
+    const falling = c.vy, wasGround = c.ground;
     c.x += c.vx * dt; c.y += c.vy * dt;
     c.ground = false; c.on = null; c.onIndex = null;
     boxes.forEach((b, i) => {
       if (collide(c, b) !== 'top') return;
       if (b.bounce && falling < -2) { c.vy = b.bounce; c.bounced = true; return; }
+      if (!wasGround && falling < -12) c.landed = Math.min(1, (-falling - 12) / 12); // how hard (0-1)
       c.ground = true; c.on = b; c.onIndex = i;
     });
   }
@@ -125,11 +127,16 @@
     if (!w.a.remote) moveCritter(w.a, inA || {}, boxes, dt);
     if (!w.b.remote) moveCritter(w.b, inB || {}, boxes, dt);
     w.ropeLength = rope(w.a, w.b, dt);
+    // The rope snapping taut is a 'yank' (once, until it goes slack again).
+    if (w.ropeLength > P.ropeSlack + 1) { if (!w.taut) { w.taut = true; w.events.push({ t: 'yank' }); } }
+    else if (w.ropeLength < P.ropeSlack) w.taut = false;
     if (!w.a.remote) integrate(w.a, boxes, prev, dt);
     if (!w.b.remote) integrate(w.b, boxes, prev, dt);
     for (const [k, c] of [['a', w.a], ['b', w.b]]) {
       if (c.jumped) { w.events.push({ t: 'jump', k }); c.jumped = false; }
       if (c.bounced) { w.events.push({ t: 'bounce', k }); c.bounced = false; }
+      if (c.grabbed) { w.events.push({ t: 'grab', k }); c.grabbed = false; c.grabs = (c.grabs || 0) + 1; }
+      if (c.landed) { w.events.push({ t: 'land', k, hard: c.landed }); c.landed = 0; }
       c.peak = Math.max(c.peak, c.y);
       if (!w.referee) continue; // online guests leave checkpoints, falls and the win to the host
       // Reaching a checkpoint (a candle) while standing saves it for both.

@@ -23,7 +23,7 @@
     L(-1, 28.4, 2.2, { bounce: 13.5, kind: 'marshmallow' }),
     L(-4.5, 31.6, 1.2, { kind: 'wafer' }),
     L(-1.5, 33.4, 1.1, { kind: 'wafer' }),
-    L(1.8, 35.2, 1.1, { kind: 'wafer' }),
+    L(1.2, 35.2, 1.3, { kind: 'wafer' }),
     L(-1.5, 36.6, 2.2, { bounce: 13.5, kind: 'marshmallow' }),
     L(2.5, 39.8, 3),
     L(-1.5, 41.6, 1.1, { kind: 'wafer', move: { ax: 1.5, period: 3.8 } }),

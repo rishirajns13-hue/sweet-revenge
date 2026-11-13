@@ -23,7 +23,13 @@ Two critters are glued together by a stretchy gummy rope. Climb a giant birthday
 5. **Polish:** sounds, squash and stretch, a height meter, a "who caused the fall" counter, the end screen, history (`kind: 'sticky'`) and trophies.
 
 ## Status (13 Nov 2026)
-Parts 1 to 5 are built on the `sticky-situation` branch. Still to do: hand-play tuning of the jump and rope, a real two-laptop climb. The database already accepts Sticky climbs, chat and challenges (migration `add_sticky_kind`, 13 Nov).
+Parts 1 to 5 are built on the `sticky-situation` branch, plus a polish pass:
+- **Sounds:** a frosting slap when you grab, a thud on a long drop (louder the harder you land), and a twang when the rope snaps taut (at most about once a second).
+- **Squash:** critters squash flat on a hard landing.
+- **End screen:** a grab count (✋) per player, and your best time on this laptop (couch and online kept apart) with "New best!".
+- **Tuning:** a test bot (`tests/sticky.test.js`) really plays every hop of the cake in the physics, from different spots, jump points and timings on the moving platforms. Each hop must land at least 25% of the time. That caught one near-impossible wafer hop (33 m to 35 m), which is now wider and closer.
+
+Still to do: a real two-laptop climb, and a human feel check of the jump and rope numbers. The database already accepts Sticky climbs, chat and challenges (migration `add_sticky_kind`, 13 Nov).
 
 **Online, as built:** the host's browser is the referee (checkpoints, falls, win) and tells the guest; positions go over `link.sendFast` (unnumbered, newest wins), 20 a second on the direct link and about 7 over the public relay. `life` counts respawns so stale positions are dropped. Keys 1–4 send stickers (HOLD ON!, JUMP!, WAIT FOR ME, SORRY).
 
