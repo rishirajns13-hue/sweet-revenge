@@ -18,7 +18,7 @@ create unique index players_name_ci on public.players (lower(name));
 
 create table public.games (
   id          text primary key,
-  kind        text not null check (kind in ('ludo', 'plusfour', 'doodle', 'snakes')),
+  kind        text not null check (kind in ('ludo', 'plusfour', 'doodle', 'snakes', 'sundae', 'sticky')),
   room        text,
   practice    boolean not null default false,
   started_at  timestamptz,
@@ -114,7 +114,7 @@ returns boolean language plpgsql security definer set search_path = '' as $$
 declare me text := public.my_id();
 begin
   if me is null then raise exception 'not logged in'; end if;
-  if p_game not in ('ludo', 'plusfour', 'doodle', 'snakes') or p_kind not in ('chat', 'sticker') then return false; end if;
+  if p_game not in ('ludo', 'plusfour', 'doodle', 'snakes', 'sundae', 'sticky') or p_kind not in ('chat', 'sticker') then return false; end if;
   insert into public.chat_messages (client_id, game, room, sender, kind, body)
   values (left(p_cid, 40), p_game, case when p_room ~ '^[A-Z0-9]{6}$' then p_room end, me, p_kind, left(trim(p_body), 300))
   on conflict (client_id) do nothing;
@@ -140,7 +140,7 @@ declare
   game_id text;
 begin
   if me is null then raise exception 'not logged in'; end if;
-  if kind not in ('ludo', 'plusfour', 'doodle', 'snakes') or gid !~ '^[a-z0-9]{1,16}$'
+  if kind not in ('ludo', 'plusfour', 'doodle', 'snakes', 'sundae', 'sticky') or gid !~ '^[a-z0-9]{1,16}$'
      or jsonb_typeof(g -> 'players') <> 'array' or jsonb_array_length(g -> 'players') not between 2 and 4 then
     raise exception 'bad game';
   end if;
@@ -312,3 +312,4 @@ grant execute on function public.claim_account(text, text) to anon, authenticate
 -- Table public.challenges (from_player, to_player, kind, room, status open|accepted|declined|cancelled),
 -- readable by either player; RPCs send_challenge(to, kind), challenge_room(id, room) and
 -- answer_challenge(id, accept); added to the supabase_realtime publication. Applied as migration "challenges".
+-- Its kind check allows ('ludo', 'plusfour', 'doodle', 'snakes', 'sundae', 'sticky'); 'sticky' added by supabase/pending/add_sticky_kind.sql.

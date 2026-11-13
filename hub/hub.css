@@ -455,3 +455,13 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .sb-card-art { animation: none; } }
 .calm .sb-card-art { animation: none !important; }
 .game-shelves .game-card { flex-basis: calc((100% - 72px) / 5); }
+
+/* Sticky Situation's card */
+.game-card.sticky .art { background: radial-gradient(circle at 50% 62%, #ffe7b3 0 28%, #ffb3c7 29%); display: grid; place-items: center; }
+.st-card-art { position: relative; font-size: 62px; line-height: 1; }
+.st-card-art i { position: absolute; right: -22px; top: -4px; font-size: 30px; font-style: normal; transform-origin: 0 0; animation: st-card-swing 1.6s ease-in-out infinite; }
+@keyframes st-card-swing { 50% { transform: rotate(26deg); } }
+.game-card.sticky .g.a { left: 6%; top: 10%; rotate: -6deg; background: #ff9ad0; font-family: var(--title); }
+.game-card.sticky .g.c { left: auto; right: 5%; bottom: 8%; font-size: 15px; }
+@media (prefers-reduced-motion: reduce) { .st-card-art i { animation: none; } }
+.calm .st-card-art i { animation: none !important; }

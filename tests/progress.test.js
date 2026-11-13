@@ -79,3 +79,12 @@ test('Grudge Champ needs a won best-of-5 series', () => {
   assert.equal(ach(facts({ seriesWon: 0 }), 'grudge_champ').done, false);
   assert.equal(ach(facts({ seriesWon: 1 }), 'grudge_champ').done, true);
 });
+
+test('Sticky Situation: Cherry on Top for a climb with no falls, Glued Together for 5 climbs', () => {
+  const climb = (o = {}) => g({ kind: 'sticky', won: true, cleanClimb: false, ...o });
+  assert.equal(ach(facts({ games: [climb()] }), 'cherry_on_top').done, false);
+  assert.equal(ach(facts({ games: [climb({ cleanClimb: true })] }), 'cherry_on_top').done, true);
+  assert.equal(ach(facts({ games: [climb({ cleanClimb: true, practice: true })] }), 'cherry_on_top').done, false);
+  assert.deepEqual([ach(facts({ games: [climb(), climb(), g()] }), 'glued_together').have], [2]);
+  assert.equal(ach(facts({ games: Array.from({ length: 5 }, () => climb()) }), 'glued_together').done, true);
+});

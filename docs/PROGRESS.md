@@ -32,6 +32,8 @@ The code that works all this out is `shared/progress.mjs`; the numbers there are
 | 🧠 | Mind Reader | Guess a Doodle in under 5 seconds |
 | 🐍 | Slippery Slope | Slide down 3 snakes in one game |
 | 🪜 | Sky High | Climb a ladder 30+ squares long |
+| 🎂 | Cherry on Top | Climb the cake in Sticky Situation without a single fall |
+| 🍬 | Glued Together | Reach the cherry in Sticky Situation 5 times |
 | 🥊 | Grudge Champ | Win a best-of-5 grudge series against a friend (first to 3, across all games) |
 
 ## Still to decide

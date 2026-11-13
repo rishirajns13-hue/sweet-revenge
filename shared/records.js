@@ -9,7 +9,7 @@
 const records = (() => {
   const cid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   let progressLib = null;
-  const loadProgress = () => (progressLib ||= import('./progress.mjs'));
+  const loadProgress = () => (progressLib ||= import('./progress.mjs?v=2'));
 
   /* ---------- outbox: saves wait on this device until the database has them ---------- */
   const OUTBOX = 'sr-outbox2';
@@ -80,6 +80,7 @@ const records = (() => {
         score: g.kind === 'doodle' ? (g.players.find((p) => p.id === id) || {}).score || 0 : 0,
         fastest: (g.mine && g.mine.fastest) || 0,
         snakesSlid: num(g.mine, ['snakes', 'snakesSlid', 'slid']), longestLadder: num(g.mine, ['longestLadder', 'longest']),
+        cleanClimb: g.kind === 'sticky' && !!g.mine && g.mine.teamFalls === 0,
       })),
       bigBomb, maxBonkedInGame: r.maxBonked, chats: r.chats, seriesWon: Object.values(grudge).reduce((n, e) => n + e.won, 0),
       revengeBonk: r.revenge.includes('bonk'), revengeBomb: r.revenge.includes('bomb'),

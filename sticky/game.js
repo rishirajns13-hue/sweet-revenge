@@ -35,6 +35,7 @@ let players = [];             // [{ k, name, avatar }]
 let world = null, running = false, last = 0, acc = 0, fallsShown = '';
 let climb = null;             // { gid, at } of the current climb
 let incoming = null, sendTimer = 0, partnerAway = false, posSeq = 0, lastQ = -1;
+let savedGid = null;
 const alive = (my) => () => my === session;
 const later = (ms, fn) => timers.push(setTimeout(fn, ms));
 const online = () => mode === 'host' || mode === 'guest';
@@ -83,7 +84,7 @@ function begin(resume) {
       if (resume.cps && resume.cps[k]) { world[k].checkpoint = { ...resume.cps[k] }; world[k].x = resume.cps[k].x; world[k].y = resume.cps[k].y; }
     }
   }
-  fallsShown = ''; incoming = null; partnerAway = false; lastQ = -1; $('#st-wait').hidden = true;
+  fallsShown = ''; incoming = null; partnerAway = false; lastQ = -1; $('#awards').innerHTML = ''; $('#st-wait').hidden = true;
   show('play');
   const looks = { a: (playerOf('a') || {}).avatar || myAvatar(), b: (playerOf('b') || {}).avatar || '🐼' };
   if (!StickyView.inited) { StickyView.init($('#view'), level); StickyView.inited = true; }
@@ -188,8 +189,18 @@ function banner(title, sub, ms) {
 function showEnd(secs) {
   running = false; clearInterval(sendTimer);
   show('end');
-  const mins = Math.floor(secs / 60), s = Math.round(secs % 60);
+  const whole = Math.round(secs), mins = Math.floor(whole / 60), s = whole % 60;
   const total = world.a.falls + world.b.falls;
+  // Online climbs go into the history (both browsers save; the database keeps one). Couch mode has a
+  // made-up Player 2, so it isn't saved, like practice.
+  if (online() && me && climb && climb.gid && savedGid !== climb.gid && players.length === 2) {
+    savedGid = climb.gid;
+    records.game({ kind: 'sticky', gid: climb.gid, room: roomCode || null, practice: false, startedAt: climb.at,
+      players: players.map((p) => ({ name: p.name, bot: false, place: 1, score: world[p.k].falls })),
+      winners: players.map((p) => p.name),
+      stats: Object.fromEntries(players.map((p) => [p.name, { falls: world[p.k].falls, teamFalls: total, secs: whole }])), hits: [] });
+    if (typeof showRewards === 'function') showRewards($('#awards'), climb.gid);
+  }
   $('#end-title').textContent = total === 0 ? 'Flawless! Not a single slip 🍒' : 'You made it! 🍒';
   const worst = world.a.falls === world.b.falls ? null : world.a.falls > world.b.falls ? 'a' : 'b';
   $('#results').innerHTML = ['a', 'b'].map((k) => {
@@ -446,5 +457,10 @@ document.addEventListener('DOMContentLoaded', () => {
     goHome();
     const code = new URLSearchParams(location.search).get('room');
     if (code) { history.replaceState(null, '', location.pathname); $('#join-code').value = code.toUpperCase(); joinRoom(code); }
+    else if (typeof showHowTo === 'function') showHowTo('sticky', [
+      { icon: '🍬', title: 'Glued together', text: 'A stretchy gummy rope ties you to your partner. Wander too far and it yanks you both.' },
+      { icon: '✋', title: 'Hold on!', text: 'Hold Shift (or J) on a ledge to stick. Your partner can dangle from you and swing up.' },
+      { icon: '🕯️', title: 'Candles save you', text: 'Light a candle and a long fall only sends you back there. Press 1–4 to shout, hold V to talk.' },
+    ], { title: 'How to play Sticky Situation' });
   });
 });
