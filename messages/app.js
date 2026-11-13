@@ -320,6 +320,8 @@ input.addEventListener('keydown', (e) => {
   }
 });
 input.addEventListener('blur', () => D.sendTyping(false));
+input.addEventListener('focus', () => { if (matchMedia('(pointer: coarse)').matches) document.body.classList.add('typing'); });
+input.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== input) document.body.classList.remove('typing'); }, 120));
 els.send.addEventListener('click', () => {
   if (input.value.trim() || (ctx && ctx.type === 'edit')) submit();
   else sendLike();

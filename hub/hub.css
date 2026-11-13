@@ -468,8 +468,6 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .st-card-art i { animation: none; } }
 .calm .st-card-art i { animation: none !important; }
 /* the 💬 Messages button */
-.dm-link { position: relative; text-decoration: none; color: var(--ink); }
-.dm-link .tab-badge { top: -8px; right: -8px; min-width: 20px; height: 20px; font-size: 11.5px; border-width: 2px; }
 .dm-link.boing { animation: boing .45s var(--spring); }
 
 /* Small phones: logo, level, messages, status, sound and your avatar must share one row. */
@@ -477,3 +475,34 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
   .brand.tiny svg { height: 36px; }
   .me-chip { gap: 4px; }
 }
+
+/* ================= HOME: Games and Chat ================= */
+.home-hello { margin: 6px 0 0; font: 400 clamp(26px, 4vw, 40px) var(--title); text-align: center; }
+.home-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.home-card { position: relative; display: grid; align-content: start; gap: 8px; min-height: 300px; padding: 26px; border: 3px solid var(--ink); border-radius: 28px; box-shadow: var(--hard); color: var(--ink); text-decoration: none; overflow: hidden; transition: transform .25s var(--spring); }
+.home-card:hover { transform: translateY(-4px) rotate(-.6deg); }
+.home-card:active { transform: scale(.98); }
+.home-card.games { background: linear-gradient(150deg, #ffe08a, #ffb3c7 70%); }
+.home-card.chat { background: linear-gradient(150deg, #c9b6ff, #ff9ad0 75%); }
+.hc-art { display: flex; gap: 6px; font-size: 54px; line-height: 1; margin-bottom: 10px; }
+.hc-art i { font-style: normal; animation: hc-bob 2.6s ease-in-out infinite; }
+.hc-art i:nth-child(2) { animation-delay: .3s; } .hc-art i:nth-child(3) { animation-delay: .6s; } .hc-art i:nth-child(4) { animation-delay: .9s; }
+@keyframes hc-bob { 50% { transform: translateY(-8px) rotate(6deg); } }
+.hc-face { position: relative; width: 84px; height: 84px; margin-bottom: 10px; font-size: 64px; display: grid; place-items: center; background: var(--paper); border: 3px solid var(--ink); border-radius: 50%; }
+.hc-dot { position: absolute; right: 2px; bottom: 4px; width: 20px; height: 20px; border-radius: 50%; background: #3ad16f; border: 3px solid var(--paper); }
+.hc-title { font: 400 44px var(--title); line-height: 1; display: flex; align-items: center; gap: 10px; }
+.hc-count { font: 800 14px var(--body); font-style: normal; padding: 4px 10px; border-radius: 999px; background: var(--red); color: #fff; border: 2.5px solid var(--ink); }
+.hc-sub { font-weight: 700; font-size: 17px; opacity: .8; overflow-wrap: anywhere; }
+.hc-go { justify-self: start; margin-top: auto; padding: 10px 22px; border-radius: 999px; background: var(--ink); color: var(--paper); font-weight: 800; }
+.tab.dm-link { text-decoration: none; }
+@media (max-width: 760px) {
+  .home-cards { grid-template-columns: 1fr; gap: 16px; }
+  .home-card { min-height: 0; padding: 20px; }
+  .hc-art { font-size: 40px; } .hc-face { width: 68px; height: 68px; font-size: 50px; } .hc-title { font-size: 34px; }
+  .tabs { gap: 2px; padding: 4px; }
+  .tab { font-size: 12px; min-height: 52px; padding: 2px; }
+  .tab .te { font-size: 20px; }
+  .tab kbd { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .hc-art i { animation: none; } }
+.calm .hc-art i { animation: none !important; }

@@ -9,7 +9,7 @@
 const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html', B: 'sundae.html', G: 'sticky.html' }[code[0]] || 'ludo.html');
 const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'], sundae: ['💣', 'Sundae Bomb'], sticky: ['🍬', 'Sticky Situation'] };
 const LEVEL_NAMES = ['Sprinkle', 'Single Scoop', 'Double Scoop', 'Waffle Cone', 'Sundae', 'Banana Split', 'Brain Freeze', 'Sweet Revenge Royalty'];
-const TABS = ['play', 'trophies', 'rivals', 'me'];
+const TABS = ['home', 'play', 'trophies', 'rivals', 'me'];
 const POLL_MS = 60000; // a safety net: new games and trophies arrive instantly through records.onChange
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -180,9 +180,9 @@ function enterHub() {
 
 /* ================= tabs ================= */
 let currentTab = null;
-const tabFromHash = () => (TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'play');
+const tabFromHash = () => (TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home');
 function showTab(name, { animate = true, sound = false } = {}) {
-  if (!TABS.includes(name)) name = 'play';
+  if (!TABS.includes(name)) name = 'home';
   const from = TABS.indexOf(currentTab), to = TABS.indexOf(name);
   document.querySelectorAll('.tab').forEach((t) => {
     const on = t.dataset.tab === name;
@@ -202,15 +202,19 @@ function showTab(name, { animate = true, sound = false } = {}) {
   if (name === 'trophies') openedTrophies();
   if (name === 'rivals') stampTickets();
   if (name === 'me') renderYou();
+  if (name === 'home') renderHome();
   if (innerWidth < 760) scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
 }
-document.querySelectorAll('.tab').forEach((t) => (t.onclick = () => showTab(t.dataset.tab, { sound: true })));
+document.querySelectorAll('.tab[data-tab]').forEach((t) => (t.onclick = () => showTab(t.dataset.tab, { sound: true })));
+document.querySelectorAll('[data-go]').forEach((a) => (a.onclick = (e) => { e.preventDefault(); showTab(a.dataset.go, { sound: true }); }));
 addEventListener('hashchange', () => { if (hubShown && tabFromHash() !== currentTab) showTab(tabFromHash(), { sound: true }); });
 document.addEventListener('keydown', (e) => {
   if (!hubShown || !$('#screen-hub').classList.contains('active') || e.target.closest('input, textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
   if (!$('#me-sheet').hidden) return;
   const i = TABS.indexOf(currentTab), onNav = e.target === document.body || !!e.target.closest('.tabs');
-  if (['1', '2', '3', '4'].includes(e.key)) showTab(TABS[+e.key - 1], { sound: true });
+  const NUM = { 1: 'home', 2: 'play', 4: 'trophies', 5: 'rivals', 6: 'me' };
+  if (e.key === '3') location.href = 'messages.html';
+  else if (NUM[e.key]) showTab(NUM[e.key], { sound: true });
   else if (e.key === 'ArrowRight' && onNav) showTab(TABS[(i + 1) % TABS.length], { sound: true });
   else if (e.key === 'ArrowLeft' && onNav) showTab(TABS[(i + TABS.length - 1) % TABS.length], { sound: true });
   else return;
@@ -777,7 +781,34 @@ document.addEventListener('DOMContentLoaded', () => {
   boot();
 });
 
-/* ================= Messages: the 💬 button's unread count, live ================= */
+/* ================= HOME: Games and Chat, side by side ================= */
+const dmPeek = { names: {}, last: null, count: 0, other: null };
+function renderHome() {
+  if (!me || !$('#home-hello')) return;
+  $('#home-hello').textContent = `Hey, ${me.name}! What are we doing?`;
+  const o = dmPeek.other;
+  if (o) $('#home-chat-face').innerHTML = avatarHTML(o.avatar || DEFAULT_AVATAR[o.id]);
+  const m = dmPeek.last;
+  const who = m && (m.sender === me.user ? 'You' : dmPeek.names[m.sender] || m.sender);
+  const what = !m ? '' : m.kind === 'text' ? m.body : m.kind === 'voice' ? 'sent a voice message' : m.kind === 'gif' ? 'sent a GIF' : m.kind === 'sticker' ? 'sent a sticker' : 'sent a ❤️';
+  $('#home-chat-sub').textContent = m ? `${who}: ${what.length > 70 ? what.slice(0, 70) + '…' : what}` : (o ? `Say hi to ${dmPeek.names[o.id] || o.name}` : 'Just the two of you');
+  const c = $('#home-chat-count'); c.hidden = !dmPeek.count; c.textContent = dmPeek.count > 9 ? '9+ new' : `${dmPeek.count} new`;
+  $('#home-chat-dot').hidden = !(o && o.last_seen && Date.now() - new Date(o.last_seen) < 3 * 60e3);
+}
+async function loadDmPeek() {
+  const [{ data: ps }, { data: last }, { data: st }] = await Promise.all([
+    sb.from('players').select('id, name, avatar, last_seen').in('id', ['ammu', 'panchara kunju']),
+    sb.from('dm_messages').select('sender, kind, body, vanish').neq('kind', 'system').order('created_at', { ascending: false }).limit(1),
+    sb.from('dm_state').select('nicknames').eq('id', 1).maybeSingle(),
+  ]);
+  (ps || []).forEach((p) => { dmPeek.names[p.id] = p.name; });
+  Object.assign(dmPeek.names, (st && st.nicknames) || {});
+  dmPeek.other = (ps || []).find((p) => p.id !== me.user) || null;
+  dmPeek.last = last && last[0] && !last[0].vanish ? last[0] : null;
+  renderHome();
+}
+
+/* ================= Messages: the Chat tab's unread count, live ================= */
 // Counts what the friend sent that you haven't seen; a new message while you're here shows a banner.
 let dmChannel = null, dmCountT = 0;
 async function countUnread() {
@@ -787,11 +818,12 @@ async function countUnread() {
   const b = $('#dm-badge');
   b.hidden = !count;
   b.textContent = count > 9 ? '9+' : count;
-  $('#btn-dm').setAttribute('aria-label', count ? `Messages, ${count} new` : 'Messages');
+  $('#btn-dm').setAttribute('aria-label', count ? `Chat, ${count} new` : 'Chat');
+  dmPeek.count = count || 0; renderHome();
 }
 function startMessages() {
   if (dmChannel || !me) return;
-  countUnread();
+  countUnread(); loadDmPeek();
   const names = {};
   sb.from('players').select('id, name').then(({ data }) => (data || []).forEach((p) => { names[p.id] = p.name; }));
   sb.from('dm_state').select('nicknames').eq('id', 1).maybeSingle().then(({ data }) => Object.assign(names, (data && data.nicknames) || {}));
@@ -800,6 +832,7 @@ function startMessages() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_messages' }, (e) => {
       recount();
       const m = e.new;
+      if (e.eventType === 'INSERT' && m && m.kind !== 'system' && !m.vanish) { dmPeek.last = m; renderHome(); }
       if (e.eventType !== 'INSERT' || !m || m.sender === me.user || m.kind === 'system') return;
       const what = m.vanish ? 'sent a message' : m.kind === 'text' ? '' : m.kind === 'voice' ? 'sent a voice message'
         : m.kind === 'gif' ? 'sent a GIF' : m.kind === 'sticker' ? 'sent a sticker' : 'sent a ❤️';

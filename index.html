@@ -92,19 +92,20 @@
     <!-- HUB: three screens you switch between like a game menu -->
     <section id="screen-hub" class="screen hub">
       <header class="topbar">
-        <a class="brand tiny" href="#play" aria-label="Sweet Revenge, back to Play"><svg viewBox="0 0 620 280" aria-hidden="true"><use href="#logo"/></svg></a>
+        <a class="brand tiny" href="#home" aria-label="Sweet Revenge, back to Home"><svg viewBox="0 0 620 280" aria-hidden="true"><use href="#logo"/></svg></a>
         <nav class="tabs" role="tablist" aria-label="Sections">
-          <button class="tab" role="tab" type="button" data-tab="play" aria-controls="tab-play"><span class="te" aria-hidden="true">🎮</span><span class="tl">Play</span><kbd>1</kbd></button>
-          <button class="tab" role="tab" type="button" data-tab="trophies" aria-controls="tab-trophies"><span class="te" aria-hidden="true">🏆</span><span class="tl">Trophies</span><kbd>2</kbd><b id="tab-badge" class="tab-badge" hidden></b></button>
-          <button class="tab" role="tab" type="button" data-tab="rivals" aria-controls="tab-rivals"><span class="te" aria-hidden="true">⚔️</span><span class="tl">Rivals</span><kbd>3</kbd></button>
-          <button class="tab" role="tab" type="button" data-tab="me" aria-controls="tab-me"><span class="te" aria-hidden="true">🧸</span><span class="tl">You</span><kbd>4</kbd></button>
+          <button class="tab" role="tab" type="button" data-tab="home" aria-controls="tab-home"><span class="te" aria-hidden="true">🏠</span><span class="tl">Home</span><kbd>1</kbd></button>
+          <button class="tab" role="tab" type="button" data-tab="play" aria-controls="tab-play"><span class="te" aria-hidden="true">🎮</span><span class="tl">Games</span><kbd>2</kbd></button>
+          <a id="btn-dm" class="tab dm-link" href="messages.html" aria-label="Chat"><span class="te" aria-hidden="true">💬</span><span class="tl">Chat</span><kbd>3</kbd><b id="dm-badge" class="tab-badge" hidden></b></a>
+          <button class="tab" role="tab" type="button" data-tab="trophies" aria-controls="tab-trophies"><span class="te" aria-hidden="true">🏆</span><span class="tl">Trophies</span><kbd>4</kbd><b id="tab-badge" class="tab-badge" hidden></b></button>
+          <button class="tab" role="tab" type="button" data-tab="rivals" aria-controls="tab-rivals"><span class="te" aria-hidden="true">⚔️</span><span class="tl">Rivals</span><kbd>5</kbd></button>
+          <button class="tab" role="tab" type="button" data-tab="me" aria-controls="tab-me"><span class="te" aria-hidden="true">🧸</span><span class="tl">You</span><kbd>6</kbd></button>
         </nav>
         <div class="me-chip">
           <div class="lvl" aria-label="Your level">
             <span id="mini-cone" class="mini-cone" aria-hidden="true"></span>
             <span class="lvl-txt"><b id="lvl-name">Lv –</b><span class="thin-xp" aria-hidden="true"><i id="mini-xp"></i></span></span>
           </div>
-          <a id="btn-dm" class="icon-btn sm dm-link" href="messages.html" aria-label="Messages" data-icon="chat"><b id="dm-badge" class="tab-badge" hidden></b></a>
           <button id="btn-live" class="live-dot" type="button" data-state="checking" aria-haspopup="dialog" aria-controls="live-pop"><i aria-hidden="true"></i><span id="live-label">Checking</span></button>
           <button id="btn-sound" class="icon-btn sm" type="button" aria-label="Sound on or off" data-icon="volume"></button>
           <button id="btn-me" class="avatar-btn" type="button" aria-label="Your profile and colours"><span id="me-avatar" class="actor"></span></button>
@@ -117,6 +118,25 @@
       </header>
 
       <div class="panels">
+        <!-- HOME: the two halves of the app -->
+        <section id="tab-home" class="panel home" role="tabpanel" aria-label="Home" hidden>
+          <p id="home-hello" class="home-hello"></p>
+          <div class="home-cards">
+            <a class="home-card games" href="#play" data-go="play">
+              <span class="hc-art" aria-hidden="true"><i>🎲</i><i>🎨</i><i>🍦</i><i>💣</i></span>
+              <b class="hc-title">Games</b>
+              <span class="hc-sub">Ludo, Doodle Duel, Sticky Situation and more</span>
+              <span class="hc-go">Play</span>
+            </a>
+            <a class="home-card chat dm-link" href="messages.html">
+              <span class="hc-face" aria-hidden="true"><span class="actor" id="home-chat-face"></span><i class="hc-dot" id="home-chat-dot" hidden></i></span>
+              <b class="hc-title">Chat <em id="home-chat-count" class="hc-count" hidden></em></b>
+              <span class="hc-sub" id="home-chat-sub">Just the two of you</span>
+              <span class="hc-go">Open chat</span>
+            </a>
+          </div>
+        </section>
+
         <!-- PLAY -->
         <section id="tab-play" class="panel play" role="tabpanel" aria-label="Play">
           <div class="greet">
@@ -352,6 +372,6 @@
   <script src="shared/records.js?v=13"></script>
   <script src="shared/rewards.js?v=7"></script>
   <script src="shared/sound.js?v=1"></script>
-  <script src="hub/hub.js?v=28"></script>
+  <script src="hub/hub.js?v=29"></script>
 </body>
 </html>

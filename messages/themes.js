@@ -26,7 +26,7 @@ export function applyTheme(key, vanish = false) {
   root.setProperty('--text', dark ? '#f4f0fb' : '#241c33');
   root.setProperty('--sub', dark ? '#a49cb8' : '#7a7089');
   root.setProperty('--line', dark ? '#ffffff1c' : '#2b21401a');
-  root.setProperty('--bar', dark ? (vanish ? '#0b0a10e6' : th.bg + 'e6') : th.bg + 'eb');
+  root.setProperty('--bar', dark ? (vanish ? '#0b0a10cc' : th.bg + 'b3') : th.bg + 'b8');
   root.setProperty('--sheet', dark ? '#1d1830' : '#ffffff');
   root.setProperty('--chip', dark ? '#ffffff14' : '#2b214010');
   document.documentElement.classList.toggle('dark', dark);

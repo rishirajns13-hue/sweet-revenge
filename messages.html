@@ -12,12 +12,12 @@
   <link rel="preconnect" href="https://tzksdygcuykycrmwwxrv.supabase.co" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/base.css?v=16">
-  <link rel="stylesheet" href="messages/messages.css?v=1">
+  <link rel="stylesheet" href="messages/messages.css?v=2">
 </head>
 <body class="dm">
   <div class="dm-app" id="app">
     <header class="dm-head">
-      <a class="dm-icon" id="btn-back" href="index.html#play" aria-label="Back to the games" data-icon="back"></a>
+      <a class="dm-icon" id="btn-back" href="index.html#home" aria-label="Back to Home" data-icon="back"></a>
       <button class="dm-peer" id="btn-peer" type="button" aria-label="Chat details">
         <span class="face-wrap"><span class="face" id="peer-face"></span><i class="online-dot" id="peer-dot" hidden></i></span>
         <span class="peer-txt"><b id="peer-name">Messages</b><small id="peer-status"></small></span>
@@ -77,6 +77,12 @@
           <svg class="ic arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
         </button>
       </div>
+      <nav class="dm-nav" aria-label="Sections">
+        <a href="index.html#home"><span aria-hidden="true">🏠</span><b>Home</b></a>
+        <a href="index.html#play"><span aria-hidden="true">🎮</span><b>Games</b></a>
+        <a href="messages.html" aria-current="page"><span aria-hidden="true">💬</span><b>Chat</b></a>
+        <a href="index.html#me"><span aria-hidden="true">🧸</span><b>You</b></a>
+      </nav>
     </footer>
   </div>
 
@@ -149,6 +155,6 @@
   <script src="shared/core.js?v=14"></script>
   <script src="shared/avatars.js?v=4"></script>
   <script src="shared/sound.js?v=1"></script>
-  <script type="module" src="messages/app.js?v=1"></script>
+  <script type="module" src="messages/app.js?v=2"></script>
 </body>
 </html>
