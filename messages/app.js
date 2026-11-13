@@ -960,7 +960,8 @@ export function mountChat(root = ROOT, { show = true } = {}) {
 }
 
 async function start() {
-  if (!me) await requireLogin();
+  if (!me) await loadMe();
+  if (!me) return; // not logged in: the app shell shows the login screen
   document.body.classList.toggle('calm', !!store.get('sr-calm', false));
   hydrateIcons(ROOT);
   mountPicker(ROOT);

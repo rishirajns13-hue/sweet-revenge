@@ -125,6 +125,21 @@ if (SEASON) document.body.classList.add('season-' + SEASON);
 // e.g. the first login on a device, and it never waits longer than it has to.
 const cacheKey = () => 'sr-profile:' + me.user;
 async function boot({ full = false } = {}) {
+  // A return visit draws straight from what this device saved, before the login check (which can be
+  // slow on a bad connection). If the check then says the login is gone, the login screen takes over.
+  const early = !full && peekMe();
+  if (early) {
+    me = early;
+    if (!routeAway()) return;
+    const saved = store.get(cacheKey(), null);
+    if (saved && saved.level) {
+      applyProfile(saved, { firstLoad: true, cached: true });
+      enterHub();
+      loadMe().then((m) => { if (!m) { store.del('sr-auth'); hubShown = false; showScreen('login'); } }); // the saved login has gone: forget it here
+      return;
+    }
+    showScreen('loading'); // logged in on this device before, but nothing saved yet: the cone, at once
+  }
   if (!(await loadMe())) { showScreen('login'); $('#login-user').focus(); return; }
   if (!routeAway()) return;
   const cached = store.get(cacheKey(), null);
@@ -199,6 +214,7 @@ function showTab(name, { animate = true, sound = false } = {}) {
     document.documentElement.dataset.vt = name === 'chat' || from === 'chat' ? 'chat-' + dir : 'fade';
     if (activeVT) activeVT.skipTransition(); // a new tap wins over a transition still running
     const vt = (activeVT = document.startViewTransition(swap));
+    vt.ready.catch(() => {}); // skipped or interrupted: the switch itself still happened
     vt.finished.finally(() => { if (activeVT === vt) { activeVT = null; delete document.documentElement.dataset.vt; } });
   } else swap();
   if (sound) sfx.pop();
@@ -247,6 +263,7 @@ if (document.fonts) document.fonts.ready.then(movePill);
 // device's copy straight away, so opening Chat is just showing it.
 let chatApi = null, chatLoad = null;
 function ensureChat(show) {
+  if (!me) return Promise.resolve(null);
   if (!chatLoad) {
     chatLoad = import(new URL('messages/app.js?v=5', document.baseURI).href)
       .then((mod) => mod.mountChat(undefined, { show: currentTab === 'chat' }))

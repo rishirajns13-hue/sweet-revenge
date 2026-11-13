@@ -126,6 +126,16 @@ async function loadMe() {
   me = { name: saved.name || user, user, proof: session.access_token, uid: session.user.id };
   return me;
 }
+// The saved login, read straight from this device without waiting for anything, so a page can draw
+// at once. loadMe() confirms it afterwards (and refreshes the token if it's stale). Null if there's no
+// saved login, or it's more than a week past expiry.
+function peekMe() {
+  const s = store.get('sr-auth', null), saved = store.get(ME_KEY, null) || {};
+  const user = (s && s.user && s.user.user_metadata && s.user.user_metadata.username) || saved.user;
+  if (!s || !s.access_token || !user) return null;
+  if (s.expires_at && s.expires_at * 1000 < Date.now() - 7 * 864e5) return null;
+  return { name: saved.name || user, user, proof: s.access_token, uid: s.user && s.user.id };
+}
 // Keep the token games send fresh (it renews about once an hour).
 sb.auth.onAuthStateChange((event, session) => { if (me && session) me.proof = session.access_token; });
 function saveMe(m) { store.set(ME_KEY, { name: m.name, user: m.user }); if (me) Object.assign(me, m); }
