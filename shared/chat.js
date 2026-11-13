@@ -290,44 +290,82 @@ function createChat(opts) {
     btn.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') stopTalk(); });
   }
 
-  /* ---------- walkie-talkie: hold to talk, heard live (about half a second behind) ----------
-     Audio is recorded in 200 ms slices and each slice travels through the room like any other
-     message, so it works on every network (no call setup, no extra servers). The listener's browser
-     plays the slices as they arrive. */
-  const WALKIE_MIME = 'audio/webm;codecs=opus';
-  const walkie = { rec: null, stream: null, sid: '', seq: 0, wanted: false, timer: 0, btns: [] };
-  const canStream = () => typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported(WALKIE_MIME);
-  const toB64 = (buf) => { let s = ''; const b = new Uint8Array(buf); for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
+  /* ---------- walkie-talkie: hold to talk, heard live (about a third of a second behind) ----------
+     The mic is read straight from Web Audio, turned into 16 kHz speech (8-bit mu-law, the phone
+     standard) and sent in 200 ms slices through the room like any other message. Every slice plays
+     on its own, so a slice lost on the way costs a fifth of a second of silence, never the whole
+     transmission. The listener's browser schedules the slices back to back through Web Audio,
+     which plays in every browser (no codecs, no MediaSource). */
+  const WALKIE_RATE = 16000, WALKIE_SLICE = WALKIE_RATE / 5; // samples in 200 ms
+  const walkie = { cap: null, stream: null, sid: '', seq: 0, wanted: false, timer: 0, btns: [], buf: null, fill: 0 };
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const toB64 = (b) => { let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
   const fromB64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  // G.711 mu-law: 8 bits per sample that keep quiet speech clear.
+  function muEncode(x) {
+    let s = Math.round(Math.max(-1, Math.min(1, x)) * 32635), sign = 0;
+    if (s < 0) { sign = 0x80; s = -s; }
+    s += 132;
+    let exp = 7;
+    for (let m = 0x4000; (s & m) === 0 && exp > 0; m >>= 1) exp--;
+    return ~(sign | (exp << 4) | ((s >> (exp + 3)) & 0x0f)) & 0xff;
+  }
+  const MU = new Float32Array(256);
+  for (let u = 0; u < 256; u++) {
+    const v = ~u & 0xff, exp = (v >> 4) & 7, mag = ((((v & 0x0f) << 3) + 132) << exp) - 132;
+    MU[u] = ((v & 0x80) ? -mag : mag) / 32768;
+  }
+  function sendSlice(end) {
+    const n = walkie.fill;
+    if (n) {
+      const out = new Uint8Array(n);
+      for (let i = 0; i < n; i++) out[i] = muEncode(walkie.buf[i]);
+      emit({ t: 'walkie', sid: walkie.sid, i: walkie.seq++, sr: WALKIE_RATE, d: toB64(out) });
+      walkie.fill = 0;
+    }
+    if (end) emit({ t: 'walkie', sid: walkie.sid, end: true, n: walkie.seq });
+  }
   async function startWalkie() {
-    if (!inGame || walkie.rec || !o.players().length) return;
-    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported(WALKIE_MIME) || !navigator.mediaDevices) {
-      return toast('Live walkie-talkie needs Chrome or Edge. Voice notes still work 🎙️', 3000);
+    if (!inGame || walkie.cap || walkie.wanted || !o.players().length) return;
+    if (!AC || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return toast('This browser can\'t do the walkie-talkie. Voice notes still work 🎙️', 3000);
     }
     walkie.wanted = true;
+    unlockEar();
+    let stream;
     try {
-      walkie.stream = walkie.stream || await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
     } catch (e) { walkie.wanted = false; return toast('Allow the microphone to use the walkie-talkie 📻', 3000); }
-    if (!walkie.wanted) return;
+    // Let go before the microphone was ready (the first time, while the browser asked): nothing to send.
+    if (!walkie.wanted) { stream.getTracks().forEach((t) => t.stop()); return toast('Mic is ready. Now hold 📻 (or V) while you talk', 2600); }
+    let cap;
+    try {
+      cap = new AC();
+      if (cap.state === 'suspended') await cap.resume();
+    } catch (e) { stream.getTracks().forEach((t) => t.stop()); walkie.wanted = false; return toast('Could not start the walkie-talkie 😕', 2500); }
+    if (!walkie.wanted) { stream.getTracks().forEach((t) => t.stop()); try { cap.close(); } catch (e) { /* closed */ } return; }
+    walkie.stream = stream; walkie.cap = cap;
     walkie.sid = Math.random().toString(36).slice(2, 10);
-    walkie.seq = 0;
-    const rec = new MediaRecorder(walkie.stream, { mimeType: WALKIE_MIME, audioBitsPerSecond: 24000 });
-    walkie.rec = rec;
-    const sid = walkie.sid;
-    rec.ondataavailable = async (e) => {
-      if (!e.data.size) return;
-      const i = walkie.seq++;
-      emit({ t: 'walkie', sid, i, d: toB64(await e.data.arrayBuffer()) });
+    walkie.seq = 0; walkie.fill = 0; walkie.buf = new Float32Array(WALKIE_SLICE);
+    const src = cap.createMediaStreamSource(stream);
+    const proc = cap.createScriptProcessor(2048, 1, 1);
+    const mute = cap.createGain(); mute.gain.value = 0; // the processor only runs when connected to the speakers
+    const step = cap.sampleRate / WALKIE_RATE;
+    let pos = 0; // where the next 16 kHz sample falls in the incoming audio, carried between blocks
+    proc.onaudioprocess = (e) => {
+      if (walkie.cap !== cap) return;
+      const x = e.inputBuffer.getChannelData(0), len = x.length;
+      // Down to 16 kHz, averaging each stretch so nothing above the speech band folds back in.
+      for (; pos + step <= len; pos += step) {
+        const a = Math.floor(pos), b = Math.min(len, Math.floor(pos + step));
+        let sum = 0;
+        for (let k = a; k < b; k++) sum += x[k];
+        walkie.buf[walkie.fill++] = sum / Math.max(1, b - a);
+        if (walkie.fill === WALKIE_SLICE) sendSlice(false);
+      }
+      pos -= len;
     };
-    rec.onstop = () => {
-      // Let the last slice go out first, then say we're done.
-      setTimeout(() => emit({ t: 'walkie', sid, end: true, n: walkie.seq }), 120);
-      walkie.rec = null;
-      walkie.btns.forEach((b) => b.classList.remove('live'));
-      $('#rec').classList.remove('on', 'walkie-on');
-      walkie.stream?.getTracks().forEach((t) => t.stop()); walkie.stream = null;
-    };
-    rec.start(200);
+    src.connect(proc); proc.connect(mute); mute.connect(cap.destination);
     walkie.btns.forEach((b) => b.classList.add('live'));
     $('#rec').classList.add('on', 'walkie-on');
     walkie.timer = setTimeout(stopWalkie, 30000); // 30 s at a time, like a real walkie-talkie
@@ -335,9 +373,28 @@ function createChat(opts) {
   function stopWalkie() {
     walkie.wanted = false;
     clearTimeout(walkie.timer);
-    if (walkie.rec && walkie.rec.state === 'recording') walkie.rec.stop();
+    const cap = walkie.cap;
+    if (!cap) return;
+    walkie.cap = null;
+    sendSlice(true);
+    try { cap.close(); } catch (e) { /* already closed */ }
+    walkie.stream?.getTracks().forEach((t) => t.stop()); walkie.stream = null;
+    walkie.btns.forEach((b) => b.classList.remove('live'));
+    $('#rec').classList.remove('on', 'walkie-on');
   }
-  // Listening: one MediaSource per transmission, fed slices in order.
+
+  // Listening: one shared Web Audio "ear", woken by the first tap or key press on the page
+  // (browsers only let a page make sound after the player has touched it).
+  let ear = null;
+  function unlockEar() {
+    if (!AC) return null;
+    try {
+      ear = ear || new AC();
+      if (ear.state === 'suspended') ear.resume().catch(() => {});
+    } catch (e) { ear = null; }
+    return ear;
+  }
+  ['pointerdown', 'keydown', 'touchend'].forEach((ev) => document.addEventListener(ev, unlockEar, { capture: true, passive: true }));
   const airwaves = new Map();
   function onAir(from, on) {
     let pill = document.getElementById('walkie-pill');
@@ -347,48 +404,52 @@ function createChat(opts) {
       pill.classList.add('on');
     } else if (pill) pill.classList.remove('on');
   }
+  const LEAD = 0.3; // seconds of slices kept in hand, so a late one still plays in its place
   function hearWalkie(m) {
-    if (typeof m.sid !== 'string' || m.sid.length > 16) return;
+    if (typeof m.sid !== 'string' || !m.sid || m.sid.length > 16) return;
     let a = airwaves.get(m.sid);
     if (!a) {
       if (m.end) return;
-      a = { from: m.from, next: 0, pending: new Map(), queue: [], blobs: [], ended: false, n: Infinity, last: Date.now() };
+      a = { from: m.from, at: 0, last: -1, until: 0, ended: false, seen: Date.now(), warned: false };
       airwaves.set(m.sid, a);
       onAir(m.from, true);
-      if (canStream()) {
-        a.ms = new MediaSource();
-        a.audio = new Audio(URL.createObjectURL(a.ms));
-        a.ms.addEventListener('sourceopen', () => {
-          try { a.sb = a.ms.addSourceBuffer(WALKIE_MIME); a.sb.mode = 'sequence'; a.sb.addEventListener('updateend', () => feed(a, m.sid)); feed(a, m.sid); } catch (e) { a.sb = null; }
-        });
-        a.audio.addEventListener('ended', () => finishAir(m.sid));
-      }
-      a.watch = setInterval(() => { if (Date.now() - a.last > 4000) finishAir(m.sid); }, 1000);
+      // Hang up after the last slice has played, or after a few quiet seconds if the end got lost.
+      a.watch = setInterval(() => {
+        const t = ear ? ear.currentTime : 0;
+        if ((a.ended && t >= a.until) || Date.now() - a.seen > 3000) finishAir(m.sid);
+      }, 250);
     }
-    a.last = Date.now();
-    if (m.end) { a.ended = true; a.n = typeof m.n === 'number' ? m.n : a.next; feed(a, m.sid); return; }
-    if (!Number.isInteger(m.i) || typeof m.d !== 'string' || m.d.length > 80000) return;
-    a.pending.set(m.i, fromB64(m.d));
-    while (a.pending.has(a.next)) { a.queue.push(a.pending.get(a.next)); a.pending.delete(a.next); a.next++; }
-    feed(a, m.sid);
-  }
-  function feed(a, sid) {
-    if (!a.ms) { // no live playback here: collect, then play the whole thing at the end
-      while (a.queue.length) a.blobs.push(a.queue.shift());
-      if (a.ended && a.next >= a.n) {
-        const audio = new Audio(URL.createObjectURL(new Blob(a.blobs, { type: 'audio/webm' })));
-        audio.addEventListener('ended', () => finishAir(sid));
-        audio.play().catch(() => finishAir(sid));
-      }
-      return;
+    a.seen = Date.now();
+    if (m.end) { a.ended = true; return; }
+    if (!Number.isInteger(m.i) || m.i <= a.last || typeof m.d !== 'string' || m.d.length > 16000) return;
+    const sr = Number.isInteger(m.sr) && m.sr >= 8000 && m.sr <= 48000 ? m.sr : WALKIE_RATE;
+    const ctx = unlockEar();
+    if (!ctx) return;
+    if (ctx.state !== 'running') {
+      if (!a.warned) { a.warned = true; toast(`📻 ${nameOf(a.from)} is talking. Tap anywhere to hear them`, 2500); }
+      return; // the slices that arrive after they tap still play
     }
-    if (!a.sb || a.sb.updating) return;
-    if (a.queue.length) {
-      try { a.sb.appendBuffer(a.queue.shift()); } catch (e) { /* a slice we can't use: skip it */ }
-      if (a.audio.paused) a.audio.play().catch(() => toast(`📻 ${nameOf(a.from)} is talking. Tap anywhere to hear them`, 2500));
-      return;
+    let bytes;
+    try { bytes = fromB64(m.d); } catch (e) { return; }
+    if (!bytes.length) return;
+    a.last = m.i;
+    const buf = ctx.createBuffer(1, bytes.length, sr), ch = buf.getChannelData(0);
+    for (let k = 0; k < bytes.length; k++) ch[k] = MU[bytes[k]];
+    const now = ctx.currentTime;
+    // First slice, or running late after a slow network moment: start a little ahead again.
+    const gap = a.at < now + 0.02 || a.at > now + 1.5;
+    if (gap) {
+      a.at = now + LEAD;
+      // Fade in after a gap so the restart doesn't click.
+      const fade = Math.min(160, bytes.length >> 2);
+      for (let k = 0; k < fade; k++) ch[k] *= k / fade;
     }
-    if (a.ended && a.next >= a.n && a.ms.readyState === 'open') { try { a.ms.endOfStream(); } catch (e) { /* already closed */ } }
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    g.gain.value = 1.4; // phone-band speech sounds quieter than the game; lift it a bit
+    src.buffer = buf; src.connect(g).connect(ctx.destination);
+    src.start(a.at);
+    a.at += buf.duration;
+    a.until = a.at;
   }
   function finishAir(sid) {
     const a = airwaves.get(sid);
