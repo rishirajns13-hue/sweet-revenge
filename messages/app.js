@@ -30,12 +30,13 @@ const SVG = {
 };
 const svg = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${SVG[name] || ICONS[name]}</svg>`;
 
-/* ---------------- sounds: two quiet real clips ---------------- */
-const player = createSamplePlayer({ volume: 0.6, takes: { pop: ['ui-pop-1.ogg', 'ui-pop-2.ogg'], drop: ['ui-drop-1.ogg', 'ui-drop-2.ogg'], pick: ['ui-pick.ogg'] } });
+/* ---------------- sounds: the chat's own soft set (recorded, CC0) ----------------
+   Like a DM app: a bubble "blob" when you send, a water drop when a message arrives, a tiny pop for a reaction. */
+const player = createSamplePlayer({ volume: 0.6, takes: { send: ['chat-send.ogg'], receive: ['chat-receive.ogg'], react: ['chat-react.ogg'] } });
 const sfx = {
-  send() { player.sample('pop', { vol: 0.28, rate: 1.12 }); },
-  receive() { player.sample('drop', { vol: 0.3 }); },
-  react() { player.sample('pick', { vol: 0.22, rate: 1.25 }); },
+  send() { player.sample('send', { vol: 0.32 }); },
+  receive() { player.sample('receive', { vol: 0.55 }); },
+  react() { player.sample('react', { vol: 0.18, rate: 1.1 }); },
 };
 ['pointerdown', 'keydown'].forEach((ev) => addEventListener(ev, () => setTimeout(() => player.load(), 80), { once: true })); // after the tap has drawn
 

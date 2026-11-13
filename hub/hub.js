@@ -13,21 +13,25 @@ const TABS = ['home', 'play', 'trophies', 'rivals', 'chat', 'me'];
 const POLL_MS = 60000; // a safety net: new games and trophies arrive instantly through records.onChange
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ================= sounds: a few quiet, real clips (shared/sounds/ui-*, CC0 Kenney) ================= */
+/* ================= sounds: a few quiet, real recorded clips (shared/sounds, CC0, see LICENSE-ui-sounds.txt) =================
+   The menus' own set: soft taps and a micro swish when you move between sections, a mouth pop when you
+   pick a game, a card flick for trophies, a popping cork for a new trophy, bubbles for a level-up.
+   No plucked strings, pizzicato or glass "tings" (the user dislikes them). Chat has its own set. */
 const player = createSamplePlayer({
   volume: 0.7,
   takes: {
-    pop: ['ui-pop-1.ogg', 'ui-pop-2.ogg'], pick: ['ui-pick.ogg'], drop: ['ui-drop-1.ogg', 'ui-drop-2.ogg'],
-    shine: ['ui-shine.ogg'], trophy: ['ui-trophy.ogg'], levelup: ['ui-levelup.ogg'],
+    pop: ['ui-pop-1.ogg', 'ui-pop-2.ogg'], swish: ['ui-swish.ogg'], pick: ['ui-pick.ogg'], drop: ['ui-drop-1.ogg', 'ui-drop-2.ogg'],
+    flip: ['card-slide-2.ogg', 'card-slide-5.ogg'], shine: ['ui-shine.ogg'], trophy: ['ui-trophy.ogg'], levelup: ['ui-levelup.ogg'],
   },
 });
 const sfx = {
-  pop() { player.sample('pop', { vol: 0.35 }); },
-  pick() { player.sample('pick', { vol: 0.45 }); },
-  drop() { player.sample('drop', { vol: 0.4 }); },
-  flip() { player.sample('shine', { vol: 0.3, rate: 1.1 }); },
-  trophy() { player.sample('trophy', { vol: 0.45, vary: false }); player.sample('shine', { vol: 0.3, when: 0.15 }); },
-  levelup() { player.sample('levelup', { vol: 0.5, vary: false }); },
+  pop() { player.sample('pop', { vol: 0.22 }); },
+  swish() { player.sample('swish', { vol: 0.55 }); },
+  pick() { player.sample('pick', { vol: 0.3 }); },
+  drop() { player.sample('drop', { vol: 0.35 }); },
+  flip() { player.sample('flip', { vol: 0.35 }); },
+  trophy() { player.sample('trophy', { vol: 0.55, vary: false }); player.sample('shine', { vol: 0.22, when: 0.2 }); },
+  levelup() { player.sample('levelup', { vol: 0.4, vary: false }); },
 };
 // Browsers only allow sound after the first click or key press, so load the clips then.
 ['pointerdown', 'keydown'].forEach((ev) => addEventListener(ev, () => setTimeout(() => player.load(), 80), { once: true })); // after the tap has drawn
@@ -240,7 +244,7 @@ function showTab(name, { animate = true, sound = false } = {}) {
     vt.ready.catch(() => {}); // skipped or interrupted: the switch itself still happened
     vt.finished.finally(() => { if (activeVT === vt) { activeVT = null; delete document.documentElement.dataset.vt; } });
   } else swap();
-  if (sound) sfx.pop();
+  if (sound) sfx.swish();
 }
 function applyTab(name, from, animate) {
   const fallback = animate && from !== null && !document.startViewTransition && !calm();
@@ -288,7 +292,7 @@ let chatApi = null, chatLoad = null;
 function ensureChat(show) {
   if (!me) return Promise.resolve(null);
   if (!chatLoad) {
-    chatLoad = loginReady.then(() => import(new URL('messages/app.js?v=6', document.baseURI).href))
+    chatLoad = loginReady.then(() => import(new URL('messages/app.js?v=7', document.baseURI).href))
       .then((mod) => mod.mountChat(undefined, { show: currentTab === 'chat' }))
       .then((api) => { chatApi = api; renderHome(); return api; })
       .catch((e) => { chatLoad = null; console.error(e); toast('The chat didn\'t load. Check the connection.'); return null; });

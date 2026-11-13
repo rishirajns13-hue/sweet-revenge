@@ -1,0 +1,17 @@
+The ui-*.ogg and chat-*.ogg sounds are all Creative Commons Zero (CC0), public domain:
+http://creativecommons.org/publicdomain/zero/1.0/
+Recorded sounds from freesound.org (previews of the CC0 originals), chosen 13 Nov 2026 to replace the
+earlier plucked-string / pizzicato / glass sounds:
+
+  ui-pop-1.ogg      "UI Click Soft Tap" by Qvantor          https://freesound.org/s/878237/
+  ui-pop-2.ogg      "WOOD.wav" by Krokulator                https://freesound.org/s/652615/
+  ui-pick.ogg       "Mouth Pop Short" by qubodup            https://freesound.org/s/792928/
+  ui-drop-1.ogg     "Water Drop 02" by LilMati              https://freesound.org/s/349873/
+  ui-drop-2.ogg     "water_drop.wav" by velkstar            https://freesound.org/s/425209/
+  ui-shine.ogg      "Bubbles Rise.wav" by mosaichorse       https://freesound.org/s/486885/
+  ui-levelup.ogg    "Bubbling Water Notification - UI Alert (CC0)" by ATP2-kh  https://freesound.org/s/844241/
+  ui-trophy.ogg     "Popping Cork" by milcahrawr            https://freesound.org/s/622150/
+  ui-swish.ogg      "UI Hover Micro Swish" by Qvantor       https://freesound.org/s/878248/
+  chat-send.ogg     "UI Bubble Pop" by Qvantor              https://freesound.org/s/878245/
+  chat-receive.ogg  "water drop 1.aif" by beskhu            https://freesound.org/s/273870/
+  chat-react.ogg    "Bubble_Pop" by arttim                  https://freesound.org/s/733264/

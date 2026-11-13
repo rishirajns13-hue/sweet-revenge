@@ -30,7 +30,7 @@ function createSamplePlayer({ takes, base = 'shared/sounds/', volume = 0.8 }) {
     if (loading) return loading;
     const c = ac();
     loading = Promise.all(Object.entries(takes).flatMap(([name, files]) => files.map((file) =>
-      fetch(base + file)
+      fetch(base + file + '?v=2') // v2: the recorded CC0 set (no plucked strings)
         .then((r) => r.arrayBuffer()).then((b) => c.decodeAudioData(b))
         .then((buf) => (bufs[name] = bufs[name] || []).push(buf))
         .catch(() => { /* missing or unsupported: that sound stays quiet */ }))));
