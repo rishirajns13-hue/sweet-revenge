@@ -312,3 +312,8 @@ grant execute on function public.claim_account(text, text) to anon, authenticate
 -- Table public.challenges (from_player, to_player, kind, room, status open|accepted|declined|cancelled),
 -- readable by either player; RPCs send_challenge(to, kind), challenge_room(id, room) and
 -- answer_challenge(id, accept); added to the supabase_realtime publication. Applied as migration "challenges".
+
+/* ===================== 6. (13 Nov 2026) Messages ===================== */
+-- The private chat (messages.html): tables dm_messages, dm_reactions, dm_state; players.pic / pic_mode;
+-- RPCs dm_send, dm_edit, dm_unsend, dm_react, dm_read, dm_set, dm_vanish_sweep, set_pic; storage buckets
+-- dm-voice and pics; a private realtime channel 'dm'. The full SQL is in supabase/dm.sql.
