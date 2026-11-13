@@ -157,7 +157,7 @@ async function boot({ full = false } = {}) {
 // Room links and "send me back to the game I came from" skip the menu entirely.
 function routeAway() {
   const q = new URLSearchParams(location.search), next = q.get('next');
-  if (next && /^(ludo|doodle|plusfour|snakes|sundae)\.html$/.test(next)) {
+  if (next && /^(ludo|doodle|plusfour|snakes|sundae|messages)\.html$/.test(next)) {
     q.delete('next');
     location.replace(next + (q.toString() ? '?' + q : ''));
     return false;
@@ -631,6 +631,7 @@ function startLive() {
   liveTimer = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, POLL_MS);
   records.onChange(refresh);
   startChallenges();
+  startMessages();
   setInterval(() => { if (!$('#live-pop').hidden) renderLivePop(); }, 5000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
 }
@@ -774,3 +775,39 @@ document.addEventListener('DOMContentLoaded', () => {
   wireProfileSheet();
   boot();
 });
+
+/* ================= Messages: the 💬 button's unread count, live ================= */
+// Counts what the friend sent that you haven't seen; a new message while you're here shows a banner.
+let dmChannel = null, dmCountT = 0;
+async function countUnread() {
+  const { count, error } = await sb.from('dm_messages').select('id', { count: 'exact', head: true })
+    .neq('sender', me.user).neq('kind', 'system').is('seen_at', null);
+  if (error) return;
+  const b = $('#dm-badge');
+  b.hidden = !count;
+  b.textContent = count > 9 ? '9+' : count;
+  $('#btn-dm').setAttribute('aria-label', count ? `Messages, ${count} new` : 'Messages');
+}
+function startMessages() {
+  if (dmChannel || !me) return;
+  countUnread();
+  const names = {};
+  sb.from('players').select('id, name').then(({ data }) => (data || []).forEach((p) => { names[p.id] = p.name; }));
+  sb.from('dm_state').select('nicknames').eq('id', 1).maybeSingle().then(({ data }) => Object.assign(names, (data && data.nicknames) || {}));
+  const recount = () => { clearTimeout(dmCountT); dmCountT = setTimeout(countUnread, 300); };
+  dmChannel = sb.channel('sr-dm-badge')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'dm_messages' }, (e) => {
+      recount();
+      const m = e.new;
+      if (e.eventType !== 'INSERT' || !m || m.sender === me.user || m.kind === 'system') return;
+      const what = m.vanish ? 'sent a message' : m.kind === 'text' ? '' : m.kind === 'voice' ? 'sent a voice message'
+        : m.kind === 'gif' ? 'sent a GIF' : m.kind === 'sticker' ? 'sent a sticker' : 'sent a ❤️';
+      const who = names[m.sender] || m.sender;
+      toast(`💬 ${who}${what ? ' ' + what : ': ' + (m.body.length > 60 ? m.body.slice(0, 60) + '…' : m.body)}`, 3500);
+      sfx.pop();
+      retrigger($('#btn-dm'), 'boing');
+    })
+    .subscribe();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') countUnread(); });
+  addEventListener('pageshow', (e) => { if (e.persisted) countUnread(); });
+}
