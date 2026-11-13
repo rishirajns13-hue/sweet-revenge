@@ -144,3 +144,36 @@ test('wallpapers: names, photo detection, and the system line', () => {
   assert.equal(L.systemText({ sender: 'ammu', meta: { event: 'wall', value: 'stars' } }, 'ammu', name), 'You changed the wallpaper to Starry night');
   assert.equal(L.systemText({ sender: 'panchara kunju', meta: { event: 'wall', value: 'photo' } }, 'ammu', name), 'Kunju set a photo as the wallpaper');
 });
+
+/* ---------- colours picked from a photo wallpaper ---------- */
+const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const hueOf = (h) => { const [r, g, b] = hexRgb(h).map((v) => v / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  if (!d) return 0; const x = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return (x * 60 + 360) % 360; };
+// 64×64 RGBA pixels, split evenly between the given colours.
+const px = (...hexes) => { const out = new Uint8ClampedArray(64 * 64 * 4); for (let i = 0; i < 64 * 64; i++) { const [r, g, b] = hexRgb(hexes[Math.floor(i * hexes.length / 4096)]); out.set([r, g, b, 255], i * 4); } return out; };
+
+test('contrast follows the WCAG formula', () => {
+  assert.ok(Math.abs(L.contrast('#000000', '#ffffff') - 21) < 0.01);
+  assert.equal(L.contrast('#777777', '#777777'), 1);
+});
+
+test('a red-and-blue photo gives red and blue bubble colours', () => {
+  const p = L.paletteFromPixels(px('#ff2e6e', '#3459e6'));
+  assert.equal(p.mine.length, 3);
+  assert.ok(p.mine.some((h) => hueOf(h) >= 330 || hueOf(h) <= 20), 'has a red: ' + p.mine);
+  assert.ok(p.mine.some((h) => hueOf(h) >= 210 && hueOf(h) <= 240), 'has a blue: ' + p.mine);
+});
+
+test('a plain white or black photo still gives readable bubbles', () => {
+  for (const [hex, dark] of [['#ffffff', false], ['#000000', true]]) {
+    const p = L.paletteFromPixels(px(hex));
+    assert.equal(p.dark, dark, hex);
+    assert.ok(L.contrast(p.textMine, p.mine[1]) >= 4.5, `${hex} mine ${p.textMine} on ${p.mine[1]}`);
+    assert.ok(L.contrast(p.textTheirs, p.theirs) >= 4.5, `${hex} theirs ${p.textTheirs} on ${p.theirs}`);
+  }
+});
+
+test('the same photo always gives the same colours', () => {
+  const a = px('#ffb36b', '#2bc48a', '#8f6bff');
+  assert.deepEqual(L.paletteFromPixels(a), L.paletteFromPixels(a));
+});

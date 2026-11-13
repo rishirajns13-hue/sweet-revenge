@@ -194,3 +194,71 @@ export function exportChat({ messages, reactions, players, nicknames = {} }, now
     })),
   };
 }
+
+/* ---------------- colours from a photo wallpaper ----------------
+   The page draws the photo at 64×64 and hands the RGBA pixels here. The same photo gives the same
+   colours on both phones, so nothing needs saving in the database. */
+const toHex = (rgb) => '#' + rgb.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+const fromHex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+function lum(rgb) {
+  const [r, g, b] = rgb.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+export function contrast(a, b) {
+  const [x, y] = [lum(fromHex(a)), lum(fromHex(b))].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+}
+function hsl([r, g, b]) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, s, l];
+}
+function rgbOf([h, s, l]) {
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = l - c / 2;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+}
+const hueGap = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+// Nudges `bg` toward `toward` in 8% steps until `fg` reads on it at 4.5:1.
+function readable(fg, bg, toward) {
+  let c = fromHex(bg);
+  for (let i = 0; i < 14 && contrast(fg, toHex(c)) < 4.5; i++) c = mix(c, toward, 0.08);
+  return toHex(c);
+}
+
+export function paletteFromPixels(data) {
+  const buckets = new Map(), total = [0, 0, 0];
+  let n = 0, lumSum = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 128) continue;
+    const rgb = [data[i], data[i + 1], data[i + 2]], [h, s, l] = hsl(rgb);
+    const k = Math.floor(h / 30) * 3 + (l < 0.35 ? 0 : l < 0.7 ? 1 : 2);
+    const b = buckets.get(k) || { n: 0, sum: [0, 0, 0], sat: 0 };
+    b.n++; b.sat += s; rgb.forEach((v, j) => { b.sum[j] += v; total[j] += v; });
+    buckets.set(k, b);
+    n++; lumSum += lum(rgb);
+  }
+  const avg = n ? total.map((v) => v / n) : [128, 128, 128];
+  const ranked = [...buckets.values()]
+    .map((b) => { const rgb = b.sum.map((v) => v / b.n), c = hsl(rgb); return { rgb, hsl: c, score: b.n * (b.sat / b.n + 0.05) }; })
+    .filter((b) => b.hsl[1] >= 0.12 && b.hsl[2] > 0.08 && b.hsl[2] < 0.94)
+    .sort((a, b) => b.score - a.score);
+  const picked = [];
+  for (const b of ranked) if (picked.length < 3 && picked.every((p) => hueGap(p.hsl[0], b.hsl[0]) >= 25)) picked.push(b);
+  // A photo with fewer than three distinct colours: fill in with neighbours of its main hue.
+  const base = picked[0] ? picked[0].hsl : (() => { const [h, s, l] = hsl(avg); return [s < 0.12 ? 265 : h, Math.max(s, 0.45), Math.min(0.6, Math.max(0.4, l))]; })();
+  const fills = [[base[0] - 30, base[1], base[2]], [base[0] + 30, base[1], base[2]], base];
+  for (let i = 0; picked.length < 3; i++) { const h = [(fills[i][0] + 360) % 360, fills[i][1], fills[i][2]]; picked.push({ rgb: rgbOf(h), hsl: h }); }
+  picked.sort((a, b) => a.hsl[0] - b.hsl[0]);
+  const dark = n ? lumSum / n < 0.4 : false;
+  const textMine = '#ffffff';
+  const mine = picked.map((p) => readable(textMine, toHex(p.rgb), [0, 0, 0]));
+  const textTheirs = dark ? '#f4f0fb' : '#241c33';
+  const theirs = readable(textTheirs, toHex(mix(avg, dark ? [29, 24, 48] : [255, 255, 255], 0.7)), dark ? [0, 0, 0] : [255, 255, 255]);
+  const accent = picked.reduce((a, b) => (b.hsl[1] > a.hsl[1] ? b : a)).rgb;
+  return { mine, theirs, accent: toHex(accent), dark, textMine, textTheirs };
+}
