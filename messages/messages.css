@@ -543,3 +543,51 @@ body.typing #dm-root .dm-nav { display: none; }
 #dm-root.dark[data-wall="dots"]::after { opacity: .28; }
 #dm-root.dark .dm-head { background: color-mix(in srgb, var(--chat-bg) 78%, transparent); box-shadow: 0 1px 0 #ffffff0d; }
 #dm-root.dark .divider { background: #ffffff0f; }
+
+/* ===== The inbox (Instagram's DM list): Chat lands here; the row opens the conversation ===== */
+#dm-root .dm-inbox { display: flex; flex-direction: column; gap: 6px; background: var(--chat-bg); color: var(--text); z-index: 2; padding: max(10px, env(safe-area-inset-top)) 0 0; }
+#dm-root .ib-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 4px; }
+#dm-root .ib-head h1 { margin: 0; font: 600 26px/1.1 var(--display, 'Fredoka'), sans-serif; }
+#dm-root .ib-total { margin: 0 20px 8px; font: 700 13px var(--read); color: var(--sub); }
+#dm-root .ib-total:empty { display: none; }
+#dm-root .ib-row {
+  display: flex; align-items: center; gap: 14px; width: 100%; padding: 10px 20px; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer;
+  transition: background .2s;
+}
+#dm-root .ib-row:hover, #dm-root .ib-row.active { background: #ffffff0d; }
+#dm-root .ib-face { position: relative; display: inline-grid; flex: none; border-radius: 50%; }
+#dm-root .ib-row.unread .ib-face { box-shadow: 0 0 0 2.5px var(--chat-bg), 0 0 0 5px var(--m2); }
+#dm-root .ib-face .online-dot { right: 1px; bottom: 1px; width: 15px; height: 15px; }
+#dm-root .ib-txt { flex: 1; min-width: 0; display: grid; gap: 3px; }
+#dm-root .ib-txt b { font: 700 16px var(--read); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#dm-root .ib-txt small { font: 600 14px var(--read); color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#dm-root .ib-row.unread .ib-txt b, #dm-root .ib-row.unread .ib-txt small { color: var(--text); font-weight: 800; }
+#dm-root .ib-dot { width: 9px; height: 9px; flex: none; border-radius: 50%; background: #3797f0; }
+#dm-root .ib-reply { display: flex; gap: 8px; align-items: center; margin: 8px 16px 0; padding: 5px 5px 5px 14px; border-radius: 999px; background: var(--sheet); box-shadow: inset 0 0 0 1px var(--line); }
+#dm-root .ib-reply:focus-within { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--m2) 60%, transparent); }
+#dm-root .ib-reply input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--text); font: 600 15px var(--read); padding: 8px 0; }
+#dm-root .ib-reply input::placeholder { color: var(--sub); }
+#dm-root .ib-reply button { width: 36px; height: 36px; flex: none; border: 0; border-radius: 50%; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--m1), var(--m3)); cursor: pointer; }
+#dm-root .ib-reply button .ic { width: 18px; height: 18px; stroke-width: 2.6; }
+#dm-root .dm-pick { display: none; }
+
+/* laptops: the inbox is a column beside the conversation */
+@media (min-width: 900px) {
+  #tab-chat #dm-root { display: flex; }
+  #tab-chat #dm-root .dm-inbox { flex: none; width: 340px; border-right: 1px solid var(--line); }
+  #tab-chat #dm-root .dm-app { flex: 1; min-width: 0; }
+  #tab-chat #dm-root[data-view="inbox"] .dm-app { display: none; }
+  #tab-chat #dm-root[data-view="inbox"] .dm-pick { flex: 1; display: grid; place-content: center; justify-items: center; gap: 8px; color: var(--sub); text-align: center; z-index: 1; }
+  #dm-root .dm-pick-ic { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--text); color: var(--text); margin-bottom: 6px; }
+  #dm-root .dm-pick-ic .ic { width: 40px; height: 40px; }
+  #dm-root .dm-pick b { font: 600 20px var(--display, 'Fredoka'), sans-serif; color: var(--text); }
+  #dm-root .dm-pick small { font: 600 14px var(--read); }
+}
+/* phones: one view at a time; the conversation slides in from the right, as on Instagram */
+@media (max-width: 899px) {
+  #tab-chat #dm-root .dm-inbox, #tab-chat #dm-root .dm-app { position: absolute; inset: 0; transition: transform .32s var(--ease-out), opacity .32s; }
+  #tab-chat #dm-root .dm-inbox { padding-bottom: calc(var(--nav-h) + 8px); }
+  #tab-chat #dm-root[data-view="inbox"] .dm-app { transform: translateX(100%); visibility: hidden; transition: transform .32s var(--ease-out), visibility 0s .32s; }
+  #tab-chat #dm-root[data-view="thread"] .dm-inbox { transform: translateX(-22%); opacity: 0; pointer-events: none; }
+}
+@media (prefers-reduced-motion: reduce) { #tab-chat #dm-root .dm-inbox, #tab-chat #dm-root .dm-app { transition: none !important; } }

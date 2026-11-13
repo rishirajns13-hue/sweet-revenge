@@ -4,7 +4,7 @@
 import * as L from './logic.mjs?v=3';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=3';
-import * as D from './data.js?v=2';
+import * as D from './data.js?v=3';
 import * as V from './voice.js?v=2';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=2';
 
@@ -12,7 +12,11 @@ const S = D.S;
 // Everything the chat draws lives inside #dm-root, so its theme and classes never leak into the rest of the app.
 const ROOT = document.getElementById('dm-root');
 let shown = true; // false while the app shows another section (Home, Games…)
-D.setHereFn(() => shown && !document.hidden); // "in the chat" only while it is on screen
+// Inside Chat there are two views, as on Instagram: the inbox (one row: the other person) and the
+// conversation. Only the open conversation counts as "in the chat" (seen receipts, presence).
+let view = 'inbox';
+const inThread = () => shown && view === 'thread';
+D.setHereFn(() => inThread() && !document.hidden);
 const coarse = matchMedia('(pointer: coarse)').matches;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const els = {
@@ -252,6 +256,7 @@ let hiddenUnread = 0;
 // The rest of the app (Home's chat card) redraws from peek() when this fires.
 let changeT = 0;
 D.onData(() => { clearTimeout(changeT); changeT = setTimeout(() => document.dispatchEvent(new CustomEvent('dm:change')), 60); });
+D.onData((what) => { if (what !== 'typing-local') renderInbox(); });
 D.onData((what, x) => {
   switch (what) {
     case 'sent': render({ enter: x.id }); toBottom(true); break;
@@ -289,18 +294,18 @@ function showTyping() {
 }
 
 /* ---------------- reading, presence, the tab title ---------------- */
-const looking = () => shown && !document.hidden && document.hasFocus();
+const looking = () => inThread() && !document.hidden && document.hasFocus();
 function readIfLooking() { if (looking()) D.markRead(); }
 function setTitle() { if (shown) document.title = (hiddenUnread ? `(${hiddenUnread}) ` : '') + 'Messages · Sweet Revenge'; }
-addEventListener('focus', () => { readIfLooking(); D.setHere(shown); });
+addEventListener('focus', () => { readIfLooking(); D.setHere(inThread()); });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     D.setHere(false);
     D.sendTyping(false);
-    if (coarse && shown) D.vanishSweepOnLeave(); // on phones, switching away is leaving
+    if (coarse && inThread()) D.vanishSweepOnLeave(); // on phones, switching away is leaving
   } else {
     hiddenUnread = 0; setTitle();
-    D.setHere(shown);
+    D.setHere(inThread());
     readIfLooking();
     D.reconnect();
     D.refresh().catch(() => {});
@@ -1000,6 +1005,83 @@ function transcript(data) {
 <h1>Our chat</h1><p><small>Exported ${escapeHtml(new Date(data.exported_at).toLocaleString())} · ${data.messages.length} messages</small></p>${data.messages.map(line).join('\n')}`;
 }
 
+/* ---------------- the inbox ---------------- */
+let totals = { total: null, since: null };
+function renderInbox() {
+  const o = otherId();
+  if (!o) return;
+  const all = S.messages.filter((m) => m.kind !== 'system');
+  const unread = L.unread(S.messages, me.user), last = all[all.length - 1];
+  const fmtAgo = (t) => { const m = Math.max(0, Math.round((Date.now() - Date.parse(t)) / 60000)); return m < 1 ? 'now' : m < 60 ? m + 'm' : m < 1440 ? Math.round(m / 60) + 'h' : Math.round(m / 1440) + 'd'; };
+  $('#inbox-face').dataset.who = o; $('#inbox-face').innerHTML = faceInner(o);
+  $('#inbox-online').hidden = !S.online;
+  $('#inbox-name').textContent = nameOf(o);
+  const what = !last ? 'Say hi' : last.vanish && last.sender !== me.user ? 'Sent a message' : (last.sender === me.user ? 'You: ' : '') + L.preview(last);
+  $('#inbox-line').textContent = S.typing ? 'typing…'
+    : unread ? `${unread > 4 ? '4+' : unread} new message${unread === 1 ? '' : 's'}${last ? ' · ' + fmtAgo(last.created_at) : ''}`
+    : what + (last ? ' · ' + fmtAgo(last.created_at) : '');
+  $('#inbox-row').classList.toggle('unread', !!unread);
+  $('#inbox-row').classList.toggle('active', view === 'thread');
+  $('#inbox-dot').hidden = !unread;
+  const total = totals.total ?? (S.hasOlder ? null : all.length), since = totals.since || (!S.hasOlder && all[0] && all[0].created_at);
+  $('#inbox-total').textContent = total == null ? '' : `${total.toLocaleString()} message${total === 1 ? '' : 's'}${since ? ' · since ' + new Date(since).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''}`;
+  $('#inbox-reply-input').placeholder = `Message ${firstName(o)}…`;
+}
+async function loadTotals() {
+  try { totals = await D.totals(); renderInbox(); } catch (e) { /* counts stay as loaded */ }
+}
+D.onData((what, m) => { if ((what === 'arrived' || what === 'sent') && m && m.kind !== 'system' && totals.total != null) totals.total++; });
+
+// The conversation slides in over the inbox (phones) or opens beside it (laptops).
+function setView(v) {
+  view = v;
+  ROOT.dataset.view = v;
+  renderInbox();
+}
+function openThread({ push = true } = {}) {
+  if (view === 'thread') return;
+  if (push && shown) history.pushState({ dmThread: true }, '', location.hash || '#chat');
+  setView('thread');
+  applyLook();
+  hiddenUnread = 0; setTitle();
+  D.setHere(true);
+  toBottom(false);
+  readIfLooking();
+  if (!coarse) input.focus({ preventScroll: true });
+}
+// Leaving the conversation counts as leaving it: vanish-mode messages go, presence and typing stop.
+function leaveThread() {
+  D.vanishSweepOnLeave(); render();
+  D.sendTyping(false);
+  D.setHere(false);
+  if (rec || recInfo) cancelRec(); // the microphone stops with the chat
+  closeMenu(); if (pickerOpen()) closePicker(); if (!det.hidden) closeDetails();
+  input.blur(); document.body.classList.remove('typing');
+}
+function showInbox() {
+  if (view === 'thread') leaveThread();
+  setView('inbox');
+}
+$('#inbox-row').addEventListener('click', () => openThread());
+$('#btn-back').addEventListener('click', (e) => {
+  e.preventDefault();
+  if (history.state && history.state.dmThread) history.back(); else showInbox();
+});
+// The browser's Back from the conversation lands on the inbox; Forward reopens it.
+addEventListener('popstate', (e) => {
+  if (!shown) return;
+  const want = e.state && e.state.dmThread ? 'thread' : 'inbox';
+  if (want === 'inbox' && view === 'thread') showInbox();
+  else if (want === 'thread' && view === 'inbox') openThread({ push: false });
+});
+$('#inbox-reply').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const box = $('#inbox-reply-input'), text = box.value.trim();
+  if (!text) return;
+  D.send('text', text, {}, null); sfx.send();
+  box.value = '';
+});
+
 /* ---------------- start ---------------- */
 // The app shell calls this once (the chat can be loaded while another section is showing: show = false).
 // Returns the controls the shell uses when you switch to and away from Chat.
@@ -1031,25 +1113,23 @@ export function mountChat(root = ROOT, { show = true } = {}) {
       sfx.send();
       return true;
     },
+    view: () => view,
+    openThread: () => openThread(),
+    showInbox: () => showInbox(),
+    // Coming into Chat always lands on the inbox (the user doesn't want the conversation to open by itself).
     show() {
-      if (shown) return;
+      const was = shown;
       shown = true;
+      if (view === 'thread') showInbox(); else setView('inbox');
       applyLook(); // the browser bar takes the chat's colour while it's on screen
-      hiddenUnread = 0; setTitle();
-      D.setHere(true);
-      readIfLooking();
-      if (!coarse) input.focus({ preventScroll: true });
+      if (!was) { hiddenUnread = 0; setTitle(); }
     },
-    // Leaving the chat for another section counts as leaving: vanish-mode messages go, presence and typing stop.
+    // Leaving Chat for another section: if the conversation was open, that counts as leaving it.
     hide() {
       if (!shown) return;
+      if (view === 'thread') leaveThread();
       shown = false;
-      D.vanishSweepOnLeave(); render();
-      D.sendTyping(false);
-      D.setHere(false);
-      if (rec || recInfo) cancelRec(); // the microphone stops with the chat
-      closeMenu(); if (pickerOpen()) closePicker(); if (!det.hidden) closeDetails();
-      input.blur(); document.body.classList.remove('typing');
+      setView('inbox');
     },
   };
   return mounted.then(() => api);
@@ -1062,6 +1142,7 @@ async function start() {
   hydrateIcons(ROOT);
   mountPicker(ROOT);
   const cached = D.loadCache();
+  setView('inbox');
   applyLook();
   renderHeader();
   if (cached) { render(); toBottom(false); }
@@ -1077,5 +1158,5 @@ async function goLive(cached) {
   D.flushOutbox();
   readIfLooking();
   D.vanishSweep().catch(() => {});
-  if (shown && !coarse) input.focus({ preventScroll: true });
+  loadTotals();
 }

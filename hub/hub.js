@@ -264,7 +264,7 @@ function applyTab(name, from, animate) {
   document.querySelectorAll('[data-sub]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.sub === name));
   if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
   // Chat: opening it shows the (already drawn) conversation; leaving it counts as leaving the chat.
-  if (name === 'chat') { document.title = 'Messages · Sweet Revenge'; ensureChat(true); $('#dm-badge').hidden = true; } // you're reading them now
+  if (name === 'chat') { document.title = 'Messages · Sweet Revenge'; ensureChat(true); }
   else if (from === 'chat') { if (chatApi) chatApi.hide(); document.title = 'Sweet Revenge'; applyPalette(); countUnread(); }
   if (name === 'trophies') openedTrophies();
   if (name === 'rivals') stampTickets();
@@ -292,7 +292,7 @@ let chatApi = null, chatLoad = null;
 function ensureChat(show) {
   if (!me) return Promise.resolve(null);
   if (!chatLoad) {
-    chatLoad = loginReady.then(() => import(new URL('messages/app.js?v=9', document.baseURI).href))
+    chatLoad = loginReady.then(() => import(new URL('messages/app.js?v=10', document.baseURI).href))
       .then((mod) => mod.mountChat(undefined, { show: currentTab === 'chat' }))
       .then((api) => { chatApi = api; renderHome(); return api; })
       .catch((e) => { chatLoad = null; console.error(e); toast('The chat didn\'t load. Check the connection.'); return null; });

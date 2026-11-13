@@ -15,11 +15,11 @@
   <link rel="stylesheet" href="hub/hub.css?v=27">
   <link rel="stylesheet" href="shared/themes.css?v=5">
   <link rel="stylesheet" href="hub/night.css?v=1">
-  <link rel="stylesheet" href="messages/messages.css?v=7">
+  <link rel="stylesheet" href="messages/messages.css?v=8">
   <link rel="stylesheet" href="hub/shell.css?v=3">
   <link rel="stylesheet" href="hub/home.css?v=4">
-  <link rel="modulepreload" href="messages/app.js?v=9">
-  <link rel="modulepreload" href="messages/data.js?v=2">
+  <link rel="modulepreload" href="messages/app.js?v=10">
+  <link rel="modulepreload" href="messages/data.js?v=3">
   <link rel="modulepreload" href="messages/logic.mjs?v=3">
   <link rel="modulepreload" href="messages/themes.js?v=3">
   <link rel="modulepreload" href="messages/picker.js?v=2">
@@ -378,9 +378,24 @@
         <!-- CHAT: the private chat, drawn by messages/app.js (loaded in the background) -->
         <section id="tab-chat" class="panel chat" role="tabpanel" aria-label="Chat" hidden>
  <div id="dm-root" class="dm-root">
+  <!-- the inbox, like Instagram's DM list: Chat lands here; the row opens the conversation -->
+  <section class="dm-inbox" id="dm-inbox" aria-label="Messages">
+    <header class="ib-head"><h1>Messages</h1></header>
+    <p class="ib-total" id="inbox-total"></p>
+    <button type="button" class="ib-row" id="inbox-row">
+      <span class="ib-face"><span class="face lg" id="inbox-face"></span><i class="online-dot" id="inbox-online" hidden></i></span>
+      <span class="ib-txt"><b id="inbox-name"></b><small id="inbox-line"></small></span>
+      <i class="ib-dot" id="inbox-dot" hidden aria-label="Unread"></i>
+    </button>
+    <form class="ib-reply" id="inbox-reply" autocomplete="off">
+      <input id="inbox-reply-input" maxlength="4000" placeholder="Message…" aria-label="Quick reply" enterkeyhint="send">
+      <button type="submit" aria-label="Send"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+    </form>
+  </section>
+  <div class="dm-pick" aria-hidden="true"><span class="dm-pick-ic"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4c4.7 0 8.5 3.3 8.5 7.4s-3.8 7.4-8.5 7.4c-1 0-2-.1-2.9-.4L5 20l1-3.5c-1.6-1.4-2.5-3.2-2.5-5.1C3.5 7.3 7.3 4 12 4z"/></svg></span><b>Your messages</b><small>Open your chat on the left.</small></div>
   <div class="dm-app" id="app">
     <header class="dm-head">
-      <a class="dm-icon" id="btn-back" href="#home" aria-label="Back to Home" data-icon="back"></a>
+      <a class="dm-icon" id="btn-back" href="#chat" aria-label="Back to Messages" data-icon="back"></a>
       <button class="dm-peer" id="btn-peer" type="button" aria-label="Chat details">
         <span class="face-wrap"><span class="face" id="peer-face"></span><i class="online-dot" id="peer-dot" hidden></i></span>
         <span class="peer-txt"><b id="peer-name">Messages</b><small id="peer-status"></small></span>
@@ -586,6 +601,6 @@
   <script src="shared/records.js?v=13"></script>
   <script src="shared/rewards.js?v=7"></script>
   <script src="shared/sound.js?v=3"></script>
-  <script src="hub/hub.js?v=33"></script>
+  <script src="hub/hub.js?v=34"></script>
 </body>
 </html>

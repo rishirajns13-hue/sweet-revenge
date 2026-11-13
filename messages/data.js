@@ -107,6 +107,16 @@ export function loadOlder() {
   return loadingOlder;
 }
 
+// How many messages there are, and when the first was sent (for the inbox).
+export async function totals() {
+  const [{ count, error }, { data: first }] = await Promise.all([
+    sb.from('dm_messages').select('id', { count: 'exact', head: true }).neq('kind', 'system'),
+    sb.from('dm_messages').select('created_at').neq('kind', 'system').order('created_at', { ascending: true }).limit(1),
+  ]);
+  if (error) throw error;
+  return { total: count ?? null, since: first && first[0] ? first[0].created_at : null };
+}
+
 // Every message ever (for export and search), oldest first.
 export async function fetchAll() {
   const out = [];
