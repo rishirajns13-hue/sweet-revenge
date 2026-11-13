@@ -114,7 +114,7 @@ const StickyView = (() => {
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
   function setCritters(looks) {
-    for (const k of ['a', 'b']) critters[k] = critterSprite(looks[k]);
+    for (const k of ['a', 'b']) { if (critters[k]) setLook(critters[k], looks[k], 'happy'); else critters[k] = critterSprite(looks[k]); }
   }
 
   // The rope: a curve between the two that sags when slack and thins as it stretches.

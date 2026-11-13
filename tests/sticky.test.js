@@ -94,3 +94,42 @@ test('the cake: a marshmallow bounces you way up', () => {
   assert.ok(w.events.some((e) => e.t === 'bounce'));
   assert.ok(top > 4.5, `bounced up to ${top.toFixed(1)} m`);
 });
+
+/* ---------- online: each browser runs its own critter, the partner is streamed in ---------- */
+test('online: a remote partner is not simulated, only steered toward what the network says', () => {
+  const w = Phys.newWorld(level());
+  w.b.remote = true;
+  w.b.x = 2; w.b.y = 5; // floating in the air: we never apply gravity to them
+  run(w, 30);
+  assert.equal(w.b.x, 2); assert.equal(w.b.y, 5);
+  Phys.steerRemote(w.b, { x: 3, y: 5, vx: 0, vy: 0, grab: false, ground: true }, 0);
+  for (let i = 0; i < 30; i++) Phys.steerRemote(w.b, null, 0);
+  assert.ok(Math.abs(w.b.x - 3) < 0.05, `eased onto the streamed spot (${w.b.x.toFixed(2)})`);
+  assert.equal(w.b.ground, true);
+});
+
+test('online: the rope still pulls my critter toward a remote partner', () => {
+  const w = Phys.newWorld(level());
+  run(w, 60);
+  w.b.remote = true; w.b.x = 9; w.b.y = w.a.y; w.b.vx = 0;
+  const x0 = w.a.x;
+  run(w, 60);
+  assert.ok(w.a.x > x0 + 0.5, 'dragged toward the partner');
+  assert.equal(w.b.x, 9, 'the partner is not moved by our copy of the rope');
+});
+
+test('online: a guest world never decides falls, checkpoints or the win', () => {
+  const w = Phys.newWorld({ ...level(), platforms: [], goal: { x: 0, y: 1, r: 50 } });
+  w.referee = false; w.b.remote = true;
+  run(w, 200);
+  assert.ok(!w.events.some((e) => e.t === 'fall' || e.t === 'win' || e.t === 'checkpoint'));
+});
+
+test('online: respawn puts both on the checkpoint and bumps the life counter', () => {
+  const w = Phys.newWorld(level());
+  w.a.x = 50; w.a.y = -40; w.a.vy = -20;
+  const life = w.life;
+  Phys.respawn(w);
+  assert.equal(w.life, life + 1);
+  assert.equal(w.a.x, w.a.checkpoint.x); assert.equal(w.a.vy, 0);
+});

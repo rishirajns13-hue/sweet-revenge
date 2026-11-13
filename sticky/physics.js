@@ -30,7 +30,7 @@
   const critter = (x, y) => ({ x, y, vx: 0, vy: 0, ground: false, grab: false, coyote: 0, buffer: 0, falls: 0, peak: y, checkpoint: { x, y } });
   function newWorld(level) {
     const s = level.spawn;
-    return { t: 0, level, a: critter(s.x - 0.6, s.y), b: critter(s.x + 0.6, s.y), won: false, events: [] };
+    return { t: 0, level, a: critter(s.x - 0.6, s.y), b: critter(s.x + 0.6, s.y), won: false, events: [], life: 0, referee: true };
   }
 
   // Circle vs axis-aligned box: push the critter out, report which side it hit.
@@ -90,8 +90,9 @@
     if (d > P.ropeMax) f += 400 * (d - P.ropeMax); // way too far: snap back
     // Whoever is holding on doesn't move; the other one takes all the pull.
     const shareA = a.grab ? 0 : b.grab ? 1 : 0.5, shareB = 1 - shareA;
-    if (!a.grab) { a.vx += ux * f * dt * (shareA * 2 || 0); a.vy += uy * f * dt * (shareA * 2 || 0); }
-    if (!b.grab) { b.vx -= ux * f * dt * (shareB * 2 || 0); b.vy -= uy * f * dt * (shareB * 2 || 0); }
+    // A remote partner (online) is moved by their own browser, so our copy only pulls on us.
+    if (!a.grab && !a.remote) { a.vx += ux * f * dt * (shareA * 2 || 0); a.vy += uy * f * dt * (shareA * 2 || 0); }
+    if (!b.grab && !b.remote) { b.vx -= ux * f * dt * (shareB * 2 || 0); b.vy -= uy * f * dt * (shareB * 2 || 0); }
     return d;
   }
 
@@ -121,14 +122,16 @@
     const dt = P.dt, prev = boxesAt(w.level, w.t);
     w.t += dt;
     const boxes = boxesAt(w.level, w.t);
-    moveCritter(w.a, inA || {}, boxes, dt);
-    moveCritter(w.b, inB || {}, boxes, dt);
+    if (!w.a.remote) moveCritter(w.a, inA || {}, boxes, dt);
+    if (!w.b.remote) moveCritter(w.b, inB || {}, boxes, dt);
     w.ropeLength = rope(w.a, w.b, dt);
-    integrate(w.a, boxes, prev, dt);
-    integrate(w.b, boxes, prev, dt);
+    if (!w.a.remote) integrate(w.a, boxes, prev, dt);
+    if (!w.b.remote) integrate(w.b, boxes, prev, dt);
     for (const [k, c] of [['a', w.a], ['b', w.b]]) {
       if (c.jumped) { w.events.push({ t: 'jump', k }); c.jumped = false; }
       if (c.bounced) { w.events.push({ t: 'bounce', k }); c.bounced = false; }
+      c.peak = Math.max(c.peak, c.y);
+      if (!w.referee) continue; // online guests leave checkpoints, falls and the win to the host
       // Reaching a checkpoint (a candle) while standing saves it for both.
       for (const cp of w.level.checkpoints || []) {
         if (c.ground && Math.abs(c.x - cp.x) < 0.8 && Math.abs(c.y - cp.y) < 1 && (w.a.checkpoint.y < cp.y)) {
@@ -136,14 +139,14 @@
           w.events.push({ t: 'checkpoint', k, y: cp.y });
         }
       }
-      c.peak = Math.max(c.peak, c.y);
     }
+    if (!w.referee) return w;
     // Fell way below the last checkpoint: both respawn there, and the fall is blamed on whoever is lower.
     const floor = Math.min(w.a.checkpoint.y, w.b.checkpoint.y) - (w.level.fallLimit || 12);
     if (w.a.y < floor || w.b.y < floor) {
       const blame = w.a.y < w.b.y ? 'a' : 'b';
       w[blame].falls++;
-      for (const c of [w.a, w.b]) { c.x = c.checkpoint.x; c.y = c.checkpoint.y; c.vx = c.vy = 0; c.grab = false; }
+      respawn(w);
       w.events.push({ t: 'fall', k: blame });
     }
     const g = w.level.goal;
@@ -153,6 +156,27 @@
     return w;
   }
 
-  const api = { P, newWorld, step, collide, touching, rope, boxesAt };
+  // Both back to the last candle. `life` counts respawns, so stale network positions from before it are ignored.
+  function respawn(w) {
+    w.life = (w.life || 0) + 1;
+    for (const c of [w.a, w.b]) { c.x = c.checkpoint.x; c.y = c.checkpoint.y; c.vx = c.vy = 0; c.grab = false; c.ground = false; }
+  }
+
+  /* Online: ease a remote critter toward its last streamed state `s` (pass null between packets).
+     `age` is how old that state is in seconds; we guess ahead along its velocity, at most 0.15 s. */
+  function steerRemote(c, s, age) {
+    if (s) c.net = { ...s, age: Math.max(0, age || 0) };
+    const n = c.net;
+    if (!n) return c;
+    const ahead = n.grab ? 0 : Math.min(0.15, n.age);
+    const tx = n.x + n.vx * ahead, ty = n.y + n.vy * ahead;
+    if (Math.hypot(tx - c.x, ty - c.y) > 4) { c.x = tx; c.y = ty; } // way off (a respawn, a hiccup): jump there
+    else { c.x += (tx - c.x) * 0.3; c.y += (ty - c.y) * 0.3; }
+    c.vx = n.vx; c.vy = n.vy; c.grab = !!n.grab; c.ground = !!n.ground;
+    n.age += P.dt;
+    return c;
+  }
+
+  const api = { P, newWorld, step, respawn, steerRemote, collide, touching, rope, boxesAt };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.StickyPhysics = api;
 })(typeof window !== 'undefined' ? window : globalThis);
