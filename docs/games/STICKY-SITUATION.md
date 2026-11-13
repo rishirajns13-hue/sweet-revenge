@@ -23,7 +23,7 @@ Two critters are glued together by a stretchy gummy rope. Climb a giant birthday
 5. **Polish:** sounds, squash and stretch, a height meter, a "who caused the fall" counter, the end screen, history (`kind: 'sticky'`) and trophies.
 
 ## Status (13 Nov 2026)
-Parts 1 to 5 are built on the `sticky-situation` branch. Still to do: hand-play tuning of the jump and rope, a real two-laptop climb, and applying `supabase/pending/add_sticky_kind.sql` so climbs, Sticky chat and Sticky challenges save.
+Parts 1 to 5 are built on the `sticky-situation` branch. Still to do: hand-play tuning of the jump and rope, a real two-laptop climb. The database already accepts Sticky climbs, chat and challenges (migration `add_sticky_kind`, 13 Nov).
 
 **Online, as built:** the host's browser is the referee (checkpoints, falls, win) and tells the guest; positions go over `link.sendFast` (unnumbered, newest wins), 20 a second on the direct link and about 7 over the public relay. `life` counts respawns so stale positions are dropped. Keys 1–4 send stickers (HOLD ON!, JUMP!, WAIT FOR ME, SORRY).
 
