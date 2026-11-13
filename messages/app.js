@@ -1012,8 +1012,11 @@ export function mountChat(root = ROOT, { show = true } = {}) {
     isShown: () => shown,
     // What Home's chat card shows: the last few messages, who's who, and whether they're here or typing.
     peek(n = 3) {
-      const msgs = S.messages.filter((m) => m.kind !== 'system' && !(m.vanish && m.sender !== me.user)).slice(-n);
+      const all = S.messages.filter((m) => m.kind !== 'system');
+      const msgs = all.filter((m) => !(m.vanish && m.sender !== me.user)).slice(-n);
       return {
+        lastAt: all.length ? all[all.length - 1].created_at : null,
+        total: S.hasOlder ? null : all.length, since: !S.hasOlder && all[0] ? all[0].created_at : null, // only when every message is loaded
         messages: msgs.map((m) => ({ id: m.id, mine: m.sender === me.user, kind: m.kind, text: m.kind === 'text' || m.kind === 'like' ? m.body : L.preview(m) })),
         other: otherId(), name: nameOf(otherId()), online: S.online, typing: S.typing,
         status: L.activeLabel(S.other && S.other.last_seen, S.online), unread: L.unread(S.messages, me.user),
