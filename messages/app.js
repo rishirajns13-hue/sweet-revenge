@@ -1040,7 +1040,10 @@ function setView(v) {
 }
 function openThread({ push = true } = {}) {
   if (view === 'thread') return;
-  if (push && shown) history.pushState({ dmThread: true }, '', location.hash || '#chat');
+  if (push && shown) { // a leftover entry (after a reload or Forward) is reused, so Back is always one tap
+    if (history.state && history.state.dmThread) history.replaceState({ dmThread: true }, '', location.hash || '#chat');
+    else history.pushState({ dmThread: true }, '', location.hash || '#chat');
+  }
   setView('thread');
   applyLook();
   hiddenUnread = 0; setTitle();
@@ -1062,6 +1065,9 @@ function showInbox() {
   if (view === 'thread') leaveThread();
   setView('inbox');
 }
+// The inbox with a history entry still marked "conversation" (left over from before a reload or a Forward):
+// mark it as the inbox, so the next Back goes where it should.
+function tidyHistory() { if (history.state && history.state.dmThread) history.replaceState(null, '', location.hash || '#chat'); }
 $('#inbox-row').addEventListener('click', () => openThread());
 $('#btn-back').addEventListener('click', (e) => {
   e.preventDefault();
@@ -1121,6 +1127,7 @@ export function mountChat(root = ROOT, { show = true } = {}) {
       const was = shown;
       shown = true;
       if (view === 'thread') showInbox(); else setView('inbox');
+      tidyHistory();
       applyLook(); // the browser bar takes the chat's colour while it's on screen
       if (!was) { hiddenUnread = 0; setTitle(); }
     },
@@ -1143,6 +1150,7 @@ async function start() {
   mountPicker(ROOT);
   const cached = D.loadCache();
   setView('inbox');
+  if (shown) tidyHistory();
   applyLook();
   renderHeader();
   if (cached) { render(); toBottom(false); }

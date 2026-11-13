@@ -66,3 +66,9 @@ body.home :is(.game-card, .hm-art) .art { --ink: #2b2140; --paper: #fffaf2; --mu
 /* You → Background: dark tiles with readable names */
 body.home #b-themes .b-theme { background: var(--surface-2) !important; color: var(--text) !important; border-color: var(--edge) !important; box-shadow: none !important; }
 body.home #b-themes .b-theme[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent) !important; }
+
+/* blocks that hub.css draws on cream: the Rivals grudge, the name/password forms, the profile sheet */
+body.home #screen-hub .panels :is(.grudge, .acct-form) { background: var(--surface-2) !important; color: var(--text); border-color: var(--edge) !important; box-shadow: none !important; }
+body.home #screen-hub .panels .grudge :is(.g-title, small) { color: var(--text-2); }
+body.home .sheet { background: var(--surface); color: var(--text); border-color: var(--edge); }
+body.home :is(.palettes, .avatars) button { background: var(--surface-2); color: var(--text); border-color: var(--edge); }

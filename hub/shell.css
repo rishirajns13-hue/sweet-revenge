@@ -138,7 +138,7 @@ html[data-vt="chat-back"]::view-transition-new(root) { animation: sr-vt-from-lef
 #tab-chat[hidden] { display: block !important; pointer-events: none; }
 #tab-chat[hidden], #tab-chat[hidden] * { visibility: hidden !important; } /* children that set visibility themselves too */
 /* The other person's face flies from the Home card into the chat header. */
-#tab-home:not([hidden]) #home-chat-face, #tab-chat:not([hidden]) #peer-face { view-transition-name: peer-face; }
+#tab-home:not([hidden]) #home-chat-face, #tab-chat:not([hidden]) #dm-root[data-view="inbox"] #inbox-face, #tab-chat:not([hidden]) #dm-root[data-view="thread"] #peer-face { view-transition-name: peer-face; }
 
 /* ---------- style B across Games, Trophies, Rivals and You: glass instead of outlines ---------- */
 #screen-hub .panels :is(.game-card:not(.hm-art), .level-card, .badge3d .face, .vs-card, .ticket, .me-grid > .card, .acct-row, .empty-card, .resume-banner, .revenge-call, .cs-friend, .ticket-join) {
