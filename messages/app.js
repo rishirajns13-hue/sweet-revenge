@@ -296,7 +296,7 @@ D.onData((what, x) => {
       break;
     }
     case 'older': keepScroll(() => render()); break;
-    case 'state': applyLook(); render(); renderHeader(); if (els.details.classList.contains('open')) renderDetails(); break;
+    case 'state': applyLook(); render(); renderHeader(); renderInbox(); if (els.details.classList.contains('open')) renderDetails(); break;
     case 'people': renderHeader(); paintFaces(); render(); if (els.details.classList.contains('open')) renderDetails(); break;
     case 'typing': showTyping(); renderHeader(); break;
     case 'presence': case 'live': renderHeader(); break;
@@ -1138,25 +1138,30 @@ function renderInbox() {
   $('#inbox-name').textContent = nameOf(o);
   const what = !last ? 'Say hi' : last.vanish && last.sender !== me.user ? 'Sent a message' : (last.sender === me.user ? 'You: ' : '') + L.preview(last);
   $('#inbox-line').textContent = S.typing ? 'typing…'
-    : unread ? `${unread > 4 ? '4+' : unread} new message${unread === 1 ? '' : 's'}${last ? ' · ' + fmtAgo(last.created_at) : ''}`
+    : unread ? `${unread > 9 ? '9+' : unread} new message${unread === 1 ? '' : 's'}${last ? ' · ' + fmtAgo(last.created_at) : ''}`
     : what + (last ? ' · ' + fmtAgo(last.created_at) : '');
   $('#inbox-row').classList.toggle('unread', !!unread);
   $('#inbox-row').classList.toggle('active', view === 'thread');
   $('#inbox-dot').hidden = !unread;
   const total = totals.total ?? (S.hasOlder ? null : all.length), since = totals.since || (!S.hasOlder && all[0] && all[0].created_at);
   $('#inbox-total').textContent = total == null ? '' : `${total.toLocaleString()} message${total === 1 ? '' : 's'}${since ? ' · since ' + new Date(since).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''}`;
-  $('#inbox-reply-input').placeholder = `Message ${firstName(o)}…`;
+  $('#inbox-reply-input').placeholder = S.state.vanish_on ? `Vanish mode · message ${firstName(o)}…` : `Message ${firstName(o)}…`;
 }
 async function loadTotals() {
   try { totals = await D.totals(); renderInbox(); } catch (e) { /* counts stay as loaded */ }
 }
-D.onData((what, m) => { if ((what === 'arrived' || what === 'sent') && m && m.kind !== 'system' && totals.total != null) totals.total++; });
+D.onData((what, m) => {
+  if (totals.total == null) return;
+  if ((what === 'arrived' || what === 'sent') && m && m.kind !== 'system') totals.total++;
+  else if (what === 'removed') totals.total = Math.max(0, totals.total - 1);
+});
 
 // The conversation slides in over the inbox (phones) or opens beside it (laptops).
 function setView(v) {
   view = v;
   ROOT.dataset.view = v;
   renderInbox();
+  if (v === 'inbox' && totals.total != null) loadTotals(); // unsends and vanished messages lower the count
 }
 function openThread({ push = true } = {}) {
   if (view === 'thread') return;

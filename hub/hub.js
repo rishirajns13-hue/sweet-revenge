@@ -293,7 +293,7 @@ let chatApi = null, chatLoad = null;
 function ensureChat(show) {
   if (!me) return Promise.resolve(null);
   if (!chatLoad) {
-    chatLoad = loginReady.then(() => import(new URL('messages/app.js?v=16', document.baseURI).href))
+    chatLoad = loginReady.then(() => import(new URL('messages/app.js?v=17', document.baseURI).href))
       .then((mod) => mod.mountChat(undefined, { show: currentTab === 'chat' }))
       .then((api) => { chatApi = api; renderHome(); return api; })
       .catch((e) => { chatLoad = null; console.error(e); toast('The chat didn\'t load. Check the connection.'); return null; });
@@ -1016,11 +1016,12 @@ window.srSetTitle = setDocTitle; // the chat asks for it when it reads messages
 
 /* ================= Messages: the Chat tab's unread count, live ================= */
 // Counts what the friend sent that you haven't seen; a new message while you're here shows a banner.
-let dmChannel = null, dmCountT = 0;
+let dmChannel = null, dmCountT = 0, dmCountSeq = 0;
 async function countUnread() {
+  const seq = ++dmCountSeq;
   const { count, error } = await sb.from('dm_messages').select('id', { count: 'exact', head: true })
     .neq('sender', me.user).neq('kind', 'system').is('seen_at', null);
-  if (error) return;
+  if (error || seq !== dmCountSeq) return; // a newer count is on its way; an older answer mustn't flash back
   const b = $('#dm-badge');
   b.hidden = !count;
   b.textContent = count > 9 ? '9+' : count;
