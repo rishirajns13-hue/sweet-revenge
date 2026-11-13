@@ -1,10 +1,10 @@
 // Messages: the private chat between the two friends. This file draws the chat and handles every
 // gesture; data.js talks to the database, logic.mjs holds the tested pure parts.
 // Needs the classic scripts loaded first: shared/core.js, shared/avatars.js, shared/sound.js.
-import * as L from './logic.mjs?v=5';
+import * as L from './logic.mjs?v=6';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
-import * as D from './data.js?v=5';
+import * as D from './data.js?v=6';
 import * as V from './voice.js?v=4';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=4';
 
@@ -114,6 +114,7 @@ function render({ enter } = {}) {
     prev = el;
   }
   popReacts.clear();
+  hydratePhotos();
   renderHello();
   painted = true;
 }
@@ -144,6 +145,7 @@ function paintRow(el, r) {
 function bubbleHTML(m) {
   switch (m.kind) {
     case 'like': return '<div class="bub like" aria-label="Heart">❤️</div>';
+    case 'photo': return photoBubble(m);
     case 'sticker': case 'gif': return `<div class="bub media">${stickerHTML(m.meta || {})}</div>`;
     case 'voice': {
       const dur = L.fmtDuration((m.meta && m.meta.dur) || 0);
@@ -159,6 +161,28 @@ function bubbleHTML(m) {
       return `<div class="bub paint">${L.linkify(escapeHtml(m.body))}</div>`;
     }
   }
+}
+// Photos: unlimited ones show in the chat; once/twice ones are a "tap to view" pill until the views are used.
+const CAM = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg>';
+function photoBubble(m) {
+  const { state, left } = L.photoState(m, me.user), views = (m.meta && m.meta.views) || 0;
+  const kindLabel = views === 1 ? 'View once' : views === 2 ? 'View twice' : 'Photo';
+  if (state === 'show') {
+    const w = (m.meta && m.meta.w) || 4, h = (m.meta && m.meta.h) || 3;
+    return `<div class="bub media photo-bub"><button type="button" class="ph-thumb" data-act="photo" aria-label="Open photo" style="aspect-ratio:${w} / ${h}"><img alt="" data-photo-img="${escapeHtml(m.id)}"${m._url ? ` src="${escapeHtml(m._url)}"` : ''}></button></div>`;
+  }
+  const line = state === 'ready' ? (left === 1 && views === 2 ? 'Tap to view · last view' : 'Tap to view')
+    : state === 'sent' ? (m.pending ? 'Sending…' : 'Delivered') : state === 'opened' ? (left ? 'Opened once' : 'Opened') : 'No longer available';
+  return `<div class="bub paint once-bub" data-state="${state}"><button type="button" class="once" data-act="photo"${state === 'ready' ? '' : ' disabled'}>${CAM}<span><b>${kindLabel}</b><small>${line}</small></span></button></div>`;
+}
+// Unlimited photos load their picture after they're drawn (a private link, kept a few days).
+function hydratePhotos() {
+  els.thread.querySelectorAll('img[data-photo-img]:not([src])').forEach((img) => {
+    const m = find(img.dataset.photoImg);
+    if (!m || !m.meta || !m.meta.path) return;
+    img.setAttribute('src', '');
+    D.fileUrl('dm-once', m.meta.path).then((url) => { if (url) img.src = url; else img.closest('.ph-thumb').classList.add('missing'); });
+  });
 }
 function quoteHTML(m, mine) {
   if (!m.reply_to) return '';
@@ -516,7 +540,87 @@ els.thread.addEventListener('click', (e) => {
   else if (a === 'more') openMenu(row);
   else if (a === 'reacts') openReactions(row, m);
   else if (a === 'quote') jumpTo(act.dataset.to);
+  else if (a === 'photo') viewPhoto(m);
 });
+
+/* ---------------- the photo viewer ---------------- */
+const viewer = document.createElement('div');
+viewer.className = 'ph-view'; viewer.hidden = true;
+viewer.innerHTML = `<img alt=""><div class="ph-top"><span id="ph-note"></span><button type="button" class="dm-icon" id="ph-close" aria-label="Close photo">${svg('x')}</button></div>`;
+ROOT.appendChild(viewer);
+let viewing = null;
+async function viewPhoto(m) {
+  if (viewing) return;
+  const st = L.photoState(m, me.user).state;
+  if (st !== 'show' && st !== 'ready') return;
+  viewing = { m };
+  try {
+    const got = await D.openPhoto(m);
+    if (!got) { viewing = null; toast('That photo is no longer available'); render(); return; }
+    viewing = { m, ...got };
+    viewer.querySelector('img').src = got.url;
+    const views = (m.meta && m.meta.views) || 0;
+    $('#ph-note').textContent = !views || m.sender === me.user ? '' : got.last ? 'Last view. It disappears when you close it.' : '1 view left after this';
+    viewer.hidden = false;
+    requestAnimationFrame(() => viewer.classList.add('open'));
+  } catch (e) { viewing = null; toast('The photo didn\'t open. Check the connection.'); }
+}
+function closePhoto() {
+  if (!viewing) return;
+  const v = viewing; viewing = null;
+  viewer.classList.remove('open');
+  setTimeout(() => { viewer.hidden = true; viewer.querySelector('img').removeAttribute('src'); if (v.url && v.url.startsWith('blob:') && v.url !== v.m._url) URL.revokeObjectURL(v.url); }, 220);
+  if (v.last) D.finishPhoto(v.path); // the last allowed view: the file goes now
+  render();
+}
+viewer.addEventListener('click', (e) => { if (e.target === viewer || e.target.closest('#ph-close')) closePhoto(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && viewing) { e.stopPropagation(); closePhoto(); } }, true);
+
+/* ---------------- sending photos: paste, pick or drop; choose unlimited / once / twice ---------------- */
+let tray = [], trayViews = 0;
+function addPhotos(files) {
+  const imgs = [...files].filter((f) => f && /^image\//.test(f.type)).slice(0, 10 - tray.length);
+  if (!imgs.length) return false;
+  for (const f of imgs) tray.push({ file: f, url: URL.createObjectURL(f) });
+  renderTray();
+  return true;
+}
+function renderTray() {
+  $('#photo-tray').hidden = !tray.length;
+  $('#pt-thumbs').innerHTML = tray.map((p, i) => `<span class="pt-thumb"><img src="${p.url}" alt=""><button type="button" data-drop="${i}" aria-label="Remove this photo">${svg('x')}</button></span>`).join('');
+  document.querySelectorAll('#pt-mode [data-views]').forEach((b) => b.setAttribute('aria-checked', +b.dataset.views === trayViews));
+  $('#pt-send').textContent = tray.length > 1 ? `Send ${tray.length}` : 'Send';
+}
+function clearTray() { tray.forEach((p) => URL.revokeObjectURL(p.url)); tray = []; trayViews = 0; renderTray(); }
+async function sendTray() {
+  const list = tray.slice(), views = trayViews;
+  tray = []; trayViews = 0; renderTray();
+  for (const p of list) {
+    try {
+      const blob = await fitPhoto(p.file, 1600), bmp = await createImageBitmap(blob);
+      D.send('photo', '', { w: bmp.width, h: bmp.height, views }, ctx && ctx.type === 'reply' ? ctx.m.id : null, blob, views ? {} : { _url: URL.createObjectURL(blob) });
+    } catch (e) { toast('One photo couldn\'t be read. Try another.'); }
+    URL.revokeObjectURL(p.url);
+  }
+  clearCtx(); sfx.send();
+}
+$('#pt-thumbs').addEventListener('click', (e) => { const b = e.target.closest('[data-drop]'); if (!b) return; const [p] = tray.splice(+b.dataset.drop, 1); URL.revokeObjectURL(p.url); renderTray(); });
+$('#pt-mode').addEventListener('click', (e) => { const b = e.target.closest('[data-views]'); if (!b) return; trayViews = +b.dataset.views; renderTray(); });
+$('#pt-send').addEventListener('click', sendTray);
+$('#pt-cancel').addEventListener('click', clearTray);
+$('#btn-photo').addEventListener('click', () => $('#photo-file').click());
+$('#photo-file').addEventListener('change', (e) => { addPhotos(e.target.files); e.target.value = ''; });
+// Pasting a photo anywhere in the open conversation (Ctrl+V, or paste on a phone) puts it in the tray.
+document.addEventListener('paste', (e) => {
+  if (!inThread() || !e.clipboardData) return;
+  const t = e.target;
+  if (t && t.closest && t.closest('input, textarea') && t !== input) return; // other fields keep their paste
+  const files = [...(e.clipboardData.files || [])];
+  if (!files.length && e.clipboardData.items) for (const it of e.clipboardData.items) if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); }
+  if (addPhotos(files)) e.preventDefault();
+});
+els.scroller.addEventListener('dragover', (e) => { if ([...(e.dataTransfer && e.dataTransfer.items || [])].some((i) => i.kind === 'file')) e.preventDefault(); });
+els.scroller.addEventListener('drop', (e) => { if (e.dataTransfer && addPhotos(e.dataTransfer.files)) e.preventDefault(); });
 els.thread.addEventListener('dblclick', (e) => {
   const row = e.target.closest('.row.msg');
   if (!row || e.target.closest('[data-act]')) return;
@@ -1182,5 +1286,6 @@ async function goLive(cached) {
   D.flushOutbox();
   readIfLooking();
   D.vanishSweep().catch(() => {});
+  D.expirePhotos().catch(() => {}); // anything older than 3 days goes
   loadTotals();
 }

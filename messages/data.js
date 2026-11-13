@@ -6,7 +6,7 @@
 //  2. Sending shows the bubble at once; the database write happens behind it, and failed sends wait in
 //     an outbox (kept with the cache) and are retried.
 //  3. One realtime channel brings new messages, edits, reactions, seen receipts, typing and "active now".
-import { merge } from './logic.mjs?v=5';
+import { merge } from './logic.mjs?v=6';
 
 const CACHE_MAX = 400, WINDOW = 200, PAGE = 50;
 const listeners = new Set();
@@ -178,13 +178,15 @@ async function deliver(m) {
   inFlight.add(m.id);
   try {
     let meta = m.meta;
-    if (m.kind === 'voice' && !meta.path) {
+    if ((m.kind === 'voice' || m.kind === 'photo') && !meta.path) {
       const blob = blobs.get(m.id);
-      if (!blob) throw new Error('recording lost');
-      const ext = /mp4|aac/.test(blob.type) ? 'm4a' : /ogg/.test(blob.type) ? 'ogg' : 'webm';
+      if (!blob) throw new Error('file lost');
+      const photo = m.kind === 'photo';
+      const ext = photo ? (/png/.test(blob.type) ? 'png' : /jpe?g/.test(blob.type) ? 'jpg' : 'webp')
+        : /mp4|aac/.test(blob.type) ? 'm4a' : /ogg/.test(blob.type) ? 'ogg' : 'webm';
       const path = `${me.uid}/${m.id}.${ext}`;
-      const type = blob.type.split(';')[0] || 'audio/webm';
-      const up = await sb.storage.from('dm-voice').upload(path, blob, { contentType: type, upsert: true });
+      const type = blob.type.split(';')[0] || (photo ? 'image/webp' : 'audio/webm');
+      const up = await sb.storage.from(photo ? 'dm-once' : 'dm-voice').upload(path, blob, { contentType: type, upsert: true });
       if (up.error) throw up.error;
       meta = { ...meta, path };
       patch(m.id, { meta });
@@ -229,7 +231,7 @@ export function retry(id) {
 // Pending sends left over from last time (the tab closed or the network dropped).
 export function flushOutbox() {
   S.messages.filter((m) => m.pending || m.failed).forEach((m) => {
-    if (m.kind === 'voice' && !m.meta.path && !blobs.has(m.id)) { drop(m.id); return; } // the recording didn't survive a reload
+    if ((m.kind === 'voice' || m.kind === 'photo') && !m.meta.path && !blobs.has(m.id)) { drop(m.id); return; } // the file didn't survive a reload
     if (m.pending) deliver(m);
   });
 }
@@ -256,7 +258,8 @@ export async function unsend(id) {
   emit('all'); saveCache();
   const { data: path, error } = await sb.rpc('dm_unsend', { p_id: id });
   if (error) { S.messages = merge(S.messages, [m]); emit('all'); throw error; }
-  if (path) sb.storage.from('dm-voice').remove([path]);
+  const file = path || (m.kind === 'photo' && m.meta && m.meta.path);
+  if (file) sb.storage.from(m.kind === 'photo' ? 'dm-once' : 'dm-voice').remove([file]);
 }
 
 export async function react(id, emoji) {
@@ -340,7 +343,37 @@ export async function vanishSweep(mineOnly = true) {
 
 // When one of my voice notes disappears (vanished or unsent elsewhere), remove its file too.
 function cleanupFiles(m) {
-  if (m.sender === me.user && m.kind === 'voice' && m.meta && m.meta.path) sb.storage.from('dm-voice').remove([m.meta.path]).then(() => {});
+  if (m.sender !== me.user || !m.meta || !m.meta.path) return;
+  if (m.kind === 'voice') sb.storage.from('dm-voice').remove([m.meta.path]).then(() => {});
+  if (m.kind === 'photo') sb.storage.from('dm-once').remove([m.meta.path]).then(() => {});
+}
+
+/* ---------------- photos: unlimited, view once or view twice; all gone after 3 days ---------------- */
+// Opening a photo. Unlimited ones (yours or theirs) just load. A once/twice photo from them counts a view
+// on the server; resolves { url, last, path } or null when no views are left.
+export async function openPhoto(m) {
+  const views = (m.meta && m.meta.views) || 0;
+  if (!views || m.sender === me.user) {
+    if (m._url) return { url: m._url, last: false };
+    const url = await fileUrl('dm-once', m.meta.path);
+    return url ? { url, last: false } : null;
+  }
+  const { data, error } = await sb.rpc('dm_photo_open', { p_id: m.id });
+  if (error) throw error;
+  if (!data || !data.path) return null;
+  const blob = await download('dm-once', data.path);
+  const opens = ((m.meta && m.meta.opens) || 0) + 1;
+  patch(m.id, { meta: { ...m.meta, opens, ...(data.last ? { gone: true } : {}) } });
+  return { url: URL.createObjectURL(blob), last: !!data.last, path: data.path };
+}
+// After the last allowed view: the file goes for good.
+export function finishPhoto(path) { if (path) sb.storage.from('dm-once').remove([path]).then(() => {}, () => {}); }
+// Photos older than 3 days: marked gone on the server, files deleted.
+export async function expirePhotos() {
+  const { data, error } = await sb.rpc('dm_once_expire');
+  if (error) throw error;
+  if (data && data.length) await sb.storage.from('dm-once').remove(data);
+  return data || [];
 }
 
 /* ---------------- files: short-lived links to private voice notes and photos ---------------- */

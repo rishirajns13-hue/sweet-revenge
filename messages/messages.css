@@ -607,3 +607,44 @@ body.typing #dm-root .dm-nav { display: none; }
 #dm-root[data-wall="photo"] .quote q { background: color-mix(in srgb, var(--sheet) 82%, transparent); color: var(--text); opacity: 1; }
 /* white text on my bubbles gets a hair of shadow, so it stays crisp on the lighter gradient stops */
 #dm-root .row.mine .bub.paint { text-shadow: 0 1px 1px #0000002b; }
+
+/* ===== Photos (unlimited show in the chat; once/twice are a tap-to-view pill; all gone after 3 days) ===== */
+#dm-root .field.has-text #btn-photo { display: none; }
+#dm-root .photo-bub { line-height: 0; }
+#dm-root .ph-thumb { display: block; border: 0; padding: 0; width: min(260px, 62vw); max-height: 340px; border-radius: 18px; overflow: hidden; cursor: zoom-in; background: var(--chip); box-shadow: 0 2px 10px #0000001f; }
+#dm-root .ph-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#dm-root .ph-thumb.missing { aspect-ratio: 4 / 3 !important; }
+#dm-root .row.pending .ph-thumb { opacity: .7; }
+#dm-root .once-bub { padding: 0 !important; }
+#dm-root .once { display: flex; align-items: center; gap: 10px; border: 0; background: none; color: inherit; font: inherit; padding: 9px 16px 9px 12px; cursor: pointer; text-align: left; }
+#dm-root .once:disabled { cursor: default; }
+#dm-root .once .ic { width: 22px; height: 22px; flex: none; }
+#dm-root .once span { display: grid; line-height: 1.2; }
+#dm-root .once b { font-weight: 800; font-size: 15px; }
+#dm-root .once small { font-size: 12.5px; font-weight: 700; opacity: .85; }
+#dm-root .row.theirs .once-bub[data-state="ready"] { box-shadow: inset 0 0 0 2px var(--accent); }
+#dm-root .once-bub:is([data-state="opened"], [data-state="gone"]) { background: color-mix(in srgb, var(--sheet) 90%, transparent) !important; color: var(--sub) !important; text-shadow: none; }
+#dm-root .row.mine .once-bub:is([data-state="opened"], [data-state="gone"]) { box-shadow: inset 0 0 0 1px var(--line); }
+
+/* the tray above the typing box: thumbnails, how many views, send */
+#dm-root .photo-tray { display: grid; gap: 8px; padding: 10px; margin-bottom: 8px; border-radius: 18px; background: color-mix(in srgb, var(--sheet) 92%, transparent); box-shadow: 0 8px 24px -14px #0006, inset 0 0 0 1px var(--line); animation: dm-slide-up .22s var(--ease-out); }
+#dm-root .pt-thumbs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+#dm-root .pt-thumb { position: relative; flex: none; width: 74px; height: 74px; border-radius: 12px; overflow: hidden; background: var(--chip); }
+#dm-root .pt-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#dm-root .pt-thumb button { position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border: 0; border-radius: 50%; display: grid; place-items: center; background: #000000a6; color: #fff; cursor: pointer; }
+#dm-root .pt-thumb button .ic { width: 13px; height: 13px; stroke-width: 2.6; }
+#dm-root .pt-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#dm-root .pt-bar .seg { flex: 1; min-width: 0; }
+#dm-root .pt-bar .seg button { flex: 1; padding: 7px 8px; }
+#dm-root .pt-cancel { border: 0; background: none; color: var(--sub); font: 800 14px var(--read); padding: 8px 6px; cursor: pointer; }
+#dm-root .pt-send { border: 0; border-radius: 999px; padding: 9px 18px; color: #fff; font: 800 14.5px var(--read); background: linear-gradient(135deg, var(--m1), var(--m2)); cursor: pointer; }
+#dm-root .pt-note { color: var(--sub); font: 700 11.5px var(--read); }
+
+/* the viewer */
+#dm-root .ph-view { position: fixed; inset: 0; z-index: 130; display: grid; place-items: center; background: #000000eb; opacity: 0; transition: opacity .2s; }
+#dm-root .ph-view.open { opacity: 1; }
+#dm-root .ph-view img { max-width: 94vw; max-height: 86dvh; border-radius: 14px; object-fit: contain; transform: scale(.94); transition: transform .28s var(--spring); user-select: none; -webkit-user-drag: none; }
+#dm-root .ph-view.open img { transform: none; }
+#dm-root .ph-top { position: absolute; top: max(10px, env(safe-area-inset-top)); left: 12px; right: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #fff; font: 700 14px var(--read); }
+#dm-root .ph-top .dm-icon { color: #fff; background: #ffffff1f; }
+@media (prefers-reduced-motion: reduce) { #dm-root .ph-view, #dm-root .ph-view img, #dm-root .photo-tray { transition: none; animation: none; } }

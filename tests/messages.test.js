@@ -196,3 +196,24 @@ test('photo bubbles stay readable even where the gradient blends two colours', (
   const p = L.paletteFromPixels(px('#ff2e6e', '#2bc48a', '#3459e6'));
   for (const c of p.mine) assert.ok(L.contrast('#ffffff', c) >= 5, `white on ${c}`);
 });
+
+/* ---------- view-once photos ---------- */
+test('a view-once photo previews as "Photo" and is never in the chat download', () => {
+  assert.equal(L.preview({ kind: 'photo', meta: {} }), 'Photo');
+  const data = L.exportChat({ messages: [msg({ id: 'p1', kind: 'photo', body: '', meta: { path: 'u/x.webp' } }), msg({ id: 't1', body: 'hi' })], reactions: [], players: [{ id: 'ammu', name: 'Ammu' }] });
+  assert.deepEqual(data.messages.map((m) => m.id), ['t1']);
+});
+
+test('photos: unlimited ones show in the chat; once/twice count views; everything goes after 3 days', () => {
+  const now = T0 + 3600e3;
+  const p = (meta = {}, sender = 'panchara kunju') => msg({ kind: 'photo', sender, created_at: new Date(T0).toISOString(), meta: { path: 'u/x.webp', ...meta } });
+  assert.deepEqual(L.photoState(p(), 'ammu', now), { state: 'show', left: Infinity });                    // unlimited
+  assert.deepEqual(L.photoState(p({ views: 1 }), 'ammu', now), { state: 'ready', left: 1 });              // theirs, view once
+  assert.deepEqual(L.photoState(p({ views: 2, opens: 1 }), 'ammu', now), { state: 'ready', left: 1 });    // one view left
+  assert.deepEqual(L.photoState(p({ views: 2, opens: 2 }), 'ammu', now), { state: 'gone', left: 0 });     // views used up
+  assert.deepEqual(L.photoState(p({ views: 1 }, 'ammu'), 'ammu', now), { state: 'sent', left: 1 });       // mine, not opened yet
+  assert.deepEqual(L.photoState(p({ views: 1, opens: 1 }, 'ammu'), 'ammu', now), { state: 'opened', left: 0 });
+  assert.deepEqual(L.photoState(p({ gone: true }), 'ammu', now), { state: 'gone', left: 0 });
+  assert.deepEqual(L.photoState(p(), 'ammu', T0 + 3 * 864e5 + 1), { state: 'gone', left: 0 });           // 3 days: gone
+  assert.equal(L.PHOTO_MS, 3 * 864e5);
+});

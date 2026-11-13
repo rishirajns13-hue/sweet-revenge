@@ -148,8 +148,21 @@ export function preview(m) {
     case 'sticker': return 'Sticker';
     case 'gif': return 'GIF';
     case 'voice': return `Voice message${m.meta && m.meta.dur ? ' · ' + fmtDuration(m.meta.dur) : ''}`;
+    case 'photo': return 'Photo';
     default: return '';
   }
+}
+
+// Photos: kept at most 3 days. Unlimited ones (views 0) show in the chat; view-once/twice ones count opens
+// and are gone once the views are used. Returns { state: 'show'|'ready'|'sent'|'opened'|'gone', left }.
+export const PHOTO_MS = 3 * 864e5;
+export function photoState(m, meId, now = Date.now()) {
+  const meta = m.meta || {}, views = meta.views || 0, opens = meta.opens || 0;
+  if (meta.gone || now - t(m) > PHOTO_MS) return { state: 'gone', left: 0 };
+  if (!views) return { state: 'show', left: Infinity };
+  const left = Math.max(0, views - opens);
+  if (m.sender === meId) return { state: opens ? 'opened' : 'sent', left };
+  return left ? { state: 'ready', left } : { state: 'gone', left: 0 };
 }
 
 // The small grey line a theme / nickname / vanish change leaves. `name(id)` gives a display name.
@@ -179,7 +192,7 @@ export function exportChat({ messages, reactions, players, nicknames = {} }, now
     app: 'Sweet Revenge Messages',
     exported_at: new Date(now).toISOString(),
     people: players.map((p) => ({ id: p.id, name: p.name, nickname: nicknames[p.id] || null })),
-    messages: messages.filter((m) => !m.vanish && !m.pending).map((m) => ({
+    messages: messages.filter((m) => !m.vanish && !m.pending && m.kind !== 'photo').map((m) => ({ // view-once photos are never kept
       id: m.id,
       at: new Date(t(m)).toISOString(),
       from: names[m.sender] || m.sender,
