@@ -617,11 +617,6 @@ function onPhase(v, fresh) {
     cancelAnimationFrame(ink.raf);
     localGallery[v.round] = ink.snapshot();
     if (v.reveal && !v.reveal.guessed.length) sfx.trombone(); else sfx.ding();
-    // The drawer's critter: sulks if nobody got it, cheers if everyone did, looks pleased otherwise.
-    if (v.reveal) {
-      const n = v.reveal.guessed.length, all = n >= v.players.length - 1;
-      react(v.reveal.drawer, !n ? 'sulk' : all ? 'cheer' : 'smug', 3500);
-    }
   }
 }
 function renderTop() {
@@ -652,26 +647,13 @@ function tickTimerLoop() {
 }
 setInterval(tickTimerLoop, 200);
 
-/* Critters react in the player list. The list is rebuilt on every update, so moods are remembered
-   until they run out and drawn back in. */
-const moods = {};
-const moodOf = (k) => (moods[k] && moods[k].until > Date.now() ? moods[k].mood : 'happy');
-function react(k, mood, ms = 2600) {
-  const p = view && view.players.find((x) => x.k === k);
-  if (!p) return;
-  moods[k] = { mood, until: Date.now() + ms };
-  const li = $(`#players .pl[data-k="${k}"]`);
-  critterReact(li && li.querySelector('.av'), p.avatar, mood, ms);
-  setTimeout(() => { if (view && moodOf(k) === 'happy') renderPlayers(); }, ms + 60);
-}
-
 function renderPlayers() {
   const v = view, leader = Math.max(...Object.values(v.scores));
   $('#players').innerHTML = v.players.map((p, i) => {
     const got = v.guessed.some((g) => g.k === p.k), drawing = v.drawer === p.k && v.phase !== 'reveal';
     const off = (v.offline || []).includes(p.k);
     return `<li class="pl ${got ? 'got' : ''} ${drawing ? 'drawing' : ''} ${off ? 'off' : ''}" data-k="${p.k}" style="--c:${SEAT_COLORS[i]}">
-      <span class="av">${avatarHTML(p.avatar, moodOf(p.k))}${v.scores[p.k] === leader && leader > 0 ? `<i class="crown">${ic('crown')}</i>` : ''}</span>
+      <span class="av">${avatarHTML(p.avatar)}${v.scores[p.k] === leader && leader > 0 ? `<i class="crown">${ic('crown')}</i>` : ''}</span>
       <span class="nm">${escapeHtml(firstName(p.name))}${p.k === myK ? ' (you)' : ''}</span>
       <span class="tag">${drawing ? `${ic('pencil')}drawing` : got ? `${ic('check')}got it` : off ? 'away' : ''}</span>
       <b class="pts">${v.scores[p.k]}</b></li>`;
@@ -719,10 +701,9 @@ function addFeed(item) {
   else if (item.kind === 'correct') {
     html = `🎉 <b style="--c:${c}">${who}</b> got it! <span class="pts">+${item.pts}</span>${item.text ? ` <em>${escapeHtml(item.text)}</em>` : ''}`;
     sfx.ding();
-    react(item.k, 'cheer');
     const r = $('#canvas-wrap').getBoundingClientRect();
     confetti(r.left + r.width / 2, r.top + r.height / 3, 40, 200);
-  } else if (item.kind === 'close') { html = `🔥 <q>${escapeHtml(item.text)}</q> is SO close!`; sfx.pop(); if (item.k) react(item.k, 'sweat', 1800); }
+  } else if (item.kind === 'close') { html = `🔥 <q>${escapeHtml(item.text)}</q> is SO close!`; sfx.pop(); }
   else html = escapeHtml(item.text || '');
   feed.insertAdjacentHTML('beforeend', `<li class="f-${escapeHtml(item.kind)}">${html}</li>`);
   while (feed.children.length > 80) feed.firstElementChild.remove();

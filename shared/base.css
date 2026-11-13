@@ -385,11 +385,3 @@ body:not(.home) #screen-home > .link { justify-self: center; }
   body:not(.home) #screen-home > .btn.resume { order: -1; }
   body:not(.home) #screen-home .topbar h1 { font-size: clamp(40px, 5vw, 60px); }
 }
-
-/* critterReact(): a critter cheering or drooping for a moment (shared/avatars.js) */
-.crit-hype { animation: crit-hype .5s cubic-bezier(.3, 1.6, .5, 1) 3; }
-.crit-droop { animation: crit-droop 1.2s ease-in-out; }
-@keyframes crit-hype { 50% { transform: translateY(-22%) scale(1.15) rotate(8deg); } }
-@keyframes crit-droop { 30%, 70% { transform: translateY(8%) rotate(-10deg) scale(.92); } }
-@media (prefers-reduced-motion: reduce) { .crit-hype, .crit-droop { animation: none; } }
-.calm .crit-hype, .calm .crit-droop { animation: none !important; }

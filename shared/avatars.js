@@ -152,20 +152,3 @@ function setAvatar(el, key, mood = 'happy') {
   el.dataset.av = key;
   el.innerHTML = avatarHTML(key, mood);
 }
-
-/* A critter reacts for a moment: its face changes mood and it bounces (cheer, smug) or droops (sulk,
-   sweat), then goes back to happy. `holder` is any element with a critter (.av-art) inside; only the
-   critter is swapped, so things beside it (a crown, a count) stay. Games call it on big moments. */
-function critterReact(holder, key, mood = 'cheer', ms = 2600) {
-  if (!holder || !key || typeof AVATAR_ART === 'undefined') return;
-  const swap = (m) => {
-    const art = holder.querySelector('.av-art');
-    if (art) art.outerHTML = avatarHTML(key, m); else holder.innerHTML = avatarHTML(key, m);
-  };
-  swap(mood);
-  holder.classList.remove('crit-hype', 'crit-droop');
-  void holder.offsetWidth; // restart the animation
-  holder.classList.add(mood === 'sulk' || mood === 'sweat' ? 'crit-droop' : 'crit-hype');
-  clearTimeout(holder._critT);
-  holder._critT = setTimeout(() => { swap('happy'); holder.classList.remove('crit-hype', 'crit-droop'); }, ms);
-}

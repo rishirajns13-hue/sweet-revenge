@@ -672,12 +672,6 @@ function renderButtons() {
   $('#deck').classList.toggle('can-draw', mine && !busy && !v.drawn && (!ok.size || !!v.pending));
 }
 
-/* ---------- critters react on their seats ---------- */
-function react(k, mood, ms) {
-  const p = playerOf(k), seat = seatEl(k);
-  if (p && seat) critterReact(seat.querySelector('.who .av'), p.avatar, mood, ms);
-}
-
 /* ================= animations, one event at a time ================= */
 const wait = (t) => sleep(C.ms(t));
 async function animate(e, v) {
@@ -778,7 +772,7 @@ async function flyPlay(k, card, color) {
     dur: last ? 1200 : heavy ? 420 : 520, lift: last ? 150 : heavy ? 90 : 60,
   });
   placeOnPile(f, card);
-  if (heavy) { sfx.slam(); retrigger($('#table'), 'thud'); react(k, 'smug'); } else sfx.land();
+  if (heavy) { sfx.slam(); retrigger($('#table'), 'thud'); } else sfx.land();
   shown.color = color;
   renderCentre();
   if (card.c === 'w') {
@@ -791,7 +785,7 @@ async function flyPlay(k, card, color) {
 async function animDraw(e) {
   const k = e.k, n = e.n || (e.cards || []).length;
   if (!n) return;
-  if (e.why === 'stack' && n > 1) { floatText(seatEl(k), `+${n}`); ticker(line('stack', { n: nameOf(k), x: n })); react(k, 'sulk', n >= 6 ? 4000 : 3000); }
+  if (e.why === 'stack' && n > 1) { floatText(seatEl(k), `+${n}`); ticker(line('stack', { n: nameOf(k), x: n })); }
   shown.pending = 0;
   renderCentre();
   let targets;
@@ -821,7 +815,6 @@ async function animDraw(e) {
 }
 async function animSkip(e) {
   stampOn(seatEl(e.k), '🚫 SKIPPED');
-  react(e.k, 'sulk', 1800);
   sfx.skip();
   ticker(line('skip', { n: nameOf(e.k) }));
   await wait(700);
@@ -839,20 +832,16 @@ async function animStack(e) {
   renderCentre();
   retrigger($('#pending'), 'bump');
   retrigger(seatEl(e.k), 'wobble');
-  react(e.k, 'cheer', 2000); // passed the bomb on
   await wait(380);
 }
 async function animOuch(e) {
   burst(seatEl(e.k), 'OUCH!');
-  react(e.k, 'sweat', 2200);
   sfx.ouch();
   ticker(e.k === myK ? 'You shouted Ouch! Safe 😅' : `${nameOf(e.k)} shouted Ouch! 😱`);
   await wait(500);
 }
 async function animCaught(e) {
   stampOn(seatEl(e.k), 'CAUGHT! 😈', 'caught');
-  react(e.k, 'sulk', 3200);
-  if (e.by) react(e.by, 'smug');
   sfx.caught();
   ticker(line('caught', { n: nameOf(e.k), b: nameOf(e.by) }));
   await wait(800);
@@ -883,7 +872,6 @@ async function animWin(e, v) {
   $('#deck').classList.remove('can-draw');
   sfx.win();
   bigConfetti();
-  v.players.forEach((q) => react(q.k, q.k === e.k ? 'cheer' : 'sulk', 4500));
   slamText(e.k === myK ? 'YOU WIN! 🏆' : line('win', { n: firstName(p ? p.name : '?') }));
   // Everyone else's cards flip face up, so you can see what they got stuck with.
   const hands = v.hands || {};
