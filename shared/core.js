@@ -102,8 +102,10 @@ function myAvatar() {
 function applyPalette(p = store.get('ludo-palette', 'sunset')) {
   if (!PALETTES.some(([k]) => k === p)) p = 'sunset';
   document.body.className = document.body.className.replace(/\bpal-\S+/g, '').trim() + ` pal-${p}`;
-  document.querySelector('meta[name="theme-color"]').content = THEME_COLOR[p];
-  document.documentElement.style.background = THEME_COLOR[p]; // what shows for a blink between pages
+  // The app (index.html, body.home) is dark: night behind everything. Game pages keep their colour.
+  const edge = document.body.classList.contains('home') ? '#15111c' : THEME_COLOR[p];
+  document.querySelector('meta[name="theme-color"]').content = edge;
+  document.documentElement.style.background = edge; // what shows for a blink between pages
   document.body.classList.toggle('calm', !!store.get('sr-calm', false)); // fewer decorative animations
   return p;
 }
