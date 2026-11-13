@@ -22,8 +22,14 @@ Two critters are glued together by a stretchy gummy rope. Climb a giant birthday
 4. **Online:** each player runs their own critter. The partner's position streams over the room relay about 20 times a second, and the rope force is computed on each side from the latest positions. Rooms, chat and walkie-talkie work as in Sundae Bomb (codes start with G).
 5. **Polish:** sounds, squash and stretch, a height meter, a "who caused the fall" counter, the end screen, history (`kind: 'sticky'`) and trophies.
 
+## Status (13 Nov 2026)
+Parts 1 to 5 are built on the `sticky-situation` branch. Still to do: hand-play tuning of the jump and rope, a real two-laptop climb, and applying `supabase/pending/add_sticky_kind.sql` so climbs, Sticky chat and Sticky challenges save.
+
+**Online, as built:** the host's browser is the referee (checkpoints, falls, win) and tells the guest; positions go over `link.sendFast` (unnumbered, newest wins), 20 a second on the direct link and about 7 over the public relay. `life` counts respawns so stale positions are dropped. Keys 1–4 send stickers (HOLD ON!, JUMP!, WAIT FOR ME, SORRY).
+
 ## Controls (laptop)
 - **Move:** A/D or ←/→.
 - **Jump:** W, ↑ or Space.
 - **Grab:** hold Shift or J.
+- **Shout:** 1–4 (online).
 - **Talk:** the walkie-talkie is V.
