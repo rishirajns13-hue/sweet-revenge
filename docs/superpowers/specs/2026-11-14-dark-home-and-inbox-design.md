@@ -1,6 +1,6 @@
 # Redesign: a dark "night dessert shop" Home, and an Instagram-style chat inbox (14 Nov 2026)
 
-Status: **approved 14 Nov 2026.** Follows `2026-11-13-app-shell-redesign.md` (live at 7090b4f), which built the one-page app, the glass nav and the light "sugar glass" Home.
+Status: **built** (14 Nov 2026; plan docs/superpowers/plans/2026-11-14-dark-home-and-inbox.md). Follows `2026-11-13-app-shell-redesign.md` (live at 7090b4f), which built the one-page app, the glass nav and the light "sugar glass" Home.
 
 ## Why (the user's words, condensed)
 - The light theme "is not too good". Go **darker**.

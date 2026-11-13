@@ -35,3 +35,34 @@ body.home :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px
 /* the logo keeps its dark outline (its letters are white) */
 body.home .lg-ink { fill: #0d0912; }
 body.home .lg-line { stroke: #0d0912; }
+
+/* ---------- Games, Trophies, Rivals and You: dark cards; game art and medals stay bright ---------- */
+body.home #screen-hub .panels :is(.game-card:not(.hm-art), .level-card, .badge3d .face, .vs-card, .ticket, .me-grid > .card, .acct-row, .empty-card, .resume-banner, .revenge-call, .cs-friend, .ticket-join) {
+  background-color: var(--surface) !important; border-color: var(--edge) !important;
+  box-shadow: 0 1px 0 #ffffff0a inset, var(--shade) !important;
+}
+body.home #screen-hub .panels :is(.btn, .xp-bar, .me-stats, .b-tile, .acct-form input, .join-row input, .tickets .stub, .seg, .practice-group summary) {
+  background-color: var(--surface-2) !important; color: var(--text); border-color: var(--edge) !important;
+}
+body.home #screen-hub .panels .btn.cta, body.home #screen-hub .panels .game-card .play { background: var(--accent) !important; color: var(--cta-ink) !important; }
+body.home #screen-hub .games-sub button[aria-pressed="true"] { background: var(--surface-2) !important; color: var(--text) !important; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent) !important; }
+body.home #screen-hub .games-sub button { color: var(--text-2); }
+body.home #screen-hub .panels :is(.game-card p, .meta, .sub, .pg, #xp-text, .lv-num, small) { color: var(--text-2); }
+body.home #screen-hub .panels .game-card .mine { background: var(--surface-2); color: var(--text); border: 0; }
+body.home #screen-hub .panels .xp-bar span, body.home #screen-hub .panels #xp-num { color: var(--text); }
+body.home #screen-hub .panels .lv-num, body.home #screen-hub .panels .me-hero .lv-num { background: var(--surface-2); color: var(--text); }
+body.home #screen-hub .panels .switch span { background: var(--surface-2); }
+body.home #screen-hub .panels .b-theme span { box-shadow: none !important; }
+/* the Background picker shows each theme as it now looks: its accent glowing on night */
+body.home #b-themes .b-theme span { background: radial-gradient(70% 90% at 20% 20%, color-mix(in srgb, var(--sw) 55%, transparent), transparent 70%), #15111c !important; }
+body.home #b-themes [data-pal="sunset"] { --sw: #ff5fa2; } body.home #b-themes [data-pal="lagoon"] { --sw: #2ad0c1; }
+body.home #b-themes [data-pal="lemonade"] { --sw: #ffb03b; } body.home #b-themes [data-pal="midnight"] { --sw: #9b7bff; }
+body.home #b-themes [data-pal="bubblegum"] { --sw: #ff8fc8; } body.home #b-themes [data-pal="jungle"] { --sw: #3ccf91; }
+/* the login and loading screens sit on night too */
+body.home #screen-login .card { background: var(--surface); border-color: var(--edge); box-shadow: var(--shade); color: var(--text); }
+body.home #screen-login input { background: var(--surface-2); color: var(--text); border-color: var(--edge); }
+/* the game art keeps its own ink and paper (its stickers and labels are drawn for a light card) */
+body.home :is(.game-card, .hm-art) .art { --ink: #2b2140; --paper: #fffaf2; --muted: #5d5470; color: #2b2140; }
+/* You → Background: dark tiles with readable names */
+body.home #b-themes .b-theme { background: var(--surface-2) !important; color: var(--text) !important; border-color: var(--edge) !important; box-shadow: none !important; }
+body.home #b-themes .b-theme[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent) !important; }
