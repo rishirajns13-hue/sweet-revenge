@@ -880,37 +880,40 @@ document.addEventListener('DOMContentLoaded', () => {
   boot();
 });
 
-/* ================= HOME: what's going on between you two right now ================= */
+/* ================= HOME: a feed (the chat poster, your games) and a sidebar (you, the grudge, your level) ================= */
 const dmPeek = { names: {}, last: null, count: 0, other: null };
 const PAIR_IDS = ['ammu', 'panchara kunju'];
 const otherOf = () => PAIR_IDS.find((id) => id !== me.user) || PAIR_IDS[0];
-const KIND_TEXT = { voice: 'Voice message', gif: 'GIF', sticker: 'Sticker', like: '❤️' };
-// The chat card's data: live from the chat once it has loaded, else this device's saved copy of the chat.
+const KIND_TEXT = { voice: 'Voice message', gif: 'GIF', sticker: 'Sticker', like: '❤️', photo: 'Photo' };
+// The poster's data: live from the chat once it has loaded, else this device's saved copy of the chat.
 function homeChatData() {
-  if (chatApi) return chatApi.peek(6);
+  if (chatApi) return chatApi.peek(3);
   const c = store.get('dm-cache:' + me.user, null) || {}, o = otherOf();
-  const msgs = (c.messages || []).filter((m) => m.kind !== 'system' && !(m.vanish && m.sender !== me.user)).slice(-6);
+  const all = (c.messages || []).filter((m) => m.kind !== 'system');
+  const msgs = all.filter((m) => !(m.vanish && m.sender !== me.user)).slice(-3);
   const nick = ((c.state && c.state.nicknames) || {})[o];
   return {
     messages: msgs.map((m) => ({ id: m.id, mine: m.sender === me.user, kind: m.kind, text: m.kind === 'text' || m.kind === 'like' ? m.body : KIND_TEXT[m.kind] || '' })),
     other: o, name: nick || dmPeek.names[o] || (c.players && c.players[o] && c.players[o].name) || o.replace(/\b\w/g, (ch) => ch.toUpperCase()),
-    online: false, typing: false, status: '', unread: dmPeek.count, look: null,
+    online: false, typing: false, status: '', unread: dmPeek.count, lastAt: all.length ? all[all.length - 1].created_at : null,
   };
-}
-// The card wears the chat's own theme and wallpaper (read from the chat once it's drawn).
-const LOOK_VARS = ['--m1', '--m2', '--m3', '--theirs', '--chat-bg', '--text', '--sub', '--pat', '--ps', '--wall-img', '--wall-blur'];
-function copyChatLook() {
-  const root = $('#dm-root'), card = $('#hm-chat');
-  if (!root || !root.dataset.wall) return;
-  const cs = getComputedStyle(root);
-  LOOK_VARS.forEach((v) => { const val = cs.getPropertyValue(v).trim(); if (val) card.style.setProperty(v, val); else card.style.removeProperty(v); });
-  card.dataset.wall = root.dataset.wall;
-  card.classList.toggle('dark', root.classList.contains('dark'));
 }
 function resumeGame() {
   const games = [['plusfour-lastroom', 'plusfour.html', 'Plus Four'], ['doodle-lastroom', 'doodle.html', 'Doodle Duel'], ['ludo-lastroom', 'ludo.html', 'Ludo']];
   return games.map(([key, page, label]) => ({ ...store.get(key, {}), page, label }))
     .filter((g) => g.code && Date.now() - g.at < 3 * 3600e3).sort((a, b) => b.at - a.at)[0] || null;
+}
+// The poster's game button: an unfinished game, then revenge for a fresh loss, then your favourite.
+function upNext(otherId) {
+  const last = resumeGame();
+  if (last) return { label: `▶️ Back to ${last.label}`, href: `${last.page}?room=${encodeURIComponent(last.code)}` };
+  const g = profile && profile.recent.find((x) => !x.practice);
+  const lost = g && GAMES[g.kind] && !g.won && Date.now() - new Date(g.endedAt) < 864e5 && g.players.some((x) => x.id === otherId && g.winners.includes(x.id));
+  if (lost) return { label: `${GAMES[g.kind][0]} Rematch at ${GAMES[g.kind][1]}`, href: `${g.kind}.html` };
+  const by = profile && profile.record && profile.record.byKind;
+  const fav = by && Object.entries(by).filter(([k]) => GAMES[k]).sort((a, b) => b[1].played - a[1].played)[0];
+  const k = fav && fav[1].played ? fav[0] : 'ludo';
+  return { label: `${GAMES[k][0]} Play ${GAMES[k][1]}`, href: `${k}.html` };
 }
 const homeShownIds = new Set();
 function renderHome() {
@@ -918,81 +921,62 @@ function renderHome() {
   const d = homeChatData(), them = shortName(d.name), hour = new Date().getHours();
   const greet = hour < 5 ? 'Still up' : hour < 12 ? 'Good morning' : hour < 17 ? 'Hey' : hour < 22 ? 'Evening' : 'Late night';
   $('#home-hello').textContent = `${greet}, ${shortName(me.name)}.`;
+  $('#home-sub').hidden = !SEASON;
+  if (SEASON) $('#home-sub').textContent = SEASON_LINES[SEASON];
 
-  // one line on what matters most right now
-  const g = profile && profile.grudge && profile.grudge[d.other];
-  const lost = profile && profile.recent.find((x) => !x.practice);
-  const lostTo = lost && !lost.won && Date.now() - new Date(lost.endedAt) < 864e5 && lost.players.find((x) => x.id === d.other && lost.winners.includes(x.id));
-  $('#home-sub').textContent = d.typing ? `${them} is typing…`
-    : d.unread ? `${them} sent you ${d.unread === 1 ? 'a message' : d.unread + ' messages'}.`
-    : lostTo ? `${them} beat you at ${(GAMES[lost.kind] || [, lost.kind])[1]} ${timeAgo(lost.endedAt)}. Revenge?`
-    : SEASON ? SEASON_LINES[SEASON]
-    : g && g.me > g.them ? `You're ${g.me}–${g.them} up on ${them} in this series.`
-    : g && g.them > g.me ? `${them} leads this series ${g.them}–${g.me}. Not for long.`
-    : 'Pick a game, or say hi.';
-
-  // chat card
-  const face = avatarHTML(avatarFor(d.other), d.typing ? 'cheer' : d.unread ? 'smug' : 'happy');
-  $('#home-chat-face').innerHTML = face;
+  // the poster: their critter, what's new, the last three messages, a quick reply
+  $('#home-chat-face').innerHTML = avatarHTML(avatarFor(d.other), d.typing ? 'cheer' : d.unread ? 'smug' : 'happy');
   $('#nav-chat-face').innerHTML = avatarHTML(avatarFor(d.other));
-  $('#home-chat-name').textContent = d.name;
-  $('#home-chat-status').textContent = d.typing ? 'typing…' : d.status;
-  $('#home-chat-status').classList.toggle('on', d.online || d.typing);
-  const c = $('#home-chat-count'); c.hidden = !d.unread; c.textContent = d.unread > 9 ? '9+ new' : `${d.unread} new`;
+  $('#home-poster-title').textContent = d.typing ? `${them} is typing…`
+    : d.unread ? `${them} sent you ${d.unread === 1 ? 'a message' : (d.unread > 9 ? '9+' : d.unread) + ' messages'}`
+    : `Say hi to ${them}`;
+  const ago = d.lastAt ? timeAgo(d.lastAt) : '';
+  $('#home-chat-status').textContent = [d.online ? '● Active now' : d.status, ago && !d.online ? 'last message ' + ago : ''].filter(Boolean).join(' · ');
+  $('#home-chat-status').classList.toggle('on', !!d.online);
   $('#home-reply-input').placeholder = `Message ${them}…`;
   const list = $('#home-thread');
   list.innerHTML = d.messages.length ? d.messages.map((m) => {
     const fresh = homeShownIds.size && !homeShownIds.has(m.id);
-    const big = m.kind === 'like' || /^\p{Extended_Pictographic}{1,3}$/u.test((m.text || '').replace(/\s|️/g, ''));
-    return `<li class="${m.mine ? 'mine' : 'theirs'}${big ? ' big' : ''}${fresh ? ' in' : ''}">${escapeHtml(m.text)}</li>`;
-  }).join('') : `<li class="empty">No messages yet. Say hi to ${escapeHtml(them)}.</li>`;
+    return `<li class="${m.mine ? 'mine' : 'theirs'}${fresh ? ' in' : ''}">${escapeHtml(m.text)}</li>`;
+  }).join('') : `<li class="empty">No messages yet.</li>`;
   d.messages.forEach((m) => homeShownIds.add(m.id));
   $('#home-typing').hidden = !d.typing;
-  copyChatLook();
+  const n = upNext(d.other), play = $('#home-next-play');
+  play.textContent = n.label; play.href = n.href;
 
-  // play: pick up where you left off, or get revenge
-  const last = resumeGame(), cont = $('#home-continue');
-  if (last) {
-    cont.href = `${last.page}?room=${encodeURIComponent(last.code)}`;
-    cont.innerHTML = `${ic('play')}<span><b>Back to your ${escapeHtml(last.label)} game</b><small>Room ${escapeHtml(last.code)}</small></span>`;
-  } else if (lostTo) {
-    cont.href = `${lost.kind}.html`;
-    cont.innerHTML = `<span class="hm-mini" aria-hidden="true">${avatarHTML(avatarFor(d.other), 'smug')}</span><span><b>Revenge at ${escapeHtml((GAMES[lost.kind] || [, lost.kind])[1])}</b><small>${escapeHtml(them)} won ${escapeHtml(timeAgo(lost.endedAt))}</small></span>`;
-  }
-  cont.hidden = !last && !lostTo;
-  if (!$('#home-tiles').children.length) {
-    // one tile per game: its colour and one big emoji (the full card art lives on the Games screen)
-    const EMOJI = { sticky: '🍬', sundae: '💣', doodle: '🖍️', ludo: '🎲', plusfour: '🃏', snakes: '🐍' };
-    $('#home-tiles').innerHTML = [...document.querySelectorAll('#tab-play .game-card')].map((card) => {
-      const href = card.getAttribute('href'), kind = href.replace('.html', ''), col = card.dataset.wipe || '#ff71ce';
-      return `<a class="hm-tile" href="${href}" data-wipe="${col}" style="--tc:${col}"><span class="hm-tile-art" aria-hidden="true">${EMOJI[kind] || '🎮'}</span><b>${escapeHtml(card.querySelector('h2').textContent)}</b>${card.querySelector('.badge-new') ? '<i>co-op</i>' : ''}</a>`;
-    }).join('');
+  // the shelf: the real game cards, with your record on each
+  const shelf = $('#home-shelf'), cards = [...document.querySelectorAll('#tab-play .game-card')];
+  const sig = cards.map((c) => c.textContent.length).join(',');
+  if (shelf.dataset.sig !== sig) {
+    shelf.innerHTML = '';
+    cards.forEach((c) => { const k = c.cloneNode(true); k.classList.remove('picked'); shelf.appendChild(k); });
+    shelf.dataset.sig = sig;
   }
 
-  // the grudge: a best-of-5 series against them
+  // the sidebar: you, the grudge, your level
+  $('#home-me-face').innerHTML = avatarHTML(myAvatar());
+  $('#home-me-name').textContent = me.name;
+  const g = profile && profile.grudge && profile.grudge[d.other];
   const s = g || { me: 0, them: 0, won: 0, lost: 0 };
-  const pips = (n) => [0, 1, 2].map((i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
-  $('#home-score').innerHTML = `<span class="side me"><b>${s.me}</b><small>You</small><span class="pips">${pips(s.me)}</span></span>
-    <span class="vs" aria-hidden="true">–</span>
-    <span class="side them"><b>${s.them}</b><small>${escapeHtml(them)}</small><span class="pips">${pips(s.them)}</span></span>`;
+  $('#home-score').innerHTML = `${s.me} <i>–</i> ${s.them}`;
   $('#home-score').setAttribute('aria-label', `This series: you ${s.me}, ${them} ${s.them}. First to 3 wins.`);
   $('#home-score-note').textContent = !profile ? 'Loading the scores…'
-    : s.won || s.lost ? `First to 3 wins the series. Series so far: you ${s.won}, ${them} ${s.lost}.` : 'First to 3 wins the series.';
-  $('#home-challenge').textContent = `Challenge ${them}`;
+    : `You ${s.me}, ${them} ${s.them}. First to 3 wins${s.won || s.lost ? ` (series: you ${s.won}, ${them} ${s.lost})` : ''}.`;
   $('#home-challenge').dataset.friend = d.other;
-
-  // level and trophies
+  $('#home-challenge').setAttribute('aria-label', `Challenge ${them}`);
   if (profile) {
     const { level, xp, from, to } = profile.level, pct = to ? Math.round(((xp - from) / (to - from)) * 100) : 100;
+    const got = profile.achievements.filter((a) => a.done);
+    $('#home-me-sub').textContent = `Level ${level} · ${LEVEL_NAMES[level - 1]} · ${plural(got.length, 'trophy').replace('trophys', 'trophies')}`;
     $('#home-cone').innerHTML = coneSVG(level);
     $('#hm-level-title').textContent = LEVEL_NAMES[level - 1];
     $('#home-xp').style.setProperty('--p', pct + '%'); $('#home-xp').setAttribute('aria-valuenow', pct);
-    $('#home-xp-note').textContent = to ? `Level ${level}. ${to - xp} more XP to ${LEVEL_NAMES[level]}.` : `Level ${level}, the top of the cone.`;
-    const done = profile.achievements.filter((a) => a.done).sort((a, b) => new Date(b.unlockedAt) - new Date(a.unlockedAt));
-    const next = profile.achievements.filter((a) => !a.done).sort((a, b) => b.have / b.need - a.have / a.need);
-    const show = [...done.slice(0, 3).map((a) => [a, true]), ...next.slice(0, Math.max(0, 4 - Math.min(3, done.length))).map((a) => [a, false])].slice(0, 4);
-    $('#home-trophies').innerHTML = show.map(([a, got]) => `<span class="hm-trophy${got ? '' : ' locked'}" title="${escapeHtml(a.name)}: ${escapeHtml(a.how)}"><span class="disc">${a.icon}</span><small>${escapeHtml(a.name)}</small></span>`).join('');
-  }
+    $('#home-xp-note').textContent = to ? `${to - xp} XP to ${LEVEL_NAMES[level]}` : 'Top of the cone';
+    const done = got.slice().sort((a, b) => new Date(b.unlockedAt) - new Date(a.unlockedAt));
+    $('#home-trophies').innerHTML = done.slice(0, 4).map((a) => `<span class="hm-trophy" title="${escapeHtml(a.name)}: ${escapeHtml(a.how)}">${a.icon}</span>`).join('')
+      || '<span class="hm-note">Your first trophy is one game away.</span>';
+  } else $('#home-me-sub').textContent = 'Loading your level…';
+
   // the first visit of a session gets one entrance; switching back later doesn't replay it
   let seen = true;
   try { seen = !!sessionStorage.getItem('sr-home-seen'); sessionStorage.setItem('sr-home-seen', '1'); } catch (e) { /* storage blocked: skip the entrance */ }

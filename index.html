@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="shared/themes.css?v=5">
   <link rel="stylesheet" href="messages/messages.css?v=13">
   <link rel="stylesheet" href="hub/shell.css?v=5">
-  <link rel="stylesheet" href="hub/home.css?v=5">
+  <link rel="stylesheet" href="hub/home.css?v=6">
   <link rel="modulepreload" href="messages/app.js?v=16">
   <link rel="modulepreload" href="messages/data.js?v=6">
   <link rel="modulepreload" href="messages/logic.mjs?v=6">
@@ -124,54 +124,54 @@
         <button type="button" data-sub="rivals">⚔️ Rivals</button>
       </nav>
       <div class="panels">
-        <!-- HOME: what's going on between you two right now -->
+        <!-- HOME: a feed (the chat poster, then your games) and a sidebar (you, the grudge, your level) -->
         <section id="tab-home" class="panel home" role="tabpanel" aria-label="Home" hidden>
           <header class="hm-head">
             <h1 id="home-hello" class="hm-hello"></h1>
-            <p id="home-sub" class="hm-sub"></p>
+            <p id="home-sub" class="hm-sub" hidden></p>
           </header>
-          <div class="hm-grid">
-            <!-- the chat, in miniature: their critter peeks over the top -->
-            <article class="hm-chat" id="hm-chat">
-              <span class="hm-peek" aria-hidden="true"><span class="actor" id="home-chat-face"></span></span>
-              <a class="hm-chat-head" href="#chat" data-go="chat">
-                <span class="hm-who"><b id="home-chat-name">Chat</b><small id="home-chat-status"></small></span>
-                <em id="home-chat-count" class="hm-count" hidden></em>
-                <span class="hm-open">Open chat</span>
+          <div class="hm-feedwrap">
+            <div class="hm-feed">
+              <!-- the chat, as a poster: their critter, the last messages, a quick reply -->
+              <article class="hm-chat hm-poster" id="hm-chat" aria-labelledby="home-poster-title">
+                <span class="hm-big actor" id="home-chat-face" aria-hidden="true"></span>
+                <div class="hm-poster-txt">
+                  <h2 id="home-poster-title"></h2>
+                  <span class="hm-meta" id="home-chat-status"></span>
+                  <ol class="hm-msgs" id="home-thread" aria-label="Latest messages"></ol>
+                  <span class="hm-typing" id="home-typing" hidden aria-label="Typing"><i></i><i></i><i></i></span>
+                  <form class="hm-reply" id="home-reply" autocomplete="off">
+                    <input id="home-reply-input" maxlength="4000" placeholder="Message…" aria-label="Quick reply" enterkeyhint="send">
+                    <button type="submit" aria-label="Send"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+                  </form>
+                  <div class="hm-row">
+                    <a class="hm-btn" href="#chat" data-go="chat">💬 Open chat</a>
+                    <a class="hm-btn alt" id="home-next-play" href="ludo.html">🎲 Play Ludo</a>
+                  </div>
+                </div>
+              </article>
+
+              <h2 class="hm-sec">Pick your battle</h2>
+              <div class="hm-shelf" id="home-shelf" aria-label="Games"></div>
+            </div>
+
+            <aside class="hm-side" aria-label="You, the grudge and your level">
+              <a class="hm-card hm-me" href="#me" data-go="me">
+                <span class="actor" id="home-me-face" aria-hidden="true"></span>
+                <span><b id="home-me-name"></b><small id="home-me-sub"></small></span>
               </a>
-              <a class="hm-thread" href="#chat" data-go="chat" aria-label="Open the chat" tabindex="-1">
-                <ol id="home-thread"></ol>
-                <span class="hm-typing" id="home-typing" hidden><i></i><i></i><i></i></span>
-              </a>
-              <form class="hm-reply" id="home-reply" autocomplete="off">
-                <input id="home-reply-input" maxlength="4000" placeholder="Message…" aria-label="Quick reply" enterkeyhint="send">
-                <button type="submit" aria-label="Send"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
-              </form>
-            </article>
-
-            <section class="hm-play" aria-labelledby="hm-play-title">
-              <div class="hm-card-head"><h2 id="hm-play-title">Play</h2><a href="#play" data-go="play">All games</a></div>
-              <a class="hm-continue" id="home-continue" hidden></a>
-              <div class="hm-tiles" id="home-tiles"></div>
-            </section>
-
-            <section class="hm-grudge" aria-labelledby="hm-grudge-title">
-              <div class="hm-card-head"><h2 id="hm-grudge-title">The grudge</h2><a href="#rivals" data-go="rivals">Rivals</a></div>
-              <div class="hm-score" id="home-score"></div>
-              <p class="hm-note" id="home-score-note"></p>
-              <button class="hm-btn" type="button" id="home-challenge">Challenge</button>
-            </section>
-
-            <section class="hm-level" aria-labelledby="hm-level-title">
-              <span class="hm-cone" id="home-cone" aria-hidden="true"></span>
-              <div class="hm-level-txt">
-                <h2 id="hm-level-title">Level</h2>
+              <section class="hm-card hm-grudge" aria-labelledby="hm-grudge-title">
+                <h3 id="hm-grudge-title">The grudge</h3>
+                <div class="hm-score-row"><span class="hm-score" id="home-score"></span><button class="hm-btn small" type="button" id="home-challenge">⚔️ Challenge</button></div>
+                <p class="hm-note" id="home-score-note"></p>
+              </section>
+              <section class="hm-card hm-level" aria-labelledby="hm-level-title">
+                <div class="hm-level-row"><span class="hm-cone" id="home-cone" aria-hidden="true"></span><span><h3 id="hm-level-title">Level</h3><p class="hm-note" id="home-xp-note"></p></span></div>
                 <div class="hm-xp" role="progressbar" aria-label="XP to the next level" aria-valuemin="0" aria-valuemax="100" id="home-xp"><i></i></div>
-                <p class="hm-note" id="home-xp-note"></p>
-              </div>
-              <div class="hm-trophies" id="home-trophies"></div>
-              <a class="hm-link" href="#trophies" data-go="trophies">All trophies</a>
-            </section>
+                <div class="hm-trophies" id="home-trophies"></div>
+                <a class="hm-link" href="#trophies" data-go="trophies">All trophies</a>
+              </section>
+            </aside>
           </div>
         </section>
 
@@ -608,6 +608,6 @@
   <script src="shared/records.js?v=13"></script>
   <script src="shared/rewards.js?v=7"></script>
   <script src="shared/sound.js?v=3"></script>
-  <script src="hub/hub.js?v=36"></script>
+  <script src="hub/hub.js?v=37"></script>
 </body>
 </html>
