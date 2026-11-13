@@ -6,8 +6,8 @@
    - Everything comes from the database (shared/records.js) and refreshes every 20 seconds.
    Needs shared/core.js, shared/records.js and shared/sound.js. */
 
-const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html', B: 'sundae.html' }[code[0]] || 'ludo.html');
-const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'], sundae: ['💣', 'Sundae Bomb'] };
+const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html', B: 'sundae.html', G: 'sticky.html' }[code[0]] || 'ludo.html');
+const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'], sundae: ['💣', 'Sundae Bomb'], sticky: ['🍬', 'Sticky Situation'] };
 const LEVEL_NAMES = ['Sprinkle', 'Single Scoop', 'Double Scoop', 'Waffle Cone', 'Sundae', 'Banana Split', 'Brain Freeze', 'Sweet Revenge Royalty'];
 const TABS = ['play', 'trophies', 'rivals', 'me'];
 const POLL_MS = 60000; // a safety net: new games and trophies arrive instantly through records.onChange
@@ -157,7 +157,7 @@ async function boot({ full = false } = {}) {
 // Room links and "send me back to the game I came from" skip the menu entirely.
 function routeAway() {
   const q = new URLSearchParams(location.search), next = q.get('next');
-  if (next && /^(ludo|doodle|plusfour|snakes|sundae|messages)\.html$/.test(next)) {
+  if (next && /^(ludo|doodle|plusfour|snakes|sundae|sticky|messages)\.html$/.test(next)) {
     q.delete('next');
     location.replace(next + (q.toString() ? '?' + q : ''));
     return false;
@@ -493,11 +493,12 @@ function renderHistory(p) {
     if (g.kind === 'plusfour') bits.push(plural(m.bombs || 0, 'bomb'));
     if (g.kind === 'snakes') bits.push(plural(m.bonks || 0, 'bonk'));
     if (g.kind === 'doodle' && mine.score != null) bits.push(`${mine.score} points`);
+    if (g.kind === 'sticky') bits.push(`${plural(m.teamFalls || 0, 'fall')} together`);
     if (g.startedAt) bits.push(`${Math.max(1, Math.round((new Date(g.endedAt) - new Date(g.startedAt)) / 60000))} min`);
     const fresh = !first && !seenGames.has(g.id);
     if (fresh) freshCount++;
     return `<li class="ticket${g.practice ? ' practice' : ''}${fresh ? ' fresh' : ''}" style="--d:${i * 0.07}s"><span class="stub" aria-hidden="true">${icon}</span>
-      <span class="tt"><b>${escapeHtml(label)} vs ${escapeHtml(others.join(', ') || 'nobody')}${g.practice ? '<span class="tag">practice</span>' : ''}</b>
+      <span class="tt"><b>${escapeHtml(label)} ${g.kind === 'sticky' || g.kind === 'sundae' ? 'with' : 'vs'} ${escapeHtml(others.join(', ') || 'nobody')}${g.practice ? '<span class="tag">practice</span>' : ''}</b>
       <small>${escapeHtml(bits.join(', '))}</small></span><span class="stamp ${res[0]}">${res[1]}</span></li>`;
   }).join('');
   seenGames = new Set(p.recent.map((g) => g.id));

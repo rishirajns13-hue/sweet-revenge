@@ -349,3 +349,12 @@ body.in-game.chat-docked main { padding-right: 410px; }
 @media (prefers-reduced-motion: reduce) {
   .pf-ouch, .pf-catch, .pf-status.mine, .pf-seat.turn .av, .pf-dir ellipse { animation: none; }
 }
+
+/* Small phones: the top bar (leave, room chip, chat tools, walkie, sound) must fit in about 350 px.
+   Voice notes stay available inside the chat sheet, so the bar drops its mic button here. */
+@media (max-width: 440px) {
+  .pf-top, .pf-tools { gap: 6px; }
+  .pf-top > .icon-btn, .pf-tools .icon-btn { width: 38px; height: 38px; }
+  .pf-tools [data-chat-mic] { display: none; }
+  .pf-chip { letter-spacing: 1px; padding: 2px 8px; font-size: 13px; }
+}

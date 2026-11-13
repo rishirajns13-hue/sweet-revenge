@@ -10,7 +10,7 @@ export const LEVELS = [
 export const KINDS = ['ludo', 'plusfour', 'doodle', 'snakes'];
 
 /* facts = {
-     games: [{ kind, practice, won, bonks, bombs, bombCards, score, fastest, snakesSlid, longestLadder }]  oldest first
+     games: [{ kind, practice, won, bonks, bombs, bombCards, score, fastest, snakesSlid, longestLadder, cleanClimb }]  oldest first
      bigBomb, maxBonkedInGame, revengeBonk, revengeBomb, chats, seriesWon } */
 export function xpFor(f) {
   return f.games.reduce((sum, g) => {
@@ -50,6 +50,8 @@ export const ACHIEVEMENTS = [
   ['slippery_slope', '🐍', 'Slippery Slope', 'Slide down 3 snakes in one game', (f) => [Math.min(Math.max(0, ...f.games.map((g) => g.snakesSlid || 0)), 3), 3]],
   ['grudge_champ', '🥊', 'Grudge Champ', 'Win a best-of-5 grudge series against a friend', (f) => [Math.min(f.seriesWon || 0, 1), 1]],
   ['sky_high', '🪜', 'Sky High', 'Climb a ladder 30+ squares long', (f) => [Math.max(0, ...f.games.map((g) => g.longestLadder || 0)) >= 30 ? 1 : 0, 1]],
+  ['cherry_on_top', '🎂', 'Cherry on Top', 'Climb the cake in Sticky Situation without a single fall', (f) => [f.games.some((g) => g.kind === 'sticky' && g.won && g.cleanClimb) ? 1 : 0, 1]],
+  ['glued_together', '🍬', 'Glued Together', 'Reach the cherry in Sticky Situation 5 times', (f) => [Math.min(f.games.filter((g) => g.kind === 'sticky' && g.won).length, 5), 5]],
 ];
 
 export function progress(f) {

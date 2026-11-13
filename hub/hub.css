@@ -458,7 +458,22 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .calm .sb-card-art { animation: none !important; }
 .game-shelves .game-card { flex-basis: calc((100% - 72px) / 5); }
 
+/* Sticky Situation's card */
+.game-card.sticky .art { background: radial-gradient(circle at 50% 62%, #ffe7b3 0 28%, #ffb3c7 29%); display: grid; place-items: center; }
+.st-card-art { position: relative; font-size: 62px; line-height: 1; }
+.st-card-art i { position: absolute; right: -22px; top: -4px; font-size: 30px; font-style: normal; transform-origin: 0 0; animation: st-card-swing 1.6s ease-in-out infinite; }
+@keyframes st-card-swing { 50% { transform: rotate(26deg); } }
+.game-card.sticky .g.a { left: 6%; top: 10%; rotate: -6deg; background: #ff9ad0; font-family: var(--title); }
+.game-card.sticky .g.c { left: auto; right: 5%; bottom: 8%; font-size: 15px; }
+@media (prefers-reduced-motion: reduce) { .st-card-art i { animation: none; } }
+.calm .st-card-art i { animation: none !important; }
 /* the 💬 Messages button */
 .dm-link { position: relative; text-decoration: none; color: var(--ink); }
 .dm-link .tab-badge { top: -8px; right: -8px; min-width: 20px; height: 20px; font-size: 11.5px; border-width: 2px; }
 .dm-link.boing { animation: boing .45s var(--spring); }
+
+/* Small phones: logo, level, messages, status, sound and your avatar must share one row. */
+@media (max-width: 440px) {
+  .brand.tiny svg { height: 36px; }
+  .me-chip { gap: 4px; }
+}

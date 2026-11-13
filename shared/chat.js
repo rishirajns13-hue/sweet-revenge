@@ -606,6 +606,8 @@ function createChat(opts) {
     sys(text) { addMsg(escapeHtml(text), 'sys'); },
     // Send a message as this player (one-tap callouts in co-op games use this).
     say(text) { if (typeof text === 'string' && text.trim()) emit({ t: 'chat', text: text.trim().slice(0, 300) }); },
+    // Send one of this game's stickers (keyboard shortcuts in action games use this).
+    sticker(id) { if (inGame && o.stickers[id]) emit({ t: 'sticker', id }); },
     open,
     react(k, e) { floatEmoji(k, e); },
     // True when a key press is someone typing, so games can skip their shortcuts.

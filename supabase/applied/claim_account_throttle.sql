@@ -1,4 +1,4 @@
--- NOT APPLIED YET (declined in the 13 Nov 2026 session). Paste into the Supabase SQL editor to apply.
+-- APPLIED 13 Nov 2026 (via the Supabase API). Kept for the record.
 -- Locks a name for 10 minutes after 5 wrong first-login passwords, so nobody can brute-force a friend's
 -- password before that friend has logged in once. The site already shows a "too many tries" message.
 create table public.login_failures (
