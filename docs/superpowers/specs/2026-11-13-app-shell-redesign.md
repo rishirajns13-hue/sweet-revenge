@@ -1,6 +1,6 @@
 # Redesign: one smooth app for Home, Games and Chat (13 Nov 2026)
 
-Status: **design, waiting for approval.** Follows `2026-11-13-chat-as-core-redesign.md` (built in a6452c4 / 51bef40), which put Chat next to Games but left it feeling like two apps.
+Status: **built** (13 Nov 2026, commits 8066e14..; see the plan in docs/superpowers/plans/2026-11-13-app-shell-redesign.md). Follows `2026-11-13-chat-as-core-redesign.md` (built in a6452c4 / 51bef40), which put Chat next to Games but left it feeling like two apps.
 
 ## Why (the user's words, condensed)
 - Home and Chat are "still not smooth", have no animations and "something is missing". They should match the smoothness and look of **Instagram DMs**.

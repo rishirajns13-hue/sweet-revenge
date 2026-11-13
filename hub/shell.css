@@ -139,3 +139,30 @@ html[data-vt="chat-back"]::view-transition-new(root) { animation: sr-vt-from-lef
 #tab-chat[hidden], #tab-chat[hidden] * { visibility: hidden !important; } /* children that set visibility themselves too */
 /* The other person's face flies from the Home card into the chat header. */
 #tab-home:not([hidden]) #home-chat-face, #tab-chat:not([hidden]) #peer-face { view-transition-name: peer-face; }
+
+/* ---------- style B across Games, Trophies, Rivals and You: glass instead of outlines ---------- */
+#screen-hub .panels :is(.game-card, .level-card, .badge3d .face, .vs-card, .ticket, .me-grid > .card, .acct-row, .empty-card, .resume-banner, .revenge-call, .cs-friend, .ticket-join) {
+  border: 1px solid var(--glass-edge) !important; box-shadow: var(--glass-shadow) !important;
+  background-color: color-mix(in srgb, #fffaf6 86%, transparent);
+  backdrop-filter: blur(16px) saturate(1.3); -webkit-backdrop-filter: blur(16px) saturate(1.3);
+}
+#screen-hub .panels .game-card { animation: none; rotate: 0deg; border-radius: 26px; transition: transform .3s var(--sr-pop), box-shadow .3s; }
+#screen-hub .panels .game-card:hover, #screen-hub .panels .game-card:focus-visible { scale: 1; transform: translateY(-6px); box-shadow: 0 1px 0 #ffffffcc inset, 0 26px 44px -18px #2b214059 !important; }
+#screen-hub .panels .game-card.picked { animation: hm-picked .35s var(--sr-pop) forwards; }
+#screen-hub .panels .game-card .art { border: 0; box-shadow: 0 10px 22px -14px #2b214066, 0 0 0 1px #2b21401a; }
+#screen-hub .panels .game-card h2 { font-family: 'Fredoka', var(--display), sans-serif; font-weight: 600; }
+#screen-hub .panels .game-card .play, #screen-hub .panels .btn {
+  border: 0 !important; box-shadow: 0 10px 20px -12px color-mix(in srgb, var(--cta) 80%, #000) !important; border-radius: 999px;
+}
+#screen-hub .panels .btn:not(.cta) { box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 14%, transparent), 0 8px 16px -12px #2b214066 !important; }
+#screen-hub .panels :is(.xp-bar, .me-stats, .b-theme span, .b-tile, .b-swatch) { border-width: 1px !important; border-color: color-mix(in srgb, var(--ink) 16%, transparent) !important; box-shadow: none !important; }
+#screen-hub .panels .b-tile[aria-pressed="true"], #screen-hub .panels .b-theme[aria-pressed="true"] span { box-shadow: 0 0 0 3px var(--cta) !important; border-color: transparent !important; }
+#screen-hub .panels .me-preview { border-width: 0 !important; box-shadow: 0 18px 36px -18px #2b214080, 0 0 0 6px #ffffffb3 !important; }
+#screen-hub .panels .switch span { border-width: 0 !important; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 18%, transparent) !important; }
+#screen-hub .panels :is(.shelf-title, .shelf-label, .col-title, .hello, .cs-label) {
+  font-family: 'Fredoka', var(--display), sans-serif; font-weight: 600; color: #fff; -webkit-text-stroke: 0; text-shadow: 0 2px 16px #2b214040;
+}
+#screen-hub .panels .ticket-join { border-style: solid !important; }
+@media (prefers-reduced-motion: reduce) { #screen-hub .panels .game-card { transition: none; } }
+#screen-hub .panels .me-stats div + div { border-left: 1px solid color-mix(in srgb, var(--ink) 12%, transparent) !important; }
+#screen-hub .panels .challenge-strip { background: none; border: 0; box-shadow: none; }
