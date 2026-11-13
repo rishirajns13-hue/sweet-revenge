@@ -448,8 +448,12 @@ body.typing #dm-root .dm-nav { display: none; }
   -webkit-mask: var(--pat) 0 0 / var(--ps) var(--ps) repeat; mask: var(--pat) 0 0 / var(--ps) var(--ps) repeat;
 }
 #dm-root.dark:is([data-wall="sprinkles"], [data-wall="hearts"], [data-wall="stars"], [data-wall="critters"], [data-wall="doodles"])::after { opacity: .4; }
-#dm-root[data-wall="photo"] { background: var(--wall-img, none) center / cover fixed, var(--chat-bg); }
-#dm-root[data-wall="photo"]::after { opacity: 1; background: color-mix(in srgb, var(--chat-bg) 52%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#dm-root[data-wall="photo"] { background: var(--chat-bg); }
+#dm-root[data-wall="photo"]::after { opacity: 1; inset: -48px; background: var(--wall-img, none) center / cover no-repeat; -webkit-mask: none; mask: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+#dm-root::after { filter: blur(calc(var(--wall-blur, 0) * .24px)); transition: filter .2s; }
+#dm-root .blur-row { margin-top: 14px; }
+#dm-root .blur-row output { font: 800 13px var(--read); color: var(--sub); }
+#dm-root .d-range { width: 100%; accent-color: var(--accent); height: 28px; cursor: pointer; }
 
 /* the theme tiles are tiny chats */
 #dm-root .theme-grid .pv { position: relative; width: 74px; height: 58px; border-radius: 14px; background: var(--bg); box-shadow: inset 0 0 0 1px #0000001a; outline: 2px solid transparent; outline-offset: 2px; overflow: hidden; transition: outline-color .2s, transform .2s var(--ease-pop); }

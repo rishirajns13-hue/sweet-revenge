@@ -231,34 +231,44 @@ function readable(fg, bg, toward) {
 }
 
 export function paletteFromPixels(data) {
+  // Group the clearly coloured pixels by hue (12 slices); each slice's colour is the average of its
+  // vivid pixels only, so a gradient doesn't wash out to grey.
   const buckets = new Map(), total = [0, 0, 0];
-  let n = 0, lumSum = 0;
+  let n = 0, lSum = 0;
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] < 128) continue;
     const rgb = [data[i], data[i + 1], data[i + 2]], [h, s, l] = hsl(rgb);
-    const k = Math.floor(h / 30) * 3 + (l < 0.35 ? 0 : l < 0.7 ? 1 : 2);
+    rgb.forEach((v, j) => { total[j] += v; });
+    n++; lSum += l;
+    if (s < 0.25 || l < 0.15 || l > 0.85) continue;
+    const k = Math.floor(h / 30);
     const b = buckets.get(k) || { n: 0, sum: [0, 0, 0], sat: 0 };
-    b.n++; b.sat += s; rgb.forEach((v, j) => { b.sum[j] += v; total[j] += v; });
+    b.n++; b.sat += s; rgb.forEach((v, j) => { b.sum[j] += v; });
     buckets.set(k, b);
-    n++; lumSum += lum(rgb);
   }
   const avg = n ? total.map((v) => v / n) : [128, 128, 128];
   const ranked = [...buckets.values()]
-    .map((b) => { const rgb = b.sum.map((v) => v / b.n), c = hsl(rgb); return { rgb, hsl: c, score: b.n * (b.sat / b.n + 0.05) }; })
-    .filter((b) => b.hsl[1] >= 0.12 && b.hsl[2] > 0.08 && b.hsl[2] < 0.94)
+    // oranges and yellows turn brown once dark enough for white text, so they rank lower
+    .map((b) => { const c = hsl(b.sum.map((v) => v / b.n)); return { hsl: c, score: b.n * (b.sat / b.n) * (c[0] >= 8 && c[0] <= 80 ? 0.45 : 1) }; })
     .sort((a, b) => b.score - a.score);
   const picked = [];
-  for (const b of ranked) if (picked.length < 3 && picked.every((p) => hueGap(p.hsl[0], b.hsl[0]) >= 25)) picked.push(b);
+  for (const b of ranked) if (picked.length < 3 && picked.every((p) => hueGap(p[0], b.hsl[0]) >= 25)) picked.push(b.hsl);
   // A photo with fewer than three distinct colours: fill in with neighbours of its main hue.
-  const base = picked[0] ? picked[0].hsl : (() => { const [h, s, l] = hsl(avg); return [s < 0.12 ? 265 : h, Math.max(s, 0.45), Math.min(0.6, Math.max(0.4, l))]; })();
+  const base = picked[0] || (() => { const [h, s] = hsl(avg); return [s < 0.12 ? 265 : h, 0.55, 0.5]; })();
   const fills = [[base[0] - 30, base[1], base[2]], [base[0] + 30, base[1], base[2]], base];
-  for (let i = 0; picked.length < 3; i++) { const h = [(fills[i][0] + 360) % 360, fills[i][1], fills[i][2]]; picked.push({ rgb: rgbOf(h), hsl: h }); }
-  picked.sort((a, b) => a.hsl[0] - b.hsl[0]);
-  const dark = n ? lumSum / n < 0.4 : false;
+  for (let i = 0; picked.length < 3; i++) picked.push([(fills[i][0] + 360) % 360, fills[i][1], fills[i][2]]);
+  picked.sort((a, b) => a[0] - b[0]);
+  // Bubble colours stay vivid: full-ish saturation, and only as dark as white text needs (4.5:1).
   const textMine = '#ffffff';
-  const mine = picked.map((p) => readable(textMine, toHex(p.rgb), [0, 0, 0]));
+  const mine = picked.map(([h, s, l]) => {
+    let c = [h, Math.max(s, 0.62), Math.min(0.58, Math.max(0.45, l))];
+    for (let i = 0; i < 20 && contrast(textMine, toHex(rgbOf(c))) < 4.5; i++) c = [c[0], c[1], c[2] - 0.025];
+    return toHex(rgbOf(c));
+  });
+  const dark = n ? lSum / n < 0.4 : false;
   const textTheirs = dark ? '#f4f0fb' : '#241c33';
   const theirs = readable(textTheirs, toHex(mix(avg, dark ? [29, 24, 48] : [255, 255, 255], 0.7)), dark ? [0, 0, 0] : [255, 255, 255]);
-  const accent = picked.reduce((a, b) => (b.hsl[1] > a.hsl[1] ? b : a)).rgb;
-  return { mine, theirs, accent: toHex(accent), dark, textMine, textTheirs };
+  const accent = mine.reduce((a, b) => (hsl(fromHex(b))[1] > hsl(fromHex(a))[1] ? b : a));
+  return { mine, theirs, accent, dark, textMine, textTheirs };
 }
+

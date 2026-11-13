@@ -745,15 +745,70 @@ function applyLook() {
 }
 
 // The wallpaper is shared; a photo wallpaper loads through a private link.
+// A photo also colours the bubbles, as on Instagram: the colours are worked out from the photo itself
+// (logic.mjs paletteFromPixels), so both phones get the same ones without saving anything. Picking a
+// theme while a photo is up goes back to theme colours on this device; "From your photo" turns it back on.
 let wallFor = '';
+const palKey = (w) => 'dm-wall-pal:' + w, palOffKey = (w) => 'dm-wall-pal-off:' + w;
+const photoColoursOn = (w) => !store.get(palOffKey(w), false);
 function applyWall() {
   const w = String(S.state.wallpaper || 'dots'), kind = wallKind(w);
   ROOT.dataset.wall = kind;
   if (kind !== 'photo') { ROOT.style.removeProperty('--wall-img'); wallFor = ''; return; }
+  const known = store.get(palKey(w), null);
+  if (known && photoColoursOn(w) && !S.state.vanish_on) paintPalette(known);
   if (wallFor === w) return;
   wallFor = w;
-  D.fileUrl('pics', w.slice(6)).then((url) => { if (url && wallFor === w) ROOT.style.setProperty('--wall-img', `url("${url}")`); });
+  D.fileUrl('pics', w.slice(6)).then((url) => {
+    if (!url || wallFor !== w) return;
+    ROOT.style.setProperty('--wall-img', `url("${url}")`);
+    if (!known) photoColours(url).then((p) => {
+      store.set(palKey(w), p);
+      if (wallFor === w && photoColoursOn(w) && !S.state.vanish_on) { paintPalette(p); if (!det.hidden) renderDetails(); }
+    }).catch(() => { /* the photo can't be read: theme colours stay */ });
+  });
 }
+// The photo, shrunk to 64×64, gives its colours.
+function photoColours(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas'); c.width = c.height = 64;
+        const g = c.getContext('2d', { willReadFrequently: true });
+        g.drawImage(img, 0, 0, 64, 64);
+        resolve(L.paletteFromPixels(g.getImageData(0, 0, 64, 64).data));
+      } catch (e) { reject(e); }
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+function paintPalette(p) {
+  const r = ROOT.style, d = p.dark;
+  p.mine.forEach((hex, i) => r.setProperty('--m' + (i + 1), hex));
+  r.setProperty('--theirs', p.theirs); r.setProperty('--accent', p.accent); r.setProperty('--text', p.textTheirs);
+  r.setProperty('--sub', d ? '#c9c0dc' : '#5f566f');
+  r.setProperty('--chat-bg', d ? '#141020' : '#fbf8fd');
+  r.setProperty('--sheet', d ? '#1d1830' : '#ffffff');
+  r.setProperty('--line', d ? '#ffffff1c' : '#2b21401a');
+  r.setProperty('--chip', d ? '#ffffff14' : '#2b214010');
+  r.setProperty('--bar', d ? '#141020b3' : '#fbf8fdb8');
+  ROOT.classList.toggle('dark', d);
+}
+
+// Wallpaper blur: 0 (clear) to 100% (24 px), just on this device.
+function applyBlur(v = store.get('dm-wall-blur', 0)) {
+  v = Math.max(0, Math.min(100, Math.round(+v || 0)));
+  ROOT.style.setProperty('--wall-blur', v);
+  $('#wall-blur').value = v;
+  $('#wall-blur-val').textContent = v ? v + '%' : 'Clear';
+  return v;
+}
+applyBlur();
+$('#wall-blur').addEventListener('input', (e) => applyBlur(e.target.value));
+$('#wall-blur').addEventListener('change', (e) => store.set('dm-wall-blur', applyBlur(e.target.value)));
 
 // Bubble shape and text size: a per-device choice.
 const look = Object.assign({ shape: 'round', size: 'm' }, store.get('dm-look', {}));
@@ -785,9 +840,11 @@ function renderDetails() {
   $('#d-face').dataset.who = o || ''; $('#d-face').innerHTML = o ? faceInner(o) : '';
   $('#d-name').textContent = o ? nameOf(o) : '';
   $('#d-real').textContent = o && nick(o) ? (S.players[o] || {}).name : '';
-  $('#theme-grid').innerHTML = THEME_ORDER.map((k) => {
+  const wall = String(S.state.wallpaper || ''), photoPal = wallKind(wall) === 'photo' && store.get(palKey(wall), null);
+  const fromPhoto = !!photoPal && photoColoursOn(wall);
+  $('#theme-grid').innerHTML = (photoPal ? `<button type="button" data-theme="from-photo" aria-pressed="${fromPhoto}"><span class="pv" style="--a:${photoPal.mine[0]};--b:${photoPal.mine[1]};--c:${photoPal.mine[2]};--bg:var(--wall-img) center / cover, ${photoPal.theirs};--th:${photoPal.theirs}"><i class="p1"></i><i class="p2"></i><i class="p3"></i></span>From your photo</button>` : '') + THEME_ORDER.map((k) => {
     const t = THEMES[k];
-    return `<button type="button" data-theme="${k}" aria-pressed="${S.state.theme === k}"><span class="pv" style="--a:${t.mine[0]};--b:${t.mine[1]};--c:${t.mine[2]};--bg:${t.bg};--th:${t.theirs}"><i class="p1"></i><i class="p2"></i><i class="p3"></i></span>${t.name}</button>`;
+    return `<button type="button" data-theme="${k}" aria-pressed="${!fromPhoto && S.state.theme === k}"><span class="pv" style="--a:${t.mine[0]};--b:${t.mine[1]};--c:${t.mine[2]};--bg:${t.bg};--th:${t.theirs}"><i class="p1"></i><i class="p2"></i><i class="p3"></i></span>${t.name}</button>`;
   }).join('');
   const cur = wallKind(S.state.wallpaper);
   $('#wall-grid').innerHTML = Object.keys(WALLS).filter((k) => k !== 'photo' || cur === 'photo').map((k) =>
@@ -802,7 +859,11 @@ function renderDetails() {
   $('#vanish-switch').setAttribute('aria-checked', !!S.state.vanish_on);
 }
 $('#theme-grid').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-theme]'); if (!b || b.dataset.theme === S.state.theme) return;
+  const b = e.target.closest('[data-theme]'); if (!b) return;
+  const wall = String(S.state.wallpaper || ''), isPhoto = wallKind(wall) === 'photo';
+  if (b.dataset.theme === 'from-photo') { store.del(palOffKey(wall)); applyLook(); renderDetails(); return; }
+  if (isPhoto && photoColoursOn(wall)) { store.set(palOffKey(wall), true); if (b.dataset.theme === S.state.theme) { applyLook(); renderDetails(); return; } }
+  if (b.dataset.theme === S.state.theme) return;
   const before = S.state.theme;
   S.state = { ...S.state, theme: b.dataset.theme };
   applyLook(); renderDetails();

@@ -68,6 +68,10 @@
   .nav-i { flex: 1; height: 100%; }
   .screen.hub.active { padding-bottom: calc(var(--nav-h) + 12px) !important; }
 }
+/* full-screen sheets in the chat cover the bar on phones */
+@media (max-width: 899px) {
+  body:has(#details:not([hidden]), #menu:not([hidden]), #dm-root .picker.open) .app-nav { display: none !important; }
+}
 @media (max-width: 899px) and (pointer: coarse) {
   body.typing .app-nav { display: none !important; }
   body.typing #tab-chat #dm-root .composer { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
