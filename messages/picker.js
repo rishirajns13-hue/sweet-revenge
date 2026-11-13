@@ -1,7 +1,7 @@
 // The picker sheet: Emoji, GIFs and Stickers (GIPHY search + a critter sticker pack drawn from
 // shared/avatars.js). Recently sent GIFs and stickers come first.
 // GIPHY needs a key; it's public by nature on a static site (only good for searching GIPHY).
-export const GIPHY_KEY = '';
+export const GIPHY_KEY = 'JNpqBjhRTc5Mb7cqKdn6K6uFyIulnRNK';
 const GIPHY = 'https://api.giphy.com/v1';
 const EMOJI_PICKER = 'https://cdn.jsdelivr.net/npm/emoji-picker-element@1.26.3/index.js';
 
