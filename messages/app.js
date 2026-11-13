@@ -176,14 +176,22 @@ function underHTML(m) {
   return '';
 }
 
+// The top of the conversation: both faces, how long you've been talking, and a way into a game.
+// Shown once the very first message is loaded (or when there are none yet).
 function renderHello() {
-  const empty = !S.messages.some((m) => m.kind !== 'system');
-  els.hello.hidden = !empty || !S.other;
+  const real = S.messages.filter((m) => m.kind !== 'system');
+  els.hello.hidden = (real.length && S.hasOlder) || !S.other;
   if (els.hello.hidden) return;
-  const o = otherId();
+  const o = otherId(), first = real.find((m) => !m.pending);
+  const since = first && new Date(first.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+  const realName = (S.players[o] || {}).name, nicked = nick(o) && realName && nick(o) !== realName;
+  const line = !real.length ? 'Just the two of you. Say hi.'
+    : `Chatting since ${since}. ${real.length === 1 ? 'One message' : real.length.toLocaleString() + ' messages'} so far.`;
   els.hello.innerHTML = `<div class="faces"><span class="face xl" data-who="${escapeHtml(o)}">${faceInner(o)}</span><span class="face xl" data-who="${escapeHtml(me.user)}">${faceInner(me.user)}</span></div>
-    <b>${escapeHtml(nameOf(o))}</b><p>Just the two of you. Say hi.</p><button type="button" id="btn-wave">👋 Send a wave</button>`;
-  $('#btn-wave').onclick = () => sendItem({ kind: 'sticker', meta: { pack: 'critter', critter: myAvatar(), mood: 'cheer', text: 'hiii' } });
+    <b>${escapeHtml(nameOf(o))}</b>${nicked ? `<small>${escapeHtml(realName)}</small>` : ''}<p>${escapeHtml(line)}</p>
+    <div class="hi-acts">${real.length ? '' : '<button type="button" id="btn-wave">👋 Send a wave</button>'}<a class="hi-chip" href="index.html#play">🎮 Play a game together</a></div>`;
+  const wave = $('#btn-wave');
+  if (wave) wave.onclick = () => sendItem({ kind: 'sticker', meta: { pack: 'critter', critter: myAvatar(), mood: 'cheer', text: 'hiii' } });
 }
 
 /* ---------------- header ---------------- */

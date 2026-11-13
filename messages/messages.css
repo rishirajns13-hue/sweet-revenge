@@ -477,3 +477,53 @@ body.typing #dm-root .dm-nav { display: none; }
 #dm-root.bub-bouncy .bub:not(.tdots) { border-radius: 24px !important; box-shadow: 0 3px 0 #0000001f; }
 #dm-root.text-s .bub { font-size: 13.5px; }
 #dm-root.text-l .bub { font-size: 18px; }
+
+/* ===== Style B: the same sugar-glass language as Home ===== */
+/* the top of the conversation */
+#dm-root .hi-card {
+  position: relative; max-width: 440px; margin: 26px auto 18px; padding: 28px 22px 22px; gap: 6px; border-radius: 30px;
+  background: color-mix(in srgb, var(--sheet) 72%, transparent); backdrop-filter: blur(16px) saturate(1.3); -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  box-shadow: 0 1px 0 #ffffff80 inset, 0 24px 48px -28px #2b214066; border: 1px solid color-mix(in srgb, var(--sheet) 60%, transparent);
+  animation: dm-fade .5s both;
+}
+#dm-root .hi-card .faces .face { box-shadow: 0 0 0 4px var(--sheet), 0 10px 20px -10px #2b214066; }
+#dm-root .hi-card .faces .face:first-child { rotate: -6deg; }
+#dm-root .hi-card .faces .face:last-child { rotate: 6deg; margin-left: -18px; box-shadow: 0 0 0 4px var(--sheet), 0 10px 20px -10px #2b214066; }
+#dm-root .hi-card b { font-size: 26px; margin-top: 8px; }
+#dm-root .hi-card small { color: var(--sub); font-weight: 700; margin-top: -4px; }
+#dm-root .hi-card p { max-width: 32ch; line-height: 1.4; }
+#dm-root .hi-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
+#dm-root .hi-acts button, #dm-root .hi-chip {
+  margin: 0; border: 0; border-radius: 999px; padding: 10px 18px; font: 800 14.5px var(--read); text-decoration: none; cursor: pointer;
+  color: #fff; background: linear-gradient(135deg, var(--m1), var(--m2)); box-shadow: 0 10px 20px -12px var(--m2); transition: transform .2s var(--spring);
+}
+#dm-root .hi-chip:hover, #dm-root .hi-acts button:hover { transform: translateY(-2px); }
+#dm-root .hi-chip:active, #dm-root .hi-acts button:active { transform: scale(.96); }
+
+/* the header and composer float on the wallpaper as glass */
+#dm-root .dm-head { background: color-mix(in srgb, var(--chat-bg) 62%, transparent); border-bottom-color: transparent; box-shadow: 0 10px 30px -24px #2b214066; }
+#dm-root .peer-txt b { font-size: 18px; }
+#dm-root .composer { background: none; backdrop-filter: none; -webkit-backdrop-filter: none; padding-top: 8px; }
+#dm-root .field {
+  background: color-mix(in srgb, var(--sheet) 76%, transparent); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid color-mix(in srgb, var(--text) 9%, transparent); box-shadow: 0 12px 28px -18px #2b214080;
+}
+#dm-root .field:focus-within { border-color: color-mix(in srgb, var(--m2) 55%, transparent); }
+#dm-root .context-bar { background: color-mix(in srgb, var(--sheet) 80%, transparent); border-radius: 16px; border: 0; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+
+/* little arrivals: date lines and system lines fade in; the jump button springs */
+#dm-root .divider, #dm-root .sysline { animation: dm-fade .45s both; }
+#dm-root .divider { padding: 6px 12px; margin: 14px 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--sheet) 55%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+#dm-root .jump-down { animation: dm-pop-in .4s var(--spring); }
+
+/* wide screens: Details sits beside the conversation instead of over it */
+@media (min-width: 1200px) {
+  #tab-chat #dm-root { transition: padding-right .32s var(--ease-out); }
+  #tab-chat #dm-root:has(.details:not([hidden])) { padding-right: 400px; }
+  #tab-chat #dm-root .details { position: absolute; inset: 0 0 0 auto; width: 400px; z-index: 6; }
+  #tab-chat #dm-root .details-scrim { display: none; }
+  #tab-chat #dm-root .details-panel { width: 100%; box-shadow: -18px 0 40px -30px #2b214066; border-left: 1px solid var(--line); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #dm-root .hi-card, #dm-root .divider, #dm-root .sysline, #dm-root .jump-down { animation: none; }
+}
