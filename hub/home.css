@@ -4,7 +4,7 @@
 :root { --toon-ink: #2b2140; --toon-paper: #fffaf2; --toon-line: 3px solid var(--toon-ink); --toon-shadow: 6px 7px 0 var(--toon-ink); --toon-title: 'Lilita One', 'Fredoka', sans-serif; }
 
 /* ---------- a calmer background, so the cards lead ---------- */
-body.home::before { background: linear-gradient(#ffffff8c, #ffffff8c), var(--bg); }
+body.home::before { background: linear-gradient(#ffffff59, #ffffff59), var(--bg); }
 body.home #scene { opacity: .35; }
 
 /* ---------- the chrome: nav and top-bar chips in the same cartoon language (every section) ---------- */
@@ -20,15 +20,17 @@ body.home .nav-badge { box-shadow: 0 0 0 2.5px var(--toon-ink); }
 #screen-hub .topbar .thin-xp { border: 2px solid var(--toon-ink); background: #fff; }
 #screen-hub .topbar .lvl-txt b, #screen-hub .topbar .live-dot { font-family: var(--toon-title); font-weight: 400; letter-spacing: .3px; }
 #screen-hub .topbar .me-chip { justify-self: end; }
-body.home .games-sub { background: var(--toon-paper) !important; border: var(--toon-line) !important; box-shadow: 3px 4px 0 var(--toon-ink) !important; }
-body.home .games-sub button { font-family: var(--toon-title) !important; font-weight: 400 !important; color: var(--toon-ink) !important; letter-spacing: .3px; }
-body.home .games-sub button[aria-pressed="true"] { background: var(--cta) !important; color: #fff !important; border: 2.5px solid var(--toon-ink) !important; box-shadow: 2px 2px 0 var(--toon-ink) !important; }
+#screen-hub .games-sub { background: var(--toon-paper) !important; backdrop-filter: none !important; border: var(--toon-line) !important; box-shadow: 3px 4px 0 var(--toon-ink) !important; }
+#screen-hub .games-sub button { font-family: var(--toon-title) !important; font-weight: 400 !important; color: var(--toon-ink) !important; letter-spacing: .3px; }
+#screen-hub .games-sub button[aria-pressed="true"] { background: var(--cta) !important; color: #fff !important; border: 2.5px solid var(--toon-ink) !important; box-shadow: 2px 2px 0 var(--toon-ink) !important; }
 
 /* ---------- shared pieces ---------- */
-.hm-hello, .hm-sec {
+.hm-hello, .hm-sec, #screen-hub .pg-title, #screen-hub .greet .hello {
   margin: 0; font: 400 clamp(34px, 4vw, 52px)/1.05 var(--toon-title); letter-spacing: .5px; color: #fff;
   text-shadow: 3px 3px 0 var(--toon-ink), -1.5px -1.5px 0 var(--toon-ink), 1.5px -1.5px 0 var(--toon-ink), -1.5px 1.5px 0 var(--toon-ink), 0 2px 0 var(--toon-ink);
 }
+#screen-hub .greet .hello { font-size: clamp(30px, 3.4vw, 44px); }
+#screen-hub .pg-title { margin: 6px 0 2px 2px; }
 .hm-sec { font-size: clamp(26px, 2.6vw, 32px); margin: 4px 0 -6px 2px; }
 .hm-head { display: grid; gap: 6px; padding: 2px 2px 6px; }
 .hm-sub { margin: 0; font: 800 16px/1.4 'Nunito', var(--body), sans-serif; color: var(--toon-ink); }
@@ -48,9 +50,9 @@ body.home .games-sub button[aria-pressed="true"] { background: var(--cta) !impor
 
 /* ---------- layout: feed + sidebar ---------- */
 #tab-home { gap: 18px; }
-.hm-feedwrap { display: grid; grid-template-columns: minmax(0, 700px) 300px; gap: 30px; justify-content: center; align-items: start; }
+.hm-feedwrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 26px; }
 .hm-feed { display: grid; gap: 22px; min-width: 0; }
-.hm-side { display: grid; gap: 20px; position: sticky; top: 16px; }
+.hm-side { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; align-items: stretch; }
 
 /* ---------- the poster: the chat at a glance ---------- */
 .hm-poster { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 22px; padding: 24px 26px; overflow: hidden; }
@@ -121,10 +123,10 @@ body.home .games-sub button[aria-pressed="true"] { background: var(--cta) !impor
 @keyframes hm-pop { from { opacity: 0; transform: translateY(14px) scale(.97) rotate(-1deg); } }
 
 /* ---------- smaller screens ---------- */
-@media (max-width: 1180px) { .hm-feedwrap { grid-template-columns: minmax(0, 1fr) 280px; gap: 22px; } }
+@media (max-width: 1180px) { .hm-side { grid-template-columns: repeat(2, minmax(0, 1fr)); } .hm-side .hm-me { grid-column: 1 / -1; } }
 @media (max-width: 899px) {
-  .hm-feedwrap { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-  .hm-side { position: static; }
+  .hm-feedwrap { gap: 20px; }
+  .hm-side { grid-template-columns: minmax(0, 1fr); }
   .hm-poster { grid-template-columns: 1fr; justify-items: center; text-align: center; padding: 20px 16px; }
   .hm-big { width: 110px; height: 110px; font-size: 110px; } .hm-big svg, .hm-big .av-art { width: 110px; height: 110px; }
   .hm-poster-txt { width: 100%; }
@@ -138,3 +140,26 @@ body.home .games-sub button[aria-pressed="true"] { background: var(--cta) !impor
   .hm-btn, .hm-me { transition: none; }
 }
 .calm .hm-big { animation: none; }
+
+/* ---------- every section: the same width and the same title (15 Nov 2026) ---------- */
+#screen-hub.active { max-width: 1180px; }
+.panel.rivals > .pg-title { grid-column: 1 / -1; }
+#screen-hub .games-sub { margin-bottom: 2px; }
+@media (min-width: 900px) {
+  .hm-poster { grid-template-columns: 190px minmax(0, 1fr); padding: 28px 32px; gap: 30px; }
+  .hm-big, .hm-big svg, .hm-big .av-art { width: 180px; height: 180px; font-size: 180px; }
+  .hm-poster-txt { max-width: 760px; }
+  .hm-msgs li { max-width: 86%; }
+  .hm-reply { max-width: 640px; }
+}
+#screen-hub .shelf-label { margin: 10px 0 18px 4px; font-size: clamp(26px, 2.6vw, 32px); }
+#screen-hub .challenge-strip { margin-top: 4px; }
+/* white cartoon text always carries its ink outline, so it reads on any background */
+#screen-hub .shelf-label, #screen-hub .shelf-label small, #screen-hub .col-title, #screen-hub .shelf-title {
+  color: #fff; text-shadow: 2.5px 2.5px 0 var(--toon-ink), -1.2px -1.2px 0 var(--toon-ink), 1.2px -1.2px 0 var(--toon-ink), -1.2px 1.2px 0 var(--toon-ink), 0 1.5px 0 var(--toon-ink);
+}
+#screen-hub .games-sub button[aria-pressed="true"], body.home .nav-i[aria-current="page"] {
+  text-shadow: 1.5px 1.5px 0 var(--toon-ink), -1px -1px 0 var(--toon-ink), 1px -1px 0 var(--toon-ink), -1px 1px 0 var(--toon-ink);
+}
+#screen-hub .games-sub button { font-size: 16px !important; }
+@media (max-width: 520px) { #screen-hub .games-sub { max-width: 100%; } #screen-hub .games-sub button { padding: 0 11px; font-size: 15px !important; } }

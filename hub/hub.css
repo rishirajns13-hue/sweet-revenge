@@ -456,7 +456,7 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .game-card.sundae .g.c { left: auto; right: 5%; bottom: 8%; font-size: 15px; }
 @media (prefers-reduced-motion: reduce) { .sb-card-art { animation: none; } }
 .calm .sb-card-art { animation: none !important; }
-.game-shelves .game-card { flex-basis: calc((100% - 72px) / 5); }
+@media (min-width: 1101px) { .game-shelves .game-card { flex-basis: calc((100% - 72px) / 5); } } /* phones keep their swipeable row */
 
 /* Sticky Situation's card */
 .game-card.sticky .art { background: radial-gradient(circle at 50% 62%, #ffe7b3 0 28%, #ffb3c7 29%); display: grid; place-items: center; }

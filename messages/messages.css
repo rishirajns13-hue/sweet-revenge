@@ -571,24 +571,14 @@ body.typing #dm-root .dm-nav { display: none; }
 #dm-root .ib-reply button .ic { width: 18px; height: 18px; stroke-width: 2.6; }
 #dm-root .dm-pick { display: none; }
 
-/* laptops: the inbox is a column beside the conversation */
-@media (min-width: 900px) {
-  #tab-chat #dm-root { display: flex; }
-  #tab-chat #dm-root .dm-inbox { flex: none; width: 340px; border-right: 1px solid var(--line); }
-  #tab-chat #dm-root .dm-app { flex: 1; min-width: 0; }
-  #tab-chat #dm-root[data-view="inbox"] .dm-app { display: none; }
-  #tab-chat #dm-root[data-view="inbox"] .dm-pick { flex: 1; display: grid; place-content: center; justify-items: center; gap: 8px; color: var(--sub); text-align: center; z-index: 1; }
-  #dm-root .dm-pick-ic { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--text); color: var(--text); margin-bottom: 6px; }
-  #dm-root .dm-pick-ic .ic { width: 40px; height: 40px; }
-  #dm-root .dm-pick b { font: 600 20px var(--display, 'Fredoka'), sans-serif; color: var(--text); }
-  #dm-root .dm-pick small { font: 600 14px var(--read); }
-}
-/* phones: one view at a time; the conversation slides in from the right, as on Instagram */
+/* one view at a time on every screen: the inbox, then the conversation slides in from the right
+   (user, 15 Nov 2026: no side panel on laptops either) */
+#tab-chat #dm-root .dm-inbox, #tab-chat #dm-root .dm-app { position: absolute; inset: 0; transition: transform .32s var(--ease-out), opacity .32s; }
+#tab-chat #dm-root[data-view="inbox"] .dm-app { transform: translateX(100%); visibility: hidden; transition: transform .32s var(--ease-out), visibility 0s .32s; }
+#tab-chat #dm-root[data-view="thread"] .dm-inbox { transform: translateX(-22%); opacity: 0; pointer-events: none; }
+#dm-root .dm-pick { display: none !important; }
 @media (max-width: 899px) {
-  #tab-chat #dm-root .dm-inbox, #tab-chat #dm-root .dm-app { position: absolute; inset: 0; transition: transform .32s var(--ease-out), opacity .32s; }
   #tab-chat #dm-root .dm-inbox { padding-bottom: calc(var(--nav-h) + 8px); }
-  #tab-chat #dm-root[data-view="inbox"] .dm-app { transform: translateX(100%); visibility: hidden; transition: transform .32s var(--ease-out), visibility 0s .32s; }
-  #tab-chat #dm-root[data-view="thread"] .dm-inbox { transform: translateX(-22%); opacity: 0; pointer-events: none; }
 }
 @media (prefers-reduced-motion: reduce) { #tab-chat #dm-root .dm-inbox, #tab-chat #dm-root .dm-app { transition: none !important; } }
 
@@ -648,3 +638,95 @@ body.typing #dm-root .dm-nav { display: none; }
 #dm-root .ph-top { position: absolute; top: max(10px, env(safe-area-inset-top)); left: 12px; right: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #fff; font: 700 14px var(--read); }
 #dm-root .ph-top .dm-icon { color: #fff; background: #ffffff1f; }
 @media (prefers-reduced-motion: reduce) { #dm-root .ph-view, #dm-root .ph-view img, #dm-root .photo-tray { transition: none; animation: none; } }
+
+/* ===== Cartoon chat (user, 15 Nov 2026): the chat speaks the app's language: ink outlines, offset shadows,
+   Lilita titles, paper chips. --ol is the outline, --ol-soft the hard shadow (both fade out on dark themes). ===== */
+#dm-root { --ol: #2b2140; --ol-soft: #2b2140; --toon: 'Lilita One', 'Fredoka', sans-serif; }
+#dm-root.dark { --ol: #ffffff40; --ol-soft: #00000000; }
+
+/* laptops: one window under the top bar */
+@media (min-width: 900px) {
+  #tab-chat #dm-root { border: 3px solid #2b2140; border-radius: 28px; box-shadow: 6px 7px 0 #2b2140; }
+  #tab-chat #dm-root .dm-app { max-width: none; }
+  #tab-chat #dm-root .scroller { padding-inline: clamp(14px, 4%, 44px); }
+}
+
+/* the header */
+#dm-root .dm-head, #dm-root[data-wall="photo"] .dm-head { background: color-mix(in srgb, var(--sheet) 94%, transparent); border-bottom: 3px solid var(--ol); box-shadow: none; padding-inline: 12px; gap: 8px; }
+#dm-root .peer-txt b { font: 400 21px/1.1 var(--toon); letter-spacing: .3px; }
+#dm-root .peer-txt small { font-weight: 800; }
+#dm-root .dm-head .face-wrap .face { box-shadow: 0 0 0 2.5px var(--ol); }
+#dm-root .dm-head .dm-icon { width: 40px; height: 40px; background: var(--sheet); border: 2.5px solid var(--ol); box-shadow: 2px 2px 0 var(--ol-soft); }
+#dm-root .dm-head .dm-icon:hover { background: var(--chip); transform: translate(-1px, -1px); }
+#dm-root .dm-head .dm-icon .ic { width: 21px; height: 21px; stroke-width: 2.3; }
+
+/* the inbox: a title, one big card for the chat, the quick reply */
+#tab-chat #dm-root .dm-inbox { background: none; align-items: center; gap: 16px; padding: max(26px, env(safe-area-inset-top)) clamp(16px, 5%, 56px) 20px; overflow-y: auto; }
+#dm-root .dm-inbox > * { width: min(100%, 680px); margin: 0; }
+#dm-root .ib-head { padding: 0 2px; }
+#dm-root .ib-head h1 { font: 400 clamp(36px, 4vw, 46px)/1 var(--toon); letter-spacing: .5px; color: #fff;
+  text-shadow: 3px 3px 0 var(--ol-soft), -1.5px -1.5px 0 var(--ol-soft), 1.5px -1.5px 0 var(--ol-soft), -1.5px 1.5px 0 var(--ol-soft), 0 2px 0 var(--ol-soft); }
+#dm-root.dark .ib-head h1 { text-shadow: none; }
+#dm-root .dm-inbox > .ib-total { width: min(100%, 680px); }
+#dm-root .ib-total span, #dm-root .ib-total { font: 800 14px var(--read); color: var(--text); }
+#dm-root .ib-row { padding: 18px 20px; gap: 16px; border-radius: 24px; background: var(--sheet); border: 3px solid var(--ol); box-shadow: 5px 6px 0 var(--ol-soft); transition: transform .2s var(--spring), box-shadow .2s; }
+#dm-root .ib-row:hover, #dm-root .ib-row.active { background: var(--sheet); transform: translate(-2px, -3px) rotate(-.4deg); box-shadow: 7px 9px 0 var(--ol-soft); }
+#dm-root .ib-row:active { transform: translate(2px, 3px); box-shadow: 2px 2px 0 var(--ol-soft); }
+#dm-root .ib-face .face { --s: 72px; box-shadow: 0 0 0 3px var(--ol); }
+#dm-root .ib-row.unread .ib-face { box-shadow: 0 0 0 4px var(--sheet), 0 0 0 7px var(--m2); }
+#dm-root .ib-txt b { font: 400 23px/1.1 var(--toon); letter-spacing: .3px; }
+#dm-root .ib-txt small { font-size: 15px; }
+#dm-root .ib-dot { width: 14px; height: 14px; background: var(--accent); border: 2.5px solid var(--ol); }
+#dm-root .ib-reply { padding: 5px 5px 5px 18px; background: var(--sheet); border: 3px solid var(--ol); box-shadow: 3px 4px 0 var(--ol-soft); }
+#dm-root .ib-reply:focus-within { box-shadow: 3px 4px 0 var(--accent); }
+#dm-root .ib-reply button { width: 40px; height: 40px; border: 2.5px solid var(--ol); background: linear-gradient(135deg, var(--m1), var(--m2)); }
+
+/* the hello card at the top of the conversation */
+#dm-root .hi-card { background: var(--sheet); backdrop-filter: none; -webkit-backdrop-filter: none; border: 3px solid var(--ol); box-shadow: 5px 6px 0 var(--ol-soft); border-radius: 26px; }
+#dm-root .hi-card b { font: 400 30px/1.1 var(--toon); letter-spacing: .3px; }
+#dm-root .hi-card .faces .face, #dm-root .hi-card .faces .face:last-child { box-shadow: 0 0 0 3px var(--ol); }
+#dm-root .hi-acts button, #dm-root .hi-chip { font: 400 17px var(--toon); letter-spacing: .3px; border: 3px solid var(--ol); box-shadow: 3px 4px 0 var(--ol-soft); }
+
+/* bubbles: outlined, with a little hard shadow */
+#dm-root .thread .row .bub:not(.emoji):not(.like):not(.media):not(.photo-bub), #dm-root .typing .bub.tdots {
+  border: 2.5px solid var(--ol); box-shadow: 2px 3px 0 var(--ol-soft); padding: 7px 13px;
+}
+#dm-root .thread .row.vanish .bub { border-style: dashed; }
+#dm-root .photo-bub .ph-thumb { border: 3px solid var(--ol); box-shadow: 3px 4px 0 var(--ol-soft); }
+#dm-root .quote q { border: 2px solid color-mix(in srgb, var(--ol) 40%, transparent); }
+
+/* the hover buttons sit beside the bubble, centred on it, on both sides (CSS only: .bline holds both) */
+#dm-root .bline { position: relative; display: flex; align-items: center; max-width: 100%; min-width: 0; }
+#dm-root .row.mine .bline { flex-direction: row-reverse; }
+#dm-root .bline > .bub { min-width: 0; }
+#dm-root .bline > .tools { position: absolute; top: 50%; translate: 0 -50%; gap: 4px; align-self: auto; }
+#dm-root .row.theirs .bline > .tools { left: calc(100% + 8px); }
+#dm-root .row.mine .bline > .tools { right: calc(100% + 8px); }
+#dm-root .tools button { width: 32px; height: 32px; background: var(--sheet); color: var(--text); border: 2px solid var(--ol); box-shadow: 1px 2px 0 var(--ol-soft); }
+#dm-root .tools button:hover { background: var(--sheet); transform: translateY(-2px); }
+
+/* "Seen", dates and system lines: paper chips that read on any theme or photo */
+#dm-root .seen, #dm-root .divider, #dm-root .sysline, #dm-root[data-wall="photo"] :is(.seen, .sysline, .divider) {
+  width: fit-content; padding: 4px 12px; border-radius: 999px; color: var(--text); background: var(--sheet);
+  border: 2px solid var(--ol); box-shadow: 2px 2px 0 var(--ol-soft); backdrop-filter: none; -webkit-backdrop-filter: none; font: 800 12.5px/1.3 var(--read);
+}
+#dm-root .seen { margin: 7px 2px 2px; }
+#dm-root .divider { margin: 16px 0 8px; }
+#dm-root .sysline { margin: 8px 0; }
+#dm-root .sysline.vanish-on { color: var(--accent); }
+
+/* the composer */
+#dm-root .field { background: var(--sheet); backdrop-filter: none; -webkit-backdrop-filter: none; border: 3px solid var(--ol); border-radius: 26px; box-shadow: 3px 4px 0 var(--ol-soft); }
+#dm-root .field:focus-within { border-color: var(--ol); box-shadow: 3px 4px 0 var(--accent); }
+#dm-root .send-btn.on { border: 3px solid var(--ol); box-shadow: 2px 3px 0 var(--ol-soft); }
+#dm-root .context-bar, #dm-root .photo-tray { background: var(--sheet); border: 2.5px solid var(--ol); box-shadow: 3px 4px 0 var(--ol-soft); backdrop-filter: none; -webkit-backdrop-filter: none; }
+#dm-root .pt-send { border: 2.5px solid var(--ol); box-shadow: 2px 2px 0 var(--ol-soft); }
+#dm-root .jump-down { border: 2.5px solid var(--ol); box-shadow: 2px 3px 0 var(--ol-soft); }
+
+/* menus and sheets */
+#dm-root .menu-list { border: 3px solid var(--ol); border-radius: 18px; box-shadow: 4px 5px 0 var(--ol-soft); }
+#dm-root .menu-react { border: 3px solid var(--ol); box-shadow: 4px 5px 0 var(--ol-soft); }
+#dm-root .details-head b, #dm-root .d-hero b { font: 400 22px var(--toon); letter-spacing: .3px; }
+#dm-root .d-sec h3 { font: 400 18px var(--toon); letter-spacing: .3px; }
+@media (min-width: 1200px) { #tab-chat #dm-root .details-panel { border-left: 3px solid var(--ol); box-shadow: none; } }
+@media (min-width: 900px) { #tab-chat #dm-root .dm-inbox { justify-content: center; padding-bottom: 8vh; } }

@@ -131,12 +131,11 @@ function paintRow(el, r) {
   el.className = `row msg ${mine ? 'mine' : 'theirs'} pos-${r.pos} k-${m.kind}${m.pending ? ' pending' : ''}${m.failed ? ' failed' : ''}${m.vanish ? ' vanish' : ''}`;
   el.dataset.id = m.id;
   el.innerHTML = `${mine ? '' : `<span class="face sm" data-who="${escapeHtml(m.sender)}">${faceInner(m.sender)}</span>`}
-    <div class="stack">${quoteHTML(m, mine)}${bubbleHTML(m)}${reactsHTML(m)}${underHTML(m)}</div>
-    <div class="tools">
+    <div class="stack">${quoteHTML(m, mine)}<div class="bline">${bubbleHTML(m)}<div class="tools">
       <button type="button" data-act="reply" aria-label="Reply">${svg('reply')}</button>
       <button type="button" data-act="react" aria-label="React">${svg('smile')}</button>
       <button type="button" data-act="more" aria-label="More">${svg('more')}</button>
-    </div>
+    </div></div>${reactsHTML(m)}${underHTML(m)}</div>
     <span class="swipe-hint" aria-hidden="true">${svg('reply')}</span>
     <time class="side-time" datetime="${escapeHtml(m.created_at)}">${hm(m.created_at)}</time>`;
   el.title = coarse ? '' : L.dividerLabel(Date.parse(m.created_at));
@@ -497,17 +496,7 @@ addEventListener('keydown', (e) => { if (e.key === 'Escape' && rec) cancelRec();
 
 function voiceEl(id) { return els.thread.querySelector(`.row[data-id="${CSS.escape(id)}"] .voice`); }
 
-// The hover buttons (reply, react, more) sit level with the bubble, not with the middle of the whole
-// row: a reply has its quote above the bubble and reactions can hang below it.
-function placeTools(row) {
-  const tools = row.querySelector('.tools'), bub = row.querySelector('.bub');
-  if (!tools || !bub || !tools.offsetParent) return;
-  const r = row.getBoundingClientRect(), b = bub.getBoundingClientRect();
-  tools.style.alignSelf = 'flex-start';
-  tools.style.marginTop = Math.max(0, b.top - r.top + b.height / 2 - tools.offsetHeight / 2) + 'px';
-}
-els.thread.addEventListener('pointerover', (e) => { const row = e.target.closest('.row'); if (row && !row.contains(e.relatedTarget)) placeTools(row); });
-els.thread.addEventListener('focusin', (e) => { const row = e.target.closest('.row'); if (row) placeTools(row); });
+// The hover buttons (reply, react, more) live in the bubble's own line (.bline), so CSS keeps them level with it.
 function nextVoiceButton(id) {
   const i = S.messages.findIndex((m) => m.id === id);
   const n = S.messages[i + 1];

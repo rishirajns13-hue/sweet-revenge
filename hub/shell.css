@@ -48,18 +48,44 @@
 .pill-ready .nav-pill { opacity: 1; }
 .nav-logo { display: none; line-height: 0; }
 
-/* laptop: a rail on the left */
+/* the chips (level, live, sound, you): one height everywhere */
+#screen-hub .topbar .me-chip { gap: 8px; align-items: center; }
+#screen-hub .topbar .lvl { height: 46px; padding: 0 12px 0 8px; }
+#screen-hub .topbar .mini-cone svg { width: auto; height: 34px; }
+#screen-hub .topbar .live-dot, #screen-hub .topbar .icon-btn { height: 46px; min-height: 46px; }
+#screen-hub .topbar .icon-btn { width: 46px; }
+#screen-hub .topbar .avatar-btn { width: 48px; height: 48px; }
 @media (min-width: 900px) {
-  .app-nav { left: 16px; top: 16px; bottom: 16px; width: var(--rail-w); border-radius: 30px; flex-direction: column; align-items: center; padding: 14px 8px; gap: 18px; }
-  .nav-logo { display: block; width: 74px; transition: transform .3s var(--sr-pop); }
+  #screen-hub .topbar :is(.lvl, .live-dot, .icon-btn, .avatar-btn) { border-width: 2.5px !important; box-shadow: none !important; }
+}
+@media (max-width: 899px) {
+  #screen-hub .topbar .me-chip { gap: 6px; }
+  #screen-hub .topbar .lvl { height: 42px; } #screen-hub .topbar .mini-cone svg { height: 30px; }
+  #screen-hub .topbar .live-dot, #screen-hub .topbar .icon-btn { width: 42px; height: 42px; min-height: 42px; padding: 0; justify-content: center; }
+  #screen-hub .topbar .avatar-btn { width: 44px; height: 44px; }
+}
+/* laptop: one bar across the top: the logo, the four sections in the middle, your chips on the right
+   (user, 15 Nov 2026: no side panels) */
+:root { --bar-h: 70px; --bar-top: 14px; --bar-space: calc(var(--bar-h) + var(--bar-top) + 22px); }
+@media (min-width: 900px) {
+  .app-nav { left: max(20px, env(safe-area-inset-left)); right: max(20px, env(safe-area-inset-right)); top: var(--bar-top); height: var(--bar-h); border-radius: 24px; flex-direction: row; align-items: center; padding: 0 18px; }
+  .nav-logo { display: block; width: 116px; transition: transform .3s var(--sr-pop); }
   .nav-logo svg { width: 100%; height: auto; overflow: visible; }
   .nav-logo:hover { transform: rotate(-4deg) scale(1.05); }
-  .nav-items { flex-direction: column; gap: 6px; width: 100%; flex: 1; justify-content: center; }
-  .nav-i { width: 100%; padding: 12px 0 10px; gap: 7px; }
-  .nav-face { display: block; }
-  body:has(#screen-hub.active) main { padding-left: calc(var(--rail-space) + max(0px, env(safe-area-inset-left))); }
-  .topbar { grid-template-columns: 1fr auto !important; }
+  .nav-items { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); flex-direction: row; gap: 4px; }
+  .nav-i { display: flex; align-items: center; gap: 8px; padding: 9px 18px; font-size: 18px; }
+  .nav-i .ic { --is: 22px; }
+  .nav-face { display: none !important; }
+  .nav-badge { top: -9px; right: -6px; }
+  body:has(#screen-hub.active) main { padding-top: calc(var(--bar-space) + 4px); }
+  #screen-hub .topbar { position: fixed; z-index: 41; top: var(--bar-top); right: calc(max(20px, env(safe-area-inset-right)) + 16px); height: var(--bar-h); display: flex !important; align-items: center; pointer-events: none; }
+  #screen-hub .topbar > * { pointer-events: auto; }
   .topbar .brand.tiny { display: none; }
+}
+@media (min-width: 900px) and (max-width: 1180px) {
+  .nav-logo { width: 84px; }
+  .nav-i { padding: 9px 12px; font-size: 16px; }
+  #screen-hub .topbar .lvl { display: none !important; }
 }
 /* phone: a bar at the bottom */
 @media (max-width: 899px) {
@@ -95,10 +121,9 @@ html.chat-open, html.chat-open body { overflow: hidden; }
 #tab-chat #dm-root { height: 100%; position: relative; overflow: hidden; isolation: isolate; }
 #tab-chat #dm-root::after { position: absolute; }
 #tab-chat #dm-root .dm-app { height: 100%; border: 0; }
+/* laptops: the chat is one cartoon window under the top bar (no side panel) */
 @media (min-width: 900px) {
-  #tab-chat { bottom: 0; }
-  #tab-chat #dm-root { padding-left: var(--rail-space); }
-  #tab-chat #btn-back { display: none; }
+  #tab-chat { top: var(--bar-space); bottom: 20px; left: max(20px, calc(50% - 520px)); right: max(20px, calc(50% - 520px)); }
 }
 @media (max-width: 899px) {
   #tab-chat #dm-root .dm-app { border: 0; }
@@ -140,3 +165,11 @@ html[data-vt="chat-back"]::view-transition-new(root) { animation: sr-vt-from-lef
 /* The other person's face flies from the Home card into the chat header. */
 #tab-home:not([hidden]) #home-chat-face, #tab-chat:not([hidden]) #dm-root[data-view="inbox"] #inbox-face, #tab-chat:not([hidden]) #dm-root[data-view="thread"] #peer-face { view-transition-name: peer-face; }
 
+
+/* Full-screen layers from the chat (photo viewer, long-press menu, pickers, details) go over the top bar;
+   messages pop up just under the bar instead of over it. */
+#tab-chat:has(.ph-view:not([hidden]), .menu:not([hidden]), .picker.open, .details:not([hidden])) { z-index: 60; }
+@media (min-width: 900px) { body.home .toast { top: calc(var(--bar-top) + var(--bar-h) + 12px); } }
+/* phones: scrolling to something (keyboard focus, links) keeps it clear of the bottom bar */
+@media (max-width: 899px) { html:has(#screen-hub.active) { scroll-padding-bottom: calc(var(--nav-h) + 12px); } }
+body.home .toast:not(.show) { visibility: hidden; transition: transform .3s cubic-bezier(.3, 1.6, .5, 1), visibility 0s .3s; }
