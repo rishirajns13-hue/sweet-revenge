@@ -604,6 +604,15 @@ function sync() {
   renderPlayers(); renderStatus(); renderDie();
 }
 
+/* ---------- critters react: on the token and in the side panel ---------- */
+function react(k, mood, ms) {
+  const p = view && view.players.find((x) => x.k === k);
+  if (!p) return;
+  const tok = tokEl(k), row = rowEl(k);
+  critterReact(tok && tok.querySelector('span'), p.avatar, mood, ms);
+  critterReact(row && row.querySelector('.av'), p.avatar, mood, ms);
+}
+
 /* ---------- animations ---------- */
 async function animate(e, v) {
   const n = nameOf(e.k);
@@ -635,6 +644,7 @@ async function animate(e, v) {
     ticker(line('ladder', { n, x: e.to }));
     await sleep(850);
     sparkle(tokEl(e.k));
+    react(e.k, e.to - e.from >= 30 ? 'cheer' : 'smug');
     layoutTokens(); renderPlayers();
   } else if (e.t === 'snake') {
     sfx.snake();
@@ -646,6 +656,7 @@ async function animate(e, v) {
     shown.pos[e.k] = e.to;
     put(e.k, centre(e.to), 'none');
     el.classList.add('dizzy');
+    react(e.k, 'sulk', 3200);
     await finished(anim, 1300);
     el.classList.remove('dizzy');
     layoutTokens(); renderPlayers();
@@ -654,6 +665,8 @@ async function animate(e, v) {
     const el = tokEl(e.k);
     sfx.bonk();
     burst(el, 'BONK!');
+    react(e.by, 'smug');
+    react(e.k, 'sulk', 3200);
     retrigger($('#board'), 'shake');
     ticker(line('bonk', { n, b: nameOf(e.by), x: e.to }));
     lift(e.k);
@@ -674,6 +687,7 @@ async function animate(e, v) {
     if (e.k === myK) retrigger($('#status'), 'bump');
   } else if (e.t === 'win') {
     sfx.win();
+    view.players.forEach((p) => react(p.k, p.k === e.k ? 'cheer' : 'sulk', 4000));
     bigConfetti();
     slamText(e.k === myK ? 'YOU WIN! 🏆' : line('win', { n }));
     await sleep(2200);
