@@ -51,6 +51,15 @@ In every game the host's browser runs the game and everyone else keeps a copy. I
 ## Chat (every game)
 Every game has the same chat: messages, game-specific stickers, an emoji wheel (tap it, or press and slide to an emoji) and hold-to-talk voice notes. On a wide laptop screen it's docked beside the game in Ludo and Plus Four; otherwise the **Message** button opens it. In Doodle Duel, anything you type in the chat while someone is drawing counts as a guess, so nobody can spoil the word.
 
+## 💬 Messages (just the two of us)
+A separate chat app, apart from the games: tap 💬 at the top of the home screen. The red number is how many messages you haven't seen yet, and a banner pops up if one arrives while you're on the home screen. Only Ammu and Panchara Kunju can open it; the database refuses everyone else.
+- **Send:** type and press Enter (laptop) or the arrow (phone). With nothing typed, the button sends a ❤️. Hold the 🎙 to record a voice message (slide left to cancel, up to lock); on a laptop, click it to start and press the arrow to send. The sticker button opens GIFs, stickers (including your own critter with captions) and emoji.
+- **On a message:** double-tap or double-click for a ❤️. Hold it (or right-click) for the reactions and **Reply / Copy / Edit / Unsend**. On a phone, swipe a message right to reply, and swipe the chat left to see times. Edit works for 15 minutes; Unsend removes it for both of you. On a laptop, ↑ in an empty box edits your last message.
+- **Seen, typing, active:** "Seen" appears under your last message once it's read, three dots show while the other person types, and the green dot means they have the chat open.
+- **Vanish mode:** at the bottom of the chat, swipe up (or keep scrolling down) until the ring fills. Messages sent in vanish mode disappear once they're seen and the chat is closed, and never go into the download.
+- **ⓘ Details:** chat theme (nine, named after desserts; both of you see the same one), nicknames, your profile picture (a photo or your critter), vanish mode, search, and **Download our chat**: a .zip with every message, reaction and voice note (`chat.json`, a readable `chat.html`, and a `voice/` folder).
+- **Speed:** the chat opens straight from the device's copy and fills in the rest. A message sent with no signal waits and sends itself when you're back online.
+
 ## You (your look and account)
 The **You** tab (key 4) on the home screen:
 - **Critter builder:** 12 critters (Cool Scoop, Honey Bun, Prof. Hoot, Rodeo Pup, Whiskers, Bamboo the panda, Sly Fox, Boo, Hopper, Sparkle, Stripes the tiger, Inky the octopus), 12 colours and 10 accessories. Your critter shows in every game, and friends see it in their Rivals tab.
@@ -60,7 +69,7 @@ The **You** tab (key 4) on the home screen:
 - **Settings:** sound effects, and calm mode (stops the floating and swaying animations, scenes included).
 
 ## History (saved to the database)
-Typed chat messages, stickers and every finished game (players, winner, stats, plus every Ludo bonk and Plus Four bomb) are saved in a **Supabase** Postgres database. Voice notes and emoji reactions are never saved. The site stays static; browsers talk to Supabase directly with the publishable key, which is safe to be public:
+Messages (the private chat: text, stickers, GIFs, reactions and voice notes, in private storage) are saved too, see above. In the games, typed chat messages, stickers and every finished game (players, winner, stats, plus every Ludo bonk and Plus Four bomb) are saved in a **Supabase** Postgres database. In-game voice notes and emoji reactions are never saved. The site stays static; browsers talk to Supabase directly with the publishable key, which is safe to be public:
 - **Reading** needs a login, and only friends can log in.
 - **Writing** goes through checked database functions (`save_game`, `save_chat`, `store_progress`, `update_me`); the tables can't be written to directly.
 - Saves wait in an outbox on the device, so a game finished offline is sent the next time a page opens.
@@ -79,6 +88,7 @@ In a game room, the host checks each friend who joins by asking Supabase who the
 - `supabase/schema.sql`: the database (tables, security rules and functions)
 - `.github/workflows/keepalive.yml`: the daily keep-alive ping
 - `shared/`: design system (`base.css`), login, icons and profile (`core.js`), networking (`net.js`), the chat every game uses (`chat.js`, `chat.css`), saving history and your profile (`records.js`), levels and trophies (`progress.mjs`), sound clips player (`sound.js`), and card and menu sounds (`sounds/`, CC0 from Kenney)
+- `messages.html`, `messages/`: Messages, the private chat (`logic.mjs` is the pure, tested part; `data.js` talks to Supabase; `themes.js`, `voice.js`, `picker.js`; database in `supabase/dm.sql`)
 - `doodle.html`, `doodle/`: Doodle Duel (`logic.js` is the pure, tested part; `words.js` has the word packs)
 - `plusfour.html`, `plusfour/`: Plus Four (`rules.js` is the pure, tested part; `cards.js` draws the cards and moves them)
 - `ludo.html`, `ludo/`: Ludo (`rules.js` is the pure, tested part)
