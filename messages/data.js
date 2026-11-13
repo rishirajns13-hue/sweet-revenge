@@ -6,7 +6,7 @@
 //  2. Sending shows the bubble at once; the database write happens behind it, and failed sends wait in
 //     an outbox (kept with the cache) and are retried.
 //  3. One realtime channel brings new messages, edits, reactions, seen receipts, typing and "active now".
-import { merge } from './logic.mjs';
+import { merge } from './logic.mjs?v=2';
 
 const CACHE_MAX = 400, WINDOW = 200, PAGE = 50;
 const listeners = new Set();
@@ -366,6 +366,9 @@ export async function setPicMode(mode) {
 
 /* ---------------- live ---------------- */
 let channel = null, typingOff = 0, lastTypingSent = 0, usePrivate = true;
+// Whether I count as "in the chat" (the app sets this: the chat may be loaded while another section shows).
+let hereFn = () => !document.hidden;
+export const setHereFn = (fn) => { hereFn = fn; };
 export function connect() {
   if (channel) return;
   if (sb.realtime && sb.realtime.setAuth) sb.realtime.setAuth(me.proof);
@@ -398,7 +401,7 @@ export function connect() {
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         S.live = 'live'; emit('live');
-        await channel.track({ here: !document.hidden, at: Date.now() });
+        await channel.track({ here: hereFn(), at: Date.now() });
         refresh().catch(() => {}); // catch anything that happened while disconnected
       } else if (status === 'CHANNEL_ERROR' && usePrivate && S.live !== 'live') {
         usePrivate = false;

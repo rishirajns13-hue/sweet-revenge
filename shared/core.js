@@ -117,9 +117,18 @@ function renderMeSheet() {
 // me = { name (display name), user (login id, e.g. 'ammu'), proof (current login token), uid }
 let me = null;
 const ME_KEY = 'ludo-me';
+// After loadMe() comes back empty: true when the login couldn't be checked (no connection) rather than
+// being gone. The saved login is then kept; it's checked again when the connection returns.
+let authOffline = false;
+const loginOffline = () => authOffline;
 async function loadMe() {
   let session = null;
-  try { session = (await sb.auth.getSession()).data.session; } catch (e) { /* offline: no session */ }
+  authOffline = false;
+  try {
+    const r = await sb.auth.getSession();
+    session = r.data.session;
+    if (!session && r.error && offlineErr(r.error)) authOffline = true;
+  } catch (e) { authOffline = true; }
   if (!session) return (me = null);
   const saved = store.get(ME_KEY, null) || {};
   const user = (session.user.user_metadata && session.user.user_metadata.username) || saved.user;

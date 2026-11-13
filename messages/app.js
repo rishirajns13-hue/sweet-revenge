@@ -1,17 +1,18 @@
 // Messages: the private chat between the two friends. This file draws the chat and handles every
 // gesture; data.js talks to the database, logic.mjs holds the tested pure parts.
 // Needs the classic scripts loaded first: shared/core.js, shared/avatars.js, shared/sound.js.
-import * as L from './logic.mjs';
+import * as L from './logic.mjs?v=2';
 const { WALLS, wallKind } = L;
-import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js';
-import * as D from './data.js';
-import * as V from './voice.js';
-import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js';
+import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=2';
+import * as D from './data.js?v=2';
+import * as V from './voice.js?v=2';
+import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=2';
 
 const S = D.S;
 // Everything the chat draws lives inside #dm-root, so its theme and classes never leak into the rest of the app.
 const ROOT = document.getElementById('dm-root');
 let shown = true; // false while the app shows another section (Home, Games…)
+D.setHereFn(() => shown && !document.hidden); // "in the chat" only while it is on screen
 const coarse = matchMedia('(pointer: coarse)').matches;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const els = {
@@ -189,7 +190,7 @@ function renderHello() {
     : `Chatting since ${since}. ${real.length === 1 ? 'One message' : real.length.toLocaleString() + ' messages'} so far.`;
   els.hello.innerHTML = `<div class="faces"><span class="face xl" data-who="${escapeHtml(o)}">${faceInner(o)}</span><span class="face xl" data-who="${escapeHtml(me.user)}">${faceInner(me.user)}</span></div>
     <b>${escapeHtml(nameOf(o))}</b>${nicked ? `<small>${escapeHtml(realName)}</small>` : ''}<p>${escapeHtml(line)}</p>
-    <div class="hi-acts">${real.length ? '' : '<button type="button" id="btn-wave">👋 Send a wave</button>'}<a class="hi-chip" href="index.html#play">🎮 Play a game together</a></div>`;
+    <div class="hi-acts">${real.length ? '' : '<button type="button" id="btn-wave">👋 Send a wave</button>'}<a class="hi-chip" href="#play">🎮 Play a game together</a></div>`;
   const wave = $('#btn-wave');
   if (wave) wave.onclick = () => sendItem({ kind: 'sticker', meta: { pack: 'critter', critter: myAvatar(), mood: 'cheer', text: 'hiii' } });
 }
@@ -257,7 +258,7 @@ D.onData((what, x) => {
       const near = nearBottom();
       render({ enter: x.id });
       if (x.sender !== me.user && x.kind !== 'system') {
-        if (document.hidden) { hiddenUnread++; setTitle(); } else sfx.receive();
+        if (document.hidden) { hiddenUnread++; setTitle(); } else if (shown) sfx.receive(); // on Home the app plays its own sound
         if (near) toBottom(true); else { missed++; updateJump(); }
         readIfLooking();
       } else if (near) toBottom(true);
@@ -1042,6 +1043,7 @@ export function mountChat(root = ROOT, { show = true } = {}) {
       D.vanishSweepOnLeave(); render();
       D.sendTyping(false);
       D.setHere(false);
+      if (rec || recInfo) cancelRec(); // the microphone stops with the chat
       closeMenu(); if (pickerOpen()) closePicker(); if (!det.hidden) closeDetails();
       input.blur(); document.body.classList.remove('typing');
     },

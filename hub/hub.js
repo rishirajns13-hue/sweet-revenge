@@ -124,23 +124,29 @@ if (SEASON) document.body.classList.add('season-' + SEASON);
 // data from the database swaps in quietly. The cone only shows when there's nothing saved yet,
 // e.g. the first login on a device, and it never waits longer than it has to.
 const cacheKey = () => 'sr-profile:' + me.user;
+// Settles once the login has really been checked; the chat and anything else that talks to the
+// database with your login waits for it (the saved token may have expired).
+let loginOk;
+const loginReady = new Promise((r) => { loginOk = r; });
 async function boot({ full = false } = {}) {
   // A return visit draws straight from what this device saved, before the login check (which can be
-  // slow on a bad connection). If the check then says the login is gone, the login screen takes over.
-  const early = !full && peekMe();
+  // slow on a bad connection). Not for room links or ?next= (a game page has just turned the login
+  // down), which wait for the real check so they can't bounce back and forth.
+  const q = new URLSearchParams(location.search);
+  const early = !full && !q.has('next') && !q.has('room') && peekMe();
   if (early) {
     me = early;
-    if (!routeAway()) return;
     const saved = store.get(cacheKey(), null);
     if (saved && saved.level) {
       applyProfile(saved, { firstLoad: true, cached: true });
       enterHub();
-      loadMe().then((m) => { if (!m) { store.del('sr-auth'); hubShown = false; showScreen('login'); } }); // the saved login has gone: forget it here
+      confirmLogin(early);
       return;
     }
     showScreen('loading'); // logged in on this device before, but nothing saved yet: the cone, at once
   }
   if (!(await loadMe())) { showScreen('login'); $('#login-user').focus(); return; }
+  loginOk();
   if (!routeAway()) return;
   const cached = store.get(cacheKey(), null);
   if (cached && cached.level && !full) {
@@ -167,6 +173,22 @@ async function boot({ full = false } = {}) {
   $('.load-cone').classList.add('done');
   await wait(350); // just long enough to see the last scoop land
   enterHub();
+}
+
+// The quiet check after an early start. No connection: keep the saved login and Home, and check again
+// when the connection returns. A login that's really gone: forget it and start clean on the login screen.
+function confirmLogin(early) {
+  loadMe().then((m) => {
+    if (m) { loginOk(); return; }
+    if (loginOffline()) {
+      me = early;
+      setLive('offline');
+      addEventListener('online', () => confirmLogin(early), { once: true });
+      return;
+    }
+    store.del('sr-auth');
+    location.reload(); // nothing saved now, so this opens on the login screen with nothing left running
+  });
 }
 
 // Room links and "send me back to the game I came from" skip the menu entirely.
@@ -214,6 +236,7 @@ function showTab(name, { animate = true, sound = false } = {}) {
     document.documentElement.dataset.vt = name === 'chat' || from === 'chat' ? 'chat-' + dir : 'fade';
     if (activeVT) activeVT.skipTransition(); // a new tap wins over a transition still running
     const vt = (activeVT = document.startViewTransition(swap));
+    vt.updateCallbackDone.catch(() => {}); vt.finished.catch(() => {});
     vt.ready.catch(() => {}); // skipped or interrupted: the switch itself still happened
     vt.finished.finally(() => { if (activeVT === vt) { activeVT = null; delete document.documentElement.dataset.vt; } });
   } else swap();
@@ -265,7 +288,7 @@ let chatApi = null, chatLoad = null;
 function ensureChat(show) {
   if (!me) return Promise.resolve(null);
   if (!chatLoad) {
-    chatLoad = import(new URL('messages/app.js?v=5', document.baseURI).href)
+    chatLoad = loginReady.then(() => import(new URL('messages/app.js?v=6', document.baseURI).href))
       .then((mod) => mod.mountChat(undefined, { show: currentTab === 'chat' }))
       .then((api) => { chatApi = api; renderHome(); return api; })
       .catch((e) => { chatLoad = null; console.error(e); toast('The chat didn\'t load. Check the connection.'); return null; });
@@ -966,8 +989,9 @@ function renderHome() {
     $('#home-trophies').innerHTML = show.map(([a, got]) => `<span class="hm-trophy${got ? '' : ' locked'}" title="${escapeHtml(a.name)}: ${escapeHtml(a.how)}"><span class="disc">${a.icon}</span><small>${escapeHtml(a.name)}</small></span>`).join('');
   }
   // the first visit of a session gets one entrance; switching back later doesn't replay it
-  if (!sessionStorage.getItem('sr-home-seen') && !reduced) {
-    try { sessionStorage.setItem('sr-home-seen', '1'); } catch (e) { /* private mode */ }
+  let seen = true;
+  try { seen = !!sessionStorage.getItem('sr-home-seen'); sessionStorage.setItem('sr-home-seen', '1'); } catch (e) { /* storage blocked: skip the entrance */ }
+  if (!seen && !reduced) {
     retrigger($('#tab-home'), 'hm-enter');
     setTimeout(() => $('#tab-home').classList.remove('hm-enter'), 1600);
   }
