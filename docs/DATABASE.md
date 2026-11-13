@@ -32,7 +32,7 @@ Besides the functions, logged-in friends read `players` (id, name, avatar, theme
 - On Jio (13 Nov 2026) the project address resolved fine and answered in about 0.5 s.
 
 ## Not applied yet
-A lockout for first-login password guessing (5 wrong tries in 10 minutes per name) was written on 13 Nov 2026 but the migration was declined in the session. The browser already shows a "too many tries" message for it. To apply it, paste `supabase/pending/claim_account_throttle.sql` into the Supabase SQL editor, or ask Claude to apply it again. It only matters until every friend has logged in once, because after that Supabase Auth checks passwords and rate-limits them itself.
+A lockout for first-login password guessing (5 wrong tries in 10 minutes per name) has been live since 13 Nov 2026 (table `login_failures`, used only inside `claim_account`; SQL in `supabase/applied/claim_account_throttle.sql`). The browser shows a "too many tries" message for it. It only matters until every friend has logged in once, because after that Supabase Auth checks passwords and rate-limits them itself.
 
 ## If Jio (or anyone) blocks Supabase again
 India blocked `supabase.co` from Feb to Oct 2026. If it happens again:
