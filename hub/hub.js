@@ -9,7 +9,7 @@
 const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html', B: 'sundae.html', G: 'sticky.html' }[code[0]] || 'ludo.html');
 const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'], sundae: ['💣', 'Sundae Bomb'], sticky: ['🍬', 'Sticky Situation'] };
 const LEVEL_NAMES = ['Sprinkle', 'Single Scoop', 'Double Scoop', 'Waffle Cone', 'Sundae', 'Banana Split', 'Brain Freeze', 'Sweet Revenge Royalty'];
-const TABS = ['home', 'play', 'trophies', 'rivals', 'me'];
+const TABS = ['home', 'play', 'trophies', 'rivals', 'chat', 'me'];
 const POLL_MS = 60000; // a safety net: new games and trophies arrive instantly through records.onChange
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -30,7 +30,7 @@ const sfx = {
   levelup() { player.sample('levelup', { vol: 0.5, vary: false }); },
 };
 // Browsers only allow sound after the first click or key press, so load the clips then.
-['pointerdown', 'keydown'].forEach((ev) => addEventListener(ev, () => player.load(), { once: true }));
+['pointerdown', 'keydown'].forEach((ev) => addEventListener(ev, () => setTimeout(() => player.load(), 80), { once: true })); // after the tap has drawn
 
 /* ================= little helpers ================= */
 function showScreen(name) {
@@ -157,7 +157,8 @@ async function boot({ full = false } = {}) {
 // Room links and "send me back to the game I came from" skip the menu entirely.
 function routeAway() {
   const q = new URLSearchParams(location.search), next = q.get('next');
-  if (next && /^(ludo|doodle|plusfour|snakes|sundae|sticky|messages)\.html$/.test(next)) {
+  if (next === 'messages.html') { q.delete('next'); history.replaceState(null, '', 'index.html' + (q.toString() ? '?' + q : '') + '#chat'); return true; }
+  if (next && /^(ludo|doodle|plusfour|snakes|sundae|sticky)\.html$/.test(next)) {
     q.delete('next');
     location.replace(next + (q.toString() ? '?' + q : ''));
     return false;
@@ -174,53 +175,98 @@ function enterHub() {
   showScreen('hub');
   hubShown = true;
   showTab(tabFromHash(), { animate: false });
+  (window.requestIdleCallback || ((f) => setTimeout(f, 300)))(() => ensureChat(false), { timeout: 1500 });
   if (pendingReaction) { pendingReaction(); pendingReaction = null; }
   startLive();
 }
 
-/* ================= tabs ================= */
-let currentTab = null;
+/* ================= sections ================= */
+// Home, Games (with Trophies and Rivals), Chat and You are all on this page, so switching never reloads.
+// The switch is animated with a same-page view transition where the browser has one (Chrome, Edge,
+// Safari 18): Chat slides in from the right like a conversation opening; the rest cross-fade.
+let currentTab = null, activeVT = null;
+const NAV_OF = { home: 'home', play: 'play', trophies: 'play', rivals: 'play', chat: 'chat', me: 'me' };
+const ORDER = { home: 0, play: 1, trophies: 1, rivals: 1, me: 2, chat: 3 };
+const calm = () => reduced || document.body.classList.contains('calm');
 const tabFromHash = () => (TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home');
 function showTab(name, { animate = true, sound = false } = {}) {
   if (!TABS.includes(name)) name = 'home';
-  const from = TABS.indexOf(currentTab), to = TABS.indexOf(name);
-  document.querySelectorAll('.tab').forEach((t) => {
-    const on = t.dataset.tab === name;
-    t.setAttribute('aria-selected', on);
-    t.tabIndex = on ? 0 : -1;
-    if (on && animate) retrigger(t, 'boing');
-  });
+  if (name === currentTab) return;
+  const from = currentTab;
+  const swap = () => applyTab(name, from, animate);
+  if (animate && from !== null && !calm() && document.startViewTransition && !document.hidden) {
+    const dir = ORDER[name] >= ORDER[from] ? 'fwd' : 'back';
+    document.documentElement.dataset.vt = name === 'chat' || from === 'chat' ? 'chat-' + dir : 'fade';
+    if (activeVT) activeVT.skipTransition(); // a new tap wins over a transition still running
+    const vt = (activeVT = document.startViewTransition(swap));
+    vt.finished.finally(() => { if (activeVT === vt) { activeVT = null; delete document.documentElement.dataset.vt; } });
+  } else swap();
+  if (sound) sfx.pop();
+}
+function applyTab(name, from, animate) {
+  const fallback = animate && from !== null && !document.startViewTransition && !calm();
   TABS.forEach((t) => {
     const panel = $('#tab-' + t);
     panel.hidden = t !== name;
     panel.classList.remove('from-left', 'from-right');
   });
-  if (animate && from !== -1 && from !== to) $('#tab-' + name).classList.add(to > from ? 'from-right' : 'from-left');
-  if (sound) sfx.pop();
+  if (fallback) $('#tab-' + name).classList.add(ORDER[name] >= ORDER[from] ? 'from-right' : 'from-left');
   currentTab = name;
   $('#screen-hub').dataset.tab = name;
+  document.documentElement.classList.toggle('chat-open', name === 'chat');
+  document.querySelectorAll('.nav-i').forEach((t) => {
+    if (t.dataset.nav === NAV_OF[name]) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+  });
+  requestAnimationFrame(movePill); // measuring forces a layout: do it after the switch has drawn
   document.querySelectorAll('[data-sub]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.sub === name));
   if (location.hash.slice(1) !== name) history.replaceState(null, '', '#' + name);
+  // Chat: opening it shows the (already drawn) conversation; leaving it counts as leaving the chat.
+  if (name === 'chat') { document.title = 'Messages · Sweet Revenge'; ensureChat(true); $('#dm-badge').hidden = true; } // you're reading them now
+  else if (from === 'chat') { if (chatApi) chatApi.hide(); document.title = 'Sweet Revenge'; applyPalette(); countUnread(); }
   if (name === 'trophies') openedTrophies();
   if (name === 'rivals') stampTickets();
   if (name === 'me') renderYou();
   if (name === 'home') renderHome();
-  if (innerWidth < 760) scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+  if (name !== 'chat') scrollTo({ top: 0, behavior: 'auto' });
 }
-document.querySelectorAll('.tab[data-tab]').forEach((t) => (t.onclick = () => showTab(t.dataset.tab, { sound: true })));
+// The highlight behind the current nav item glides to the new one.
+function movePill() {
+  const nav = $('.nav-items'), on = nav && nav.querySelector('.nav-i[aria-current]');
+  if (!on) return;
+  const n = nav.getBoundingClientRect(), r = on.getBoundingClientRect();
+  if (!r.width) return;
+  nav.style.setProperty('--px', r.left - n.left + 'px'); nav.style.setProperty('--py', r.top - n.top + 'px');
+  nav.style.setProperty('--pw', r.width + 'px'); nav.style.setProperty('--ph', r.height + 'px');
+  nav.classList.add('pill-ready');
+}
+addEventListener('resize', movePill);
+if (window.ResizeObserver) new ResizeObserver(() => movePill()).observe($('.nav-items')); // the logo or fonts arriving move the items
+if (document.fonts) document.fonts.ready.then(movePill);
+
+// The chat module loads in the background once the menu is up and draws the conversation from this
+// device's copy straight away, so opening Chat is just showing it.
+let chatApi = null, chatLoad = null;
+function ensureChat(show) {
+  if (!chatLoad) {
+    chatLoad = import(new URL('messages/app.js?v=5', document.baseURI).href)
+      .then((mod) => mod.mountChat(undefined, { show: currentTab === 'chat' }))
+      .then((api) => (chatApi = api))
+      .catch((e) => { chatLoad = null; console.error(e); toast('The chat didn\'t load. Check the connection.'); return null; });
+  }
+  if (show) chatLoad.then((api) => { if (api && currentTab === 'chat') api.show(); });
+  return chatLoad;
+}
+
+document.querySelectorAll('.nav-i, .nav-logo').forEach((t) => (t.onclick = (e) => { e.preventDefault(); showTab(t.dataset.nav, { sound: true }); }));
 document.querySelectorAll('[data-sub]').forEach((b) => (b.onclick = () => showTab(b.dataset.sub, { sound: true })));
 document.querySelectorAll('[data-go]').forEach((a) => (a.onclick = (e) => { e.preventDefault(); showTab(a.dataset.go, { sound: true }); }));
 addEventListener('hashchange', () => { if (hubShown && tabFromHash() !== currentTab) showTab(tabFromHash(), { sound: true }); });
 document.addEventListener('keydown', (e) => {
-  if (!hubShown || !$('#screen-hub').classList.contains('active') || e.target.closest('input, textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (!$('#me-sheet').hidden) return;
-  const i = TABS.indexOf(currentTab), onNav = e.target === document.body || !!e.target.closest('.tabs');
-  const NUM = { 1: 'home', 2: 'play', 4: 'trophies', 5: 'rivals', 6: 'me' };
-  if (e.key === '3') location.href = 'messages.html';
-  else if (NUM[e.key]) showTab(NUM[e.key], { sound: true });
-  else if (e.key === 'ArrowRight' && onNav) showTab(TABS[(i + 1) % TABS.length], { sound: true });
-  else if (e.key === 'ArrowLeft' && onNav) showTab(TABS[(i + TABS.length - 1) % TABS.length], { sound: true });
-  else return;
+  if (!hubShown || !$('#screen-hub').classList.contains('active') || e.target.closest('input, textarea, #dm-root') || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!$('#me-sheet').hidden || currentTab === 'chat') return; // the chat has its own keys
+  const NUM = { 1: 'home', 2: 'play', 3: 'chat', 4: 'me' };
+  if (!NUM[e.key]) return;
+  showTab(NUM[e.key], { sound: true });
   e.preventDefault();
 });
 
@@ -790,7 +836,7 @@ function renderHome() {
   if (!me || !$('#home-hello')) return;
   $('#home-hello').textContent = `Hey, ${me.name}! What are we doing?`;
   const o = dmPeek.other;
-  if (o) $('#home-chat-face').innerHTML = avatarHTML(o.avatar || DEFAULT_AVATAR[o.id]);
+  if (o) $('#home-chat-face').innerHTML = $('#nav-chat-face').innerHTML = avatarHTML(o.avatar || DEFAULT_AVATAR[o.id]);
   const m = dmPeek.last;
   const who = m && (m.sender === me.user ? 'You' : dmPeek.names[m.sender] || m.sender);
   const what = !m ? '' : m.kind === 'text' ? m.body : m.kind === 'voice' ? 'sent a voice message' : m.kind === 'gif' ? 'sent a GIF' : m.kind === 'sticker' ? 'sent a sticker' : 'sent a ❤️';
@@ -836,7 +882,7 @@ function startMessages() {
       recount();
       const m = e.new;
       if (e.eventType === 'INSERT' && m && m.kind !== 'system' && !m.vanish) { dmPeek.last = m; renderHome(); }
-      if (e.eventType !== 'INSERT' || !m || m.sender === me.user || m.kind === 'system') return;
+      if (e.eventType !== 'INSERT' || !m || m.sender === me.user || m.kind === 'system' || currentTab === 'chat') return;
       const what = m.vanish ? 'sent a message' : m.kind === 'text' ? '' : m.kind === 'voice' ? 'sent a voice message'
         : m.kind === 'gif' ? 'sent a GIF' : m.kind === 'sticker' ? 'sent a sticker' : 'sent a ❤️';
       const who = names[m.sender] || m.sender;

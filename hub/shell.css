@@ -1,0 +1,137 @@
+/* The app shell: one page for Home, Games, Chat and You.
+   Navigation is a glass rail on laptops (≥ 900 px) and a glass bottom bar on phones, with a highlight
+   that glides to the current item. Chat fills the screen beside / above it. Section switches use
+   same-page view transitions (hub.js sets html[data-vt]); everything turns off for reduced motion. */
+:root {
+  --glass: color-mix(in srgb, #fffdfb 74%, transparent);
+  --glass-edge: #ffffffb3;
+  --glass-shadow: 0 1px 0 #ffffffcc inset, 0 12px 32px -8px #2b214038, 0 2px 8px #2b21401a;
+  --rail-w: 92px;
+  --rail-space: calc(var(--rail-w) + 32px);
+  --nav-h: calc(66px + 20px + env(safe-area-inset-bottom));
+  --sr-ease: cubic-bezier(.2, .8, .2, 1);
+  --sr-pop: cubic-bezier(.3, 1.35, .5, 1);
+}
+
+/* ---------- the nav ---------- */
+.app-nav { position: fixed; z-index: 40; view-transition-name: app-nav; display: none; }
+#screen-hub.active .app-nav { display: flex; }
+.app-nav { background: var(--glass); backdrop-filter: blur(22px) saturate(1.5); -webkit-backdrop-filter: blur(22px) saturate(1.5); border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow); }
+.nav-items { position: relative; display: flex; }
+.nav-i {
+  position: relative; z-index: 1; display: grid; justify-items: center; align-content: center; gap: 3px;
+  color: color-mix(in srgb, var(--ink) 62%, transparent); text-decoration: none; font: 700 12px/1 'Nunito', var(--body), sans-serif;
+  border-radius: 18px; transition: color .25s, transform .2s var(--sr-pop);
+}
+.nav-i .ic { --is: 25px; stroke-width: 2.1; transition: transform .3s var(--sr-pop); }
+.nav-i:hover { color: var(--ink); }
+.nav-i:hover .ic { transform: translateY(-2px) scale(1.06); }
+.nav-i:active { transform: scale(.92); }
+.nav-i[aria-current="page"] { color: var(--cta); }
+.nav-i[aria-current="page"] .ic { stroke-width: 2.5; }
+.nav-i kbd { display: none; }
+.nav-ic { position: relative; display: grid; }
+.nav-face { position: absolute; right: -14px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px var(--glass-edge); overflow: hidden; display: none; font-size: 20px; line-height: 1; }
+.nav-face .av-art, .nav-face svg { display: block; width: 100%; height: 100%; }
+.nav-face:empty { display: none !important; }
+.nav-badge {
+  position: absolute; top: 2px; right: calc(50% - 26px); min-width: 19px; height: 19px; padding: 0 5px; border-radius: 10px;
+  background: #ff3b5c; color: #fff; font: 800 11px/19px 'Nunito', sans-serif; text-align: center; box-shadow: 0 0 0 2px #fff;
+  animation: sr-badge .45s var(--sr-pop);
+}
+@keyframes sr-badge { from { transform: scale(0); } }
+.nav-pill {
+  position: absolute; left: 0; top: 0; width: var(--pw, 0); height: var(--ph, 0); transform: translate(var(--px, 0), var(--py, 0));
+  border-radius: 18px; background: #fff; box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--cta) 55%, transparent), 0 0 0 1px color-mix(in srgb, var(--cta) 14%, transparent);
+  opacity: 0; transition: transform .42s var(--sr-pop), width .42s var(--sr-pop), height .42s var(--sr-pop), opacity .2s;
+}
+.pill-ready .nav-pill { opacity: 1; }
+.nav-logo { display: none; line-height: 0; }
+
+/* laptop: a rail on the left */
+@media (min-width: 900px) {
+  .app-nav { left: 16px; top: 16px; bottom: 16px; width: var(--rail-w); border-radius: 30px; flex-direction: column; align-items: center; padding: 14px 8px; gap: 18px; }
+  .nav-logo { display: block; width: 74px; transition: transform .3s var(--sr-pop); }
+  .nav-logo svg { width: 100%; height: auto; overflow: visible; }
+  .nav-logo:hover { transform: rotate(-4deg) scale(1.05); }
+  .nav-items { flex-direction: column; gap: 6px; width: 100%; flex: 1; justify-content: center; }
+  .nav-i { width: 100%; padding: 12px 0 10px; gap: 7px; }
+  .nav-face { display: block; }
+  body:has(#screen-hub.active) main { padding-left: calc(var(--rail-space) + max(0px, env(safe-area-inset-left))); }
+  .topbar { grid-template-columns: 1fr auto !important; }
+  .topbar .brand.tiny { display: none; }
+}
+/* phone: a bar at the bottom */
+@media (max-width: 899px) {
+  .app-nav { left: 12px; right: 12px; bottom: max(10px, env(safe-area-inset-bottom)); height: 66px; border-radius: 26px; padding: 6px; }
+  .nav-items { flex: 1; justify-content: space-around; }
+  .nav-i { flex: 1; height: 100%; }
+  .screen.hub.active { padding-bottom: calc(var(--nav-h) + 12px) !important; }
+}
+@media (max-width: 899px) and (pointer: coarse) {
+  body.typing .app-nav { display: none !important; }
+  body.typing #tab-chat #dm-root .composer { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+}
+
+/* ---------- Games, Trophies and Rivals share one section with a segmented switch ---------- */
+#screen-hub:is([data-tab="play"], [data-tab="trophies"], [data-tab="rivals"]) .games-sub {
+  display: flex !important; gap: 4px; justify-content: center; align-self: center; padding: 5px; border-radius: 999px;
+  background: var(--glass); border: 1px solid var(--glass-edge); box-shadow: var(--glass-shadow); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+}
+#screen-hub .games-sub button {
+  flex: none; min-height: 40px; padding: 0 18px; border: 0 !important; border-radius: 999px; background: none !important; box-shadow: none !important;
+  font: 800 14px 'Nunito', var(--body), sans-serif; color: color-mix(in srgb, var(--ink) 65%, transparent); transition: background .25s, color .25s;
+}
+#screen-hub .games-sub button[aria-pressed="true"] { background: #fff !important; color: var(--ink); box-shadow: 0 4px 12px -4px #2b214040 !important; }
+
+/* ---------- Chat fills the screen next to the rail / above the bar ---------- */
+#tab-chat { position: fixed; z-index: 30; inset: 0; display: block; margin: 0; padding: 0; }
+
+html.chat-open, html.chat-open body { overflow: hidden; }
+#tab-chat #dm-root { height: 100%; position: relative; overflow: hidden; isolation: isolate; }
+#tab-chat #dm-root::after { position: absolute; }
+#tab-chat #dm-root .dm-app { height: 100%; }
+@media (min-width: 900px) {
+  #tab-chat { bottom: 0; }
+  #tab-chat #dm-root { padding-left: var(--rail-space); }
+  #tab-chat #btn-back { display: none; }
+}
+@media (max-width: 899px) {
+  #tab-chat #dm-root .dm-app { border: 0; }
+  /* the wallpaper runs on under the glass nav bar; the composer sits just above it */
+  #tab-chat #dm-root .composer { padding-bottom: calc(var(--nav-h) + 2px); }
+  #tab-chat #dm-root .jump-down { bottom: calc(var(--nav-h) + 76px); }
+}
+
+/* ---------- moving between sections ---------- */
+html[data-vt]::view-transition-group(*) { animation-duration: .32s; animation-timing-function: var(--sr-ease); }
+html[data-vt="fade"]::view-transition-old(root) { animation: sr-vt-out .16s ease-out both; }
+html[data-vt="fade"]::view-transition-new(root) { animation: sr-vt-rise .3s var(--sr-ease) both; }
+html[data-vt="chat-fwd"]::view-transition-old(root) { animation: sr-vt-to-left .32s var(--sr-ease) both; }
+html[data-vt="chat-fwd"]::view-transition-new(root) { animation: sr-vt-from-right .32s var(--sr-ease) both; }
+html[data-vt="chat-back"]::view-transition-old(root) { animation: sr-vt-to-right .3s var(--sr-ease) both; }
+html[data-vt="chat-back"]::view-transition-new(root) { animation: sr-vt-from-left .3s var(--sr-ease) both; }
+::view-transition-old(app-nav), ::view-transition-new(app-nav) { animation: none; }
+@keyframes sr-vt-out { to { opacity: 0; } }
+@keyframes sr-vt-rise { from { opacity: 0; transform: translateY(12px); } }
+@keyframes sr-vt-to-left { to { opacity: 0; transform: translateX(-60px); } }
+@keyframes sr-vt-from-right { from { opacity: 0; transform: translateX(90px); } }
+@keyframes sr-vt-to-right { to { opacity: 0; transform: translateX(90px); } }
+@keyframes sr-vt-from-left { from { opacity: 0; transform: translateX(-60px); } }
+@media (max-width: 899px) {
+  @keyframes sr-vt-from-right { from { transform: translateX(100%); } }
+  @keyframes sr-vt-to-left { to { transform: translateX(-28%); opacity: .4; } }
+  @keyframes sr-vt-to-right { to { transform: translateX(100%); } }
+  @keyframes sr-vt-from-left { from { transform: translateX(-28%); opacity: .4; } }
+  html[data-vt="chat-fwd"]::view-transition-new(root), html[data-vt="chat-back"]::view-transition-old(root) { z-index: 2; box-shadow: -10px 0 30px #2b214033; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-pill, .nav-i, .nav-i .ic { transition: none; }
+  .nav-badge { animation: none; }
+}
+
+/* Chat stays laid out (but invisible and untouchable) while closed, so opening it is a single paint. */
+#tab-chat[hidden] { display: block !important; pointer-events: none; }
+#tab-chat[hidden], #tab-chat[hidden] * { visibility: hidden !important; } /* children that set visibility themselves too */
+/* The other person's face flies from the Home card into the chat header. */
+#tab-home:not([hidden]) #home-chat-face, #tab-chat:not([hidden]) #peer-face { view-transition-name: peer-face; }

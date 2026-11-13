@@ -36,7 +36,7 @@ const sfx = {
   receive() { player.sample('drop', { vol: 0.3 }); },
   react() { player.sample('pick', { vol: 0.22, rate: 1.25 }); },
 };
-['pointerdown', 'keydown'].forEach((ev) => addEventListener(ev, () => player.load(), { once: true }));
+['pointerdown', 'keydown'].forEach((ev) => addEventListener(ev, () => setTimeout(() => player.load(), 80), { once: true })); // after the tap has drawn
 
 /* ---------------- names and faces ---------------- */
 const nick = (id) => (S.state.nicknames || {})[id];
@@ -939,6 +939,7 @@ export function mountChat(root = ROOT, { show = true } = {}) {
     show() {
       if (shown) return;
       shown = true;
+      applyLook(); // the browser bar takes the chat's colour while it's on screen
       hiddenUnread = 0; setTitle();
       D.setHere(true);
       readIfLooking();

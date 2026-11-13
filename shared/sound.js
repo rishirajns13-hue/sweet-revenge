@@ -3,13 +3,21 @@
    Each name can have several takes; every play picks a random take and nudges its pitch and volume a
    little so repeats sound natural. Mute is shared by every page (stored as 'sr-muted').
    Used by the home screen and Plus Four. Needs shared/core.js (store). */
+// One audio context for the whole page. Making one can block the page for a few hundred ms on some
+// machines, so it's made while the browser is idle, never inside a tap (a tap only resumes it).
+let SHARED_AUDIO = null;
+function sharedAudio() {
+  if (!SHARED_AUDIO) SHARED_AUDIO = new (window.AudioContext || window.webkitAudioContext)();
+  return SHARED_AUDIO;
+}
+(window.requestIdleCallback || ((f) => setTimeout(f, 1200)))(() => { try { sharedAudio(); } catch (e) { /* no audio */ } }, { timeout: 4000 });
 function createSamplePlayer({ takes, base = 'shared/sounds/', volume = 0.8 }) {
   const bufs = {};
   let ctx = null, out = null, loading = null;
   let muted = !!store.get('sr-muted', false);
   function ac() {
     if (!ctx) {
-      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      ctx = sharedAudio();
       out = ctx.createGain();
       out.gain.value = volume;
       out.connect(ctx.destination);
@@ -30,6 +38,7 @@ function createSamplePlayer({ takes, base = 'shared/sounds/', volume = 0.8 }) {
   }
   function sample(name, { vol = 0.7, rate = 1, when = 0, vary = true } = {}) {
     if (muted) return;
+    if (!ctx && !SHARED_AUDIO) { setTimeout(load, 80); return; } // never make the audio context inside a tap
     try {
       const c = ac(), list = bufs[name];
       if (!list || !list.length) { load(); return; }
