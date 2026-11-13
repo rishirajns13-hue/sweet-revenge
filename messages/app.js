@@ -239,6 +239,9 @@ function keepScroll(fn) {
 
 /* ---------------- data events ---------------- */
 let hiddenUnread = 0;
+// The rest of the app (Home's chat card) redraws from peek() when this fires.
+let changeT = 0;
+D.onData(() => { clearTimeout(changeT); changeT = setTimeout(() => document.dispatchEvent(new CustomEvent('dm:change')), 60); });
 D.onData((what, x) => {
   switch (what) {
     case 'sent': render({ enter: x.id }); toBottom(true); break;
@@ -936,6 +939,24 @@ export function mountChat(root = ROOT, { show = true } = {}) {
   mounted = mounted || start();
   const api = {
     isShown: () => shown,
+    // What Home's chat card shows: the last few messages, who's who, and whether they're here or typing.
+    peek(n = 3) {
+      const msgs = S.messages.filter((m) => m.kind !== 'system' && !(m.vanish && m.sender !== me.user)).slice(-n);
+      return {
+        messages: msgs.map((m) => ({ id: m.id, mine: m.sender === me.user, kind: m.kind, text: m.kind === 'text' || m.kind === 'like' ? m.body : L.preview(m) })),
+        other: otherId(), name: nameOf(otherId()), online: S.online, typing: S.typing,
+        status: L.activeLabel(S.other && S.other.last_seen, S.online), unread: L.unread(S.messages, me.user),
+        look: { theme: S.state.theme, wall: wallKind(S.state.wallpaper) },
+      };
+    },
+    // Quick reply from Home: the same send as the composer.
+    sendText(body) {
+      const text = String(body || '').trim();
+      if (!text) return false;
+      D.send('text', text, {}, null);
+      sfx.send();
+      return true;
+    },
     show() {
       if (shown) return;
       shown = true;
