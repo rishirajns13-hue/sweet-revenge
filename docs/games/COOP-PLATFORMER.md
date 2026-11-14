@@ -1,6 +1,6 @@
 # The co-op platformer (rebuilt Sticky Situation): design
 
-_Started 14 Nov 2026. It replaces Sticky Situation, which had the right idea but looked flat._
+_Started 14 Nov 2026. It replaces Sticky Situation, which had the right idea but looked flat. Shipped locally on 14 Nov (commit 2cefe56): 8 stages in 3 worlds, couch and online._
 
 **Name:** to be picked by the user. In the code it's `coop` (`coop.html`, `coop/`), and the page shows a working title until the name is chosen. Name ideas are listed at the end.
 
@@ -14,9 +14,9 @@ Two little heroes (your own critter, or your human from Locked In) get through s
 - **Buttons (pressure plates):** a button holds its gates open only while someone, or a crate, stands on it.
 - **Crates:** a small crate moves when one of you pushes it. A **heavy crate** only moves when you both push it the same way.
 - **Springs** launch you up. **Spikes** and falling off the map send you back to the last flag.
-- **World 2, the rope:** you're tied together by a stretchy rope. If one of you falls, the other one swings.
-- **World 3, colours:** you're Pink and Blue. Pink goo is fine for Pink and deadly for Blue, and the other way round. Coloured walls only let their own colour through.
-- **World 4, moving parts:** lifts that need a button held, platforms that slide, timed puzzles.
+- **World 2, colours:** you're Pink and Blue. Pink goo is fine for Pink and deadly for Blue, and the other way round. Coloured walls only let their own colour through. Piggyback across the goo you can't touch.
+- **World 3, moving parts:** lifts that need a button held, springs.
+- **Later (needs real play to tune):** the rope (already in the physics: `rope: true` on a stage), sliding platforms (`mover` props), timed buttons.
 
 ## Built for chat and the walkie-talkie
 - No frame-perfect "jump at the same time" moments. Anything you do together has a generous window (at least half a second) or simply waits for you.
