@@ -66,7 +66,28 @@
       },
     },
     {
-      id: '1-4', world: 1, name: 'Heavy Stuff', hint: 'Too heavy for one. Push it together.',
+      id: '1-4', world: 1, name: 'Swing Set', hint: 'Jump to the hook and hold Shift to hang. Your partner swings across under you.',
+      map: [
+        '........................',
+        '........................',
+        '........................',
+        '.........o..............',
+        '........................',
+        '..&@.................E..',
+        '########.....###########',
+        '########.....###########',
+        '########.....###########',
+        '########.....###########',
+        '########.....###########',
+        '########.....###########',
+      ],
+      solve: {
+        a: [['go', 6.2], ['leap', 6.4, 9.5], ['say', 'hanging'], ['until', 'said:anchored'], ['grab', false], ['wait', 1.5], ['until', 'said:reeled'], ['hold', 1, 1.0], ['go', 17], ['door']],
+        b: [['go', 5.3], ['until', 'said:hanging'], ['hold', 1, 4], ['grab', true], ['say', 'anchored'], ['wait', 1.6], ['reel', 'in', 3.0], ['say', 'reeled'], ['wait', 1.4], ['grab', false], ['until', 'aIn'], ['door']],
+      },
+    },
+    {
+      id: '1-5', world: 1, name: 'Heavy Stuff', hint: 'Too heavy for one. Push it together.',
       map: [
         '......................#.....',
         '......................#.....',
