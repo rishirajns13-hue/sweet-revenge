@@ -730,3 +730,8 @@ body.typing #dm-root .dm-nav { display: none; }
 #dm-root .d-sec h3 { font: 400 18px var(--toon); letter-spacing: .3px; }
 @media (min-width: 1200px) { #tab-chat #dm-root .details-panel { border-left: 3px solid var(--ol); box-shadow: none; } }
 @media (min-width: 900px) { #tab-chat #dm-root .dm-inbox { justify-content: center; padding-bottom: 8vh; } }
+
+/* Smoothness: every critter beside a message blinking on its own kept the browser redrawing the chat
+   all the time (typing and sending lagged). The faces in the thread hold still; the header, inbox
+   and hello card still blink. */
+#dm-root .thread .av-eyes { animation: none; }

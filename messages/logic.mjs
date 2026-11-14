@@ -107,16 +107,24 @@ export function seenLabel(at, now = Date.now()) {
 }
 
 // The time divider text: "Today 14:05", "Yesterday 21:30", "Monday 09:12", "3 Nov, 18:00", "3 Nov 2025, 18:00".
+// Making a date formatter is slow, and the chat labels every divider on every redraw: keep them.
+const FMT = new Map();
+const fmt = (locale, opts) => {
+  const k = (locale || '') + JSON.stringify(opts);
+  let f = FMT.get(k);
+  if (!f) FMT.set(k, (f = new Intl.DateTimeFormat(locale, opts)));
+  return f;
+};
 export function dividerLabel(at, now = Date.now(), locale) {
   const d = new Date(at), n = new Date(now);
-  const time = d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
+  const time = fmt(locale, { hour: 'numeric', minute: '2-digit' }).format(d);
   const day0 = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const days = Math.round((day0(n) - day0(d)) / 86400000);
   if (days === 0) return `Today ${time}`;
   if (days === 1) return `Yesterday ${time}`;
-  if (days < 7) return `${d.toLocaleDateString(locale, { weekday: 'long' })} ${time}`;
+  if (days < 7) return `${fmt(locale, { weekday: 'long' }).format(d)} ${time}`;
   const opts = { day: 'numeric', month: 'short', ...(d.getFullYear() !== n.getFullYear() && { year: 'numeric' }) };
-  return `${d.toLocaleDateString(locale, opts)}, ${time}`;
+  return `${fmt(locale, opts).format(d)}, ${time}`;
 }
 
 // A voice note's waveform: `n` bars from 0 to 100, from raw samples (any array of numbers -1..1).

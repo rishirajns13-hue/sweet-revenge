@@ -1,7 +1,7 @@
 // Messages: the private chat between the two friends. This file draws the chat and handles every
 // gesture; data.js talks to the database, logic.mjs holds the tested pure parts.
 // Needs the classic scripts loaded first: shared/core.js, shared/avatars.js, shared/sound.js.
-import * as L from './logic.mjs?v=6';
+import * as L from './logic.mjs?v=7';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
 import * as D from './data.js?v=6';
@@ -70,9 +70,14 @@ function faceInner(id) {
   return avatarHTML(critterOf(id), 'happy');
 }
 function paintFaces() {
-  document.querySelectorAll('[data-who]').forEach((el) => { el.innerHTML = faceInner(el.dataset.who); });
+  document.querySelectorAll('[data-who]').forEach((el) => setHTML(el, faceInner(el.dataset.who)));
 }
-const hm = (ts) => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+// Only touch the page when the markup really changed: redrawing a critter restarts its blink and
+// makes the browser lay the chat out again, and the header and inbox redraw on every update.
+function setHTML(el, html) { if (el._html !== html) { el.innerHTML = html; el._html = html; } }
+function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
+const HM = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' });
+const hm = (ts) => HM.format(new Date(ts));
 
 /* ---------------- drawing the chat ---------------- */
 const rowEls = new Map(); // row key → element
@@ -216,9 +221,9 @@ function renderHello() {
   const realName = (S.players[o] || {}).name, nicked = nick(o) && realName && nick(o) !== realName;
   const line = !real.length ? 'Just the two of you. Say hi.'
     : `Chatting since ${since}. ${real.length === 1 ? 'One message' : real.length.toLocaleString() + ' messages'} so far.`;
-  els.hello.innerHTML = `<div class="faces"><span class="face xl" data-who="${escapeHtml(o)}">${faceInner(o)}</span><span class="face xl" data-who="${escapeHtml(me.user)}">${faceInner(me.user)}</span></div>
+  setHTML(els.hello, `<div class="faces"><span class="face xl" data-who="${escapeHtml(o)}">${faceInner(o)}</span><span class="face xl" data-who="${escapeHtml(me.user)}">${faceInner(me.user)}</span></div>
     <b>${escapeHtml(nameOf(o))}</b>${nicked ? `<small>${escapeHtml(realName)}</small>` : ''}<p>${escapeHtml(line)}</p>
-    <div class="hi-acts">${real.length ? '' : '<button type="button" id="btn-wave">👋 Send a wave</button>'}<a class="hi-chip" href="#play">🎮 Play a game together</a></div>`;
+    <div class="hi-acts">${real.length ? '' : '<button type="button" id="btn-wave">👋 Send a wave</button>'}<a class="hi-chip" href="#play">🎮 Play a game together</a></div>`);
   const wave = $('#btn-wave');
   if (wave) wave.onclick = () => sendItem({ kind: 'sticker', meta: { pack: 'critter', critter: myAvatar(), mood: 'cheer', text: 'hiii' } });
 }
@@ -227,16 +232,16 @@ function renderHello() {
 function renderHeader() {
   const o = otherId();
   $('#peer-face').dataset.who = o || '';
-  $('#peer-face').innerHTML = o ? faceInner(o) : '';
+  setHTML($('#peer-face'), o ? faceInner(o) : '');
   $('#typing-face').dataset.who = o || '';
-  $('#typing-face').innerHTML = o ? faceInner(o) : '';
-  $('#peer-name').textContent = o ? nameOf(o) : 'Messages';
+  setHTML($('#typing-face'), o ? faceInner(o) : '');
+  setText($('#peer-name'), o ? nameOf(o) : 'Messages');
   $('#peer-dot').hidden = !S.online;
   const st = $('#peer-status');
   st.classList.toggle('typing', S.typing);
-  st.textContent = !navigator.onLine ? 'Offline. Messages send when you\'re back.'
+  setText(st, !navigator.onLine ? 'Offline. Messages send when you\'re back.'
     : S.typing ? 'typing…'
-    : L.activeLabel(S.other && S.other.last_seen, S.online);
+    : L.activeLabel(S.other && S.other.last_seen, S.online));
 }
 setInterval(() => { renderHeader(); if (painted) render(); }, 30000);
 
@@ -248,12 +253,13 @@ function toBottom(smooth) {
   else sc.scrollTop = sc.scrollHeight;
 }
 let missed = 0;
+const jumpCount = $('#jump-count');
 function updateJump() {
   const show = !nearBottom(300);
-  els.jump.hidden = !show;
+  if (els.jump.hidden === show) els.jump.hidden = !show;
   if (!show) missed = 0;
-  $('#jump-count').hidden = !missed;
-  $('#jump-count').textContent = missed;
+  if (jumpCount.hidden !== !missed) jumpCount.hidden = !missed;
+  setText(jumpCount, String(missed));
 }
 els.jump.onclick = () => { missed = 0; toBottom(true); };
 sc.addEventListener('scroll', () => {
@@ -342,7 +348,13 @@ addEventListener('offline', renderHeader);
 /* ---------------- the composer ---------------- */
 let ctx = null; // { type: 'reply' | 'edit', m }
 const input = els.input;
+let sizedLen = 0;
 function autosize() {
+  // Measuring means collapsing the box first, which lays the whole chat out again. Typing on one
+  // line never changes the height, so only measure when the text got shorter or outgrew the box.
+  const len = input.value.length, grew = input.scrollHeight > input.clientHeight + 1;
+  if (len >= sizedLen && !grew && input.style.height) { sizedLen = len; return; }
+  sizedLen = len;
   input.style.height = 'auto';
   input.style.height = Math.min(input.scrollHeight, 140) + 'px';
 }
@@ -1122,18 +1134,18 @@ function renderInbox() {
   const all = S.messages.filter((m) => m.kind !== 'system');
   const unread = L.unread(S.messages, me.user), last = all[all.length - 1];
   const fmtAgo = (t) => { const m = Math.max(0, Math.round((Date.now() - Date.parse(t)) / 60000)); return m < 1 ? 'now' : m < 60 ? m + 'm' : m < 1440 ? Math.round(m / 60) + 'h' : Math.round(m / 1440) + 'd'; };
-  $('#inbox-face').dataset.who = o; $('#inbox-face').innerHTML = faceInner(o);
+  $('#inbox-face').dataset.who = o; setHTML($('#inbox-face'), faceInner(o));
   $('#inbox-online').hidden = !S.online;
-  $('#inbox-name').textContent = nameOf(o);
+  setText($('#inbox-name'), nameOf(o));
   const what = !last ? 'Say hi' : last.vanish && last.sender !== me.user ? 'Sent a message' : (last.sender === me.user ? 'You: ' : '') + L.preview(last);
-  $('#inbox-line').textContent = S.typing ? 'typing…'
+  setText($('#inbox-line'), S.typing ? 'typing…'
     : unread ? `${unread > 9 ? '9+' : unread} new message${unread === 1 ? '' : 's'}${last ? ' · ' + fmtAgo(last.created_at) : ''}`
-    : what + (last ? ' · ' + fmtAgo(last.created_at) : '');
+    : what + (last ? ' · ' + fmtAgo(last.created_at) : ''));
   $('#inbox-row').classList.toggle('unread', !!unread);
   $('#inbox-row').classList.toggle('active', view === 'thread');
   $('#inbox-dot').hidden = !unread;
   const total = totals.total ?? (S.hasOlder ? null : all.length), since = totals.since || (!S.hasOlder && all[0] && all[0].created_at);
-  $('#inbox-total').textContent = total == null ? '' : `${total.toLocaleString()} message${total === 1 ? '' : 's'}${since ? ' · since ' + new Date(since).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''}`;
+  setText($('#inbox-total'), total == null ? '' : `${total.toLocaleString()} message${total === 1 ? '' : 's'}${since ? ' · since ' + new Date(since).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''}`);
   $('#inbox-reply-input').placeholder = S.state.vanish_on ? `Vanish mode · message ${firstName(o)}…` : `Message ${firstName(o)}…`;
 }
 async function loadTotals() {
