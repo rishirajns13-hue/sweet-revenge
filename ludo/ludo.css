@@ -176,3 +176,9 @@
 @keyframes lu-roll { 0%, 70%, 100% { transform: rotate(0); } 80% { transform: rotate(-25deg) scale(1.1); } 90% { transform: rotate(15deg); } }
 @media (prefers-reduced-motion: reduce) { .lu-hero-art, .lu-die { animation: none; } }
 .calm .lu-hero-art, .calm .lu-die { animation: none !important; }
+
+/* Tall phones: the board and dice sit in the middle of the free space instead of under the top bar,
+   with the chat row still at the bottom. */
+#screen-game.active .board-wrap { margin-top: auto; }
+#screen-game.active .dock { margin-bottom: auto; }
+#screen-game.active .tools { margin-top: 0; }
