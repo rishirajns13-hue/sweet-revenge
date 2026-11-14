@@ -8,7 +8,7 @@ _Started 14 Nov 2026. It replaces Sticky Situation, which had the right idea but
 Two little heroes (your own critter, or your human from Locked In) get through short, clever puzzle stages that **only work together**. It's in the genre of Pico Park (stand on each other's heads, push the heavy block together, carry the key to the door), with original levels and original art. The art is Kenney's CC0 Platformer Kit in real 3D, viewed side-on.
 
 ## Rules of the world
-- **Get both of you through the door.** Walk into the exit door and press ↑ (or W) to step in, and the same to step out. When both are in, the stage is cleared.
+- **Get both of you through the door.** Walk into the exit door and press S, ↓ or E to step in, and the same to step out (W and ↑ are jump). When both are in, the stage is cleared.
 - **Heads are floors.** You can stand on your partner and get carried around.
 - **Keys:** walk into the key to pick it up. Bring it to the lock block and the block opens.
 - **Buttons (pressure plates):** a button holds its gates open only while someone, or a crate, stands on it.
