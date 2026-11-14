@@ -66,7 +66,7 @@ export function buildRows(messages) {
 export const isIg = (m) => !!(m && m.meta && m.meta.ig);
 // Copied in from an older chat: Instagram, or a game room's chat (meta.game, 12-13 Nov 2026).
 export const isOld = (m) => isIg(m) || !!(m && m.meta && m.meta.imported);
-export const GAME_NAMES = { snakes: 'Snakes & Ladders', plusfour: 'Plus Four', ludo: 'Ludo', doodle: 'Doodle Duel', sticky: 'Sticky Situation', sundae: 'Sundae' };
+export const GAME_NAMES = { snakes: 'Snakes & Ladders', plusfour: 'Plus Four', ludo: 'Ludo', doodle: 'Doodle Duel', sticky: 'Two Peas', sundae: 'Sundae' };
 // "in Snakes & Ladders" under a message that was sent in a game room.
 export const gameLabel = (m) => (m && m.meta && m.meta.game ? 'in ' + (GAME_NAMES[m.meta.game] || m.meta.game) : '');
 // Which storage bucket a message's file is in.

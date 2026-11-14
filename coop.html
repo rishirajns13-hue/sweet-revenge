@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#7cc8ff">
+  <title>Two Peas · Sweet Revenge</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚪</text></svg>">
+  <link rel="preload" href="assets/fonts/baloo-2.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/fredoka.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/lilita-one.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/fonts/fonts.css?v=1">
+  <link rel="stylesheet" href="shared/base.css?v=16">
+  <link rel="stylesheet" href="shared/themes.css?v=5">
+  <link rel="stylesheet" href="shared/chat.css?v=6">
+  <link rel="stylesheet" href="coop/coop.css?v=1">
+  <!-- three.js only on this page (and the other 3D games): Home, chat and the board games never load it -->
+  <script type="importmap">
+    { "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    } }
+  </script>
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js">
+</head>
+<body class="pal-sunset">
+  <div id="scene" aria-hidden="true"><i class="a up"></i><i class="b up"></i></div>
+  <main>
+    <!-- HOME -->
+    <section id="screen-home" class="screen active">
+      <header class="topbar">
+        <a class="icon-btn" href="index.html" aria-label="Back to Sweet Revenge" data-icon="back"></a>
+        <h1 class="cp-logo">Two <span>Peas</span></h1>
+        <button id="btn-me" class="avatar-btn" type="button" aria-label="Your profile and colours"><span id="me-avatar"></span></button>
+      </header>
+      <div class="card cp-hero">
+        <div class="cp-hero-art" aria-hidden="true"><i>🩷</i><i>🚪</i><i>💙</i></div>
+        <p class="cp-pitch">Short, clever stages that <b>only work together</b>. Stand on each other's heads, push the heavy crate as a team, carry the key, and get you <b>both</b> through the door.</p>
+        <p id="cp-progress" class="cp-progress"></p>
+      </div>
+      <button id="btn-resume" class="btn big resume" type="button" data-icon="play" hidden>Back to your room · <span id="resume-code"></span></button>
+      <button id="btn-create" class="btn big cta" type="button" data-icon="plus">Play together online</button>
+      <div class="join-row">
+        <input id="join-code" placeholder="Got a code?" aria-label="Room code" maxlength="6" autocomplete="off" spellcheck="false">
+        <button id="btn-join" class="btn" type="button">Join</button>
+      </div>
+      <button id="btn-couch" class="link" type="button">🛋️ Or both play on this laptop's keyboard</button>
+      <p id="home-error" class="error light" role="alert"></p>
+      <div id="cp-stages-home" class="cp-stages-wrap" aria-label="Stages"></div>
+      <div class="card cp-keys">
+        <div><b>Online</b><span><kbd>A</kbd><kbd>D</kbd> or <kbd>←</kbd><kbd>→</kbd> move · <kbd>W</kbd> <kbd>↑</kbd> or <kbd>Space</kbd> jump · <kbd>S</kbd> <kbd>↓</kbd> or <kbd>E</kbd> door · <kbd>R</kbd> restart · <kbd>1</kbd>–<kbd>4</kbd> shout · hold <kbd>V</kbd> to talk</span></div>
+        <div><b>Same laptop · Pink</b><span><kbd>A</kbd><kbd>D</kbd> move · <kbd>W</kbd> jump · <kbd>S</kbd> door</span></div>
+        <div><b>Same laptop · Blue</b><span><kbd>←</kbd><kbd>→</kbd> move · <kbd>↑</kbd> jump · <kbd>↓</kbd> door</span></div>
+      </div>
+    </section>
+
+    <!-- ROOM -->
+    <section id="screen-room" class="screen">
+      <header class="topbar">
+        <button id="btn-room-back" class="icon-btn" type="button" aria-label="Leave room" data-icon="back"></button>
+        <h2 id="room-title" class="title">Your room</h2>
+      </header>
+      <div id="code-card" class="card code-card">
+        <p id="code-hint">Send this code to your partner</p>
+        <div class="code-row"><div id="room-code" class="code"></div><button id="btn-share" class="icon-btn" type="button" aria-label="Share invite link" data-icon="share"></button></div>
+      </div>
+      <div id="seats" class="seats" aria-live="polite"></div>
+      <div class="card"><div id="cp-stages-room" class="cp-stages-wrap" aria-label="Pick a stage"></div></div>
+      <div class="card cp-rules">
+        <b>How it works</b>
+        <ul>
+          <li><span>🚪</span><p>Get <b>both</b> of you through the door: walk in and press <kbd>S</kbd> / <kbd>↓</kbd>.</p></li>
+          <li><span>🧍</span><p>Heads are floors. Alone you clear 2 blocks, on your partner 3.</p></li>
+          <li><span>📣</span><p>No call needed: press <kbd>1</kbd>–<kbd>4</kbd> to shout HOLD ON!, JUMP!, WAIT or SORRY, or hold <kbd>V</kbd> to talk.</p></li>
+        </ul>
+      </div>
+      <button id="btn-start" class="btn big cta" type="button">Start</button>
+      <p id="room-wait" class="room-wait" hidden></p>
+    </section>
+
+    <!-- PLAY -->
+    <section id="screen-play" class="screen">
+      <div id="stage" class="cp-stage-wrap">
+        <canvas id="view" aria-label="The stage"></canvas>
+        <header class="cp-hud">
+          <button id="btn-leave" class="icon-btn" type="button" aria-label="Leave" data-icon="x"></button>
+          <div class="cp-title"><b id="cp-stage-name">1-1</b><small id="cp-hint"></small></div>
+          <button id="btn-restart" class="icon-btn" type="button" aria-label="Restart the stage (R)" title="Restart (R)">↻</button>
+          <button id="btn-help" class="icon-btn" type="button" aria-label="How to play" title="How to play">?</button>
+          <div class="cp-deaths" id="cp-deaths"></div>
+          <div id="chat-tools" class="cp-tools"></div>
+          <button id="btn-mute" class="icon-btn" type="button" aria-label="Sound on or off" data-icon="volume"></button>
+        </header>
+        <div id="cp-door" class="cp-door"></div>
+        <div id="cp-banner" class="cp-banner" hidden></div>
+        <div id="cp-wait" class="cp-wait" hidden></div>
+        <div id="cp-loading" class="cp-loading" hidden><span>Building the stage…</span></div>
+      </div>
+    </section>
+
+    <!-- END -->
+    <section id="screen-end" class="screen">
+      <header class="topbar"><h2 id="end-title" class="title">Cleared! ⭐</h2></header>
+      <div id="results" class="card cp-results"></div>
+      <div id="awards"></div>
+      <div class="cp-end-actions">
+        <button id="btn-next" class="btn big cta" type="button">Next stage</button>
+        <button id="btn-again" class="btn big" type="button">Play it again</button>
+        <button id="btn-end-home" class="btn big ghost" type="button">Done</button>
+      </div>
+      <p id="end-wait" class="room-wait" hidden></p>
+    </section>
+  </main>
+
+  <!-- PROFILE -->
+  <div id="me-sheet" class="sheet small" hidden>
+    <div class="grab" aria-hidden="true"></div>
+    <header><b>You</b><button id="btn-me-close" class="icon-btn sm" type="button" aria-label="Close" data-icon="x"></button></header>
+    <div class="me-body">
+      <h3>Avatar</h3>
+      <div id="avatars" class="avatars" role="group" aria-label="Avatar"></div>
+      <h3>Colours</h3>
+      <div id="palettes" class="palettes" role="group" aria-label="Colours"></div>
+      <button id="btn-logout" class="btn ghost" type="button">Log out</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+  <div id="fx"></div>
+
+  <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+  <script src="shared/core.js?v=17"></script>
+  <script src="shared/avatars.js?v=4"></script>
+  <script src="shared/net.js?v=9"></script>
+  <script src="shared/sound.js?v=3"></script>
+  <script src="shared/records.js?v=14"></script>
+  <script src="shared/rewards.js?v=8"></script>
+  <script src="shared/howto.js?v=1"></script>
+  <script src="shared/chat.js?v=9"></script>
+  <script src="coop/physics.js?v=1"></script>
+  <script src="coop/levels.js?v=1"></script>
+  <script src="coop/game.js?v=1"></script>
+</body>
+</html>

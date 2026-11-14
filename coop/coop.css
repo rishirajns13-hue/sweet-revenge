@@ -1,0 +1,78 @@
+/* The co-op platformer (coop.html) */
+.cp-logo { margin: 0; font-family: var(--title); font-weight: 400; font-size: clamp(30px, 6vw, 48px); color: #fff; text-shadow: 3px 3px 0 var(--ink); line-height: 1; }
+.cp-logo span { color: #ffd34d; }
+.cp-hero { align-items: center; text-align: center; gap: 8px; }
+.cp-hero-art { display: flex; gap: 10px; align-items: flex-end; font-size: 58px; line-height: 1; }
+.cp-hero-art i { font-style: normal; display: inline-block; animation: cp-hop 1.4s ease-in-out infinite; }
+.cp-hero-art i:nth-child(2) { animation-delay: -.7s; }
+@keyframes cp-hop { 0%, 60%, 100% { transform: translateY(0); } 75% { transform: translateY(-16px) scale(1.04, .96); } }
+.cp-pitch { margin: 0; font: 700 17px var(--body); }
+.cp-progress { margin: 0; font: 800 14px var(--body); color: var(--muted); }
+
+.cp-world { display: grid; gap: 6px; }
+.cp-world h3 { margin: 4px 0 0; font: 400 18px var(--title); color: #fff; text-shadow: 2px 2px 0 var(--ink); }
+.card .cp-world h3 { color: var(--ink); text-shadow: none; }
+.cp-stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.cp-stage { display: grid; gap: 1px; justify-items: start; text-align: left; padding: 8px 12px; border: 3px solid var(--ink); border-radius: 14px; background: var(--paper); box-shadow: 3px 3px 0 var(--ink); font-family: var(--body); color: var(--ink); transition: transform .12s; }
+.cp-stage b { font: 400 18px var(--title); }
+.cp-stage span { font-weight: 700; font-size: 13px; line-height: 1.15; }
+.cp-stage small { font-weight: 800; font-size: 12px; color: var(--muted); }
+.cp-stage.done { background: #fff6cf; }
+.cp-stage.on { outline: 4px solid #ffd34d; outline-offset: 1px; }
+.cp-stage:not(:disabled):hover { transform: translateY(-2px); }
+.cp-stage:disabled { opacity: .55; cursor: default; box-shadow: none; }
+.cp-stages-wrap { display: grid; gap: 10px; }
+
+.cp-keys { gap: 8px; }
+.cp-keys div { display: grid; gap: 2px; }
+.cp-keys span { font: 600 14px var(--body); color: var(--muted); }
+kbd { display: inline-block; min-width: 22px; padding: 0 6px; margin: 0 1px; border: 2px solid var(--ink); border-radius: 6px; background: #fff; font: 700 12px var(--body); text-align: center; }
+
+#screen-play.active { max-width: none; padding: 0; }
+.cp-stage-wrap { position: fixed; inset: 0; background: #9fd6ff; }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.cp-hud { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 10px; padding: max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; }
+.cp-hud > * { pointer-events: auto; }
+.cp-title { display: grid; gap: 1px; padding: 6px 14px; border: 3px solid var(--ink); border-radius: 16px; background: var(--paper); box-shadow: 3px 3px 0 var(--ink); max-width: 46vw; }
+.cp-title b { font: 400 21px var(--title); line-height: 1.05; }
+.cp-title small { font: 700 12px var(--body); color: var(--muted); line-height: 1.2; }
+.cp-deaths { margin-left: auto; display: flex; gap: 6px; }
+.cp-deaths span { padding: 4px 12px; border-radius: 999px; background: var(--paper); border: 3px solid var(--ink); font-weight: 700; font-size: 14px; box-shadow: inset 0 -4px 0 var(--c); }
+.cp-tools { display: flex; gap: 6px; }
+.cp-door { position: absolute; left: 50%; bottom: 22px; translate: -50% 0; padding: 6px 16px; border: 3px solid var(--ink); border-radius: 999px; background: #fff6cf; font-weight: 800; box-shadow: 3px 3px 0 var(--ink); }
+.cp-door:empty { display: none; }
+.cp-banner { position: absolute; left: 50%; top: 28%; translate: -50% -50%; display: grid; gap: 4px; justify-items: center; text-align: center; padding: 14px 26px; max-width: min(560px, 90vw);
+  border: 4px solid var(--ink); border-radius: 22px; background: var(--paper); box-shadow: 6px 7px 0 var(--ink); pointer-events: none; }
+.cp-banner b { font: 400 clamp(28px, 5vw, 44px) var(--title); line-height: 1; }
+.cp-banner small { font: 700 15px var(--body); color: var(--muted); }
+.cp-banner.pop { animation: cp-pop .5s cubic-bezier(.3, 1.5, .5, 1); }
+@keyframes cp-pop { from { transform: scale(.8); opacity: 0; } }
+.cp-wait { position: absolute; left: 50%; bottom: 70px; translate: -50% 0; padding: 8px 16px; border: 3px solid var(--ink); border-radius: 999px; background: var(--paper); font-weight: 700; box-shadow: 3px 3px 0 var(--ink); }
+.cp-loading { position: absolute; inset: 0; display: grid; place-items: center; background: linear-gradient(#7cc8ff, #d9f2ff); font: 400 26px var(--title); color: #fff; text-shadow: 2px 2px 0 var(--ink); }
+.cp-loading span { animation: cp-hop 1s ease-in-out infinite; display: inline-block; }
+/* a soft vignette for the quality tiers that skip post-processing (free in CSS) */
+.cp-stage-wrap::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px rgba(30, 20, 60, .22); }
+.cp-stage-wrap > header, .cp-stage-wrap > div { z-index: 1; }
+
+.cp-rules ul { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.cp-rules li { display: flex; gap: 10px; align-items: flex-start; }
+.cp-rules li span { font-size: 22px; line-height: 1.2; }
+.cp-rules li p { margin: 0; font-weight: 600; }
+.cp-results { gap: 10px; }
+.cp-res { display: flex; align-items: center; gap: 12px; padding-left: 10px; border-left: 6px solid var(--c); }
+.cp-res .av { width: 48px; height: 48px; flex: none; display: grid; place-items: center; }
+.cp-res .av .av-art, .cp-res .av svg { display: block; width: 100%; height: 100%; }
+.cp-res b { font: 400 22px var(--title); }
+.cp-res small { display: block; font-weight: 600; color: var(--muted); }
+.cp-res .cp-blame { margin-left: auto; font: 400 24px var(--title); }
+.cp-stat { margin: 0; text-align: center; font-weight: 700; color: var(--muted); }
+.cp-end-actions { display: grid; gap: 10px; }
+@media (prefers-reduced-motion: reduce) { .cp-hero-art i, .cp-banner.pop, .cp-loading span { animation: none; } }
+@media (max-width: 600px) {
+  .cp-hud { flex-wrap: wrap; gap: 8px; }
+  .cp-title { max-width: none; flex: 1; }
+  .cp-title small { display: none; }
+  .cp-tools { order: 4; flex-basis: 100%; }
+  .cp-deaths { order: 5; flex-basis: 100%; margin-left: 0; }
+  .cp-deaths span { font-size: 12px; padding: 3px 10px; border-width: 2px; }
+}

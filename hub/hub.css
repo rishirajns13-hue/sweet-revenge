@@ -450,15 +450,17 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
 @media (min-width: 1101px) { .game-shelves .game-card { flex-basis: calc((100% - 72px) / 5); } } /* phones keep their swipeable row */
 
-/* Sticky Situation's card */
-.game-card.sticky .art { background: radial-gradient(circle at 50% 62%, #ffe7b3 0 28%, #ffb3c7 29%); display: grid; place-items: center; }
-.st-card-art { position: relative; font-size: 62px; line-height: 1; }
-.st-card-art i { position: absolute; right: -22px; top: -4px; font-size: 30px; font-style: normal; transform-origin: 0 0; animation: st-card-swing 1.6s ease-in-out infinite; }
-@keyframes st-card-swing { 50% { transform: rotate(26deg); } }
-.game-card.sticky .g.a { left: 6%; top: 10%; rotate: -6deg; background: #ff9ad0; font-family: var(--title); }
+/* Two Peas' card (the co-op platformer; history kind 'sticky') */
+.game-card.sticky .art { background: linear-gradient(#7cc8ff, #d9f2ff 70%, #8fdc8a 70%); display: grid; place-items: center; }
+.cp-card-art { display: flex; align-items: flex-end; gap: 6px; font-size: 40px; line-height: 1; }
+.cp-card-art b { font-size: 58px; font-weight: 400; }
+.cp-card-art i { font-style: normal; animation: cp-card-hop 1.4s ease-in-out infinite; }
+.cp-card-art i:last-child { animation-delay: -.7s; }
+@keyframes cp-card-hop { 0%, 60%, 100% { transform: translateY(0); } 75% { transform: translateY(-12px); } }
+.game-card.sticky .g.a { left: 6%; top: 10%; rotate: -6deg; background: #ffd34d; font-family: var(--title); }
 .game-card.sticky .g.c { left: auto; right: 5%; bottom: 8%; font-size: 15px; }
-@media (prefers-reduced-motion: reduce) { .st-card-art i { animation: none; } }
-.calm .st-card-art i { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .cp-card-art i { animation: none; } }
+.calm .cp-card-art i { animation: none !important; }
 /* the 💬 Messages button */
 .dm-link.boing { animation: boing .45s var(--spring); }
 

@@ -9,7 +9,7 @@
 const records = (() => {
   const cid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   let progressLib = null;
-  const loadProgress = () => (progressLib ||= import('./progress.mjs?v=2'));
+  const loadProgress = () => (progressLib ||= import('./progress.mjs?v=3'));
 
   /* ---------- outbox: saves wait on this device until the database has them ---------- */
   const OUTBOX = 'sr-outbox2';

@@ -1,11 +1,11 @@
 // Messages: the private chat between the two friends. This file draws the chat and handles every
 // gesture; data.js talks to the database, logic.mjs holds the tested pure parts.
 // Needs the classic scripts loaded first: shared/core.js, shared/avatars.js, shared/sound.js.
-import * as L from './logic.mjs?v=10';
+import * as L from './logic.mjs?v=11';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
-import * as D from './data.js?v=13';
-import * as V from './voice.js?v=6';
+import * as D from './data.js?v=14';
+import * as V from './voice.js?v=7';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=5';
 
 const S = D.S;

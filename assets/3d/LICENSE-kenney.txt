@@ -21,3 +21,5 @@
 
 	Follow on Twitter for updates:
 	http://twitter.com/KenneyNL
+
+Platformer Kit (4.1) by Kenney (www.kenney.nl), CC0 1.0: assets/3d/platformer/*.glb and Textures/colormap.png (added 14 Nov 2026 for the co-op platformer).
