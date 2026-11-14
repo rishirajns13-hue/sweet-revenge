@@ -52,7 +52,7 @@ const playerOf = (k) => players.find((p) => p.k === k);
 const nameOf = (k) => (mode === 'couch' ? (k === 'a' ? 'Pink' : 'Blue') : k === myK ? 'You' : playerOf(k) ? firstName(playerOf(k).name) : 'Your partner');
 // The 3D view (three.js + models) loads only on this page, and not before the menu shows: it starts
 // downloading in the background once the home screen is up, so the first stage opens quickly.
-const VIEW_SRC = './view2d.js?v=1'; // import() in a classic script resolves from this file's folder
+const VIEW_SRC = './view2d.js?v=2'; // import() in a classic script resolves from this file's folder
 let viewLoad = null;
 const loadView = () => (viewLoad ||= import(VIEW_SRC).catch((e) => { viewLoad = null; throw e; }));
 

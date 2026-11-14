@@ -208,6 +208,7 @@ function draw(Wd, dt) {
   // rope behind the heroes
   if (Wd.L.rope) drawRope(g, Wd, s, sx, sy);
   for (const k of ['a', 'b']) drawHero(g, Wd, k, s, sx, sy, dt);
+  drawHooks(g, s, sx, sy); // in front, so a hanging hero visibly holds the ring
   // effects
   fx = fx.filter((f) => { f.t += dt; f.draw(g, f, s, sx, sy); return f.t < f.life; });
 }
@@ -297,6 +298,17 @@ function drawThings(g, Wd, s, sx, sy) {
     const bob = k.holder ? 0 : Math.sin(t * 3 + i) * 0.08;
     drawKey(g, sx(k.x), sy(k.y + 0.2 + bob), s, k.holder ? 0 : Math.sin(t * 2) * 0.3);
   });
+}
+function drawHooks(g, s, sx, sy) {
+  const ink = (w = 0.06) => { g.lineWidth = s * w; g.strokeStyle = INK; g.lineJoin = 'round'; };
+  // hooks: a little bracket and a ring to hang from
+  for (const hk of L.hooks || []) {
+    const hx = sx(hk.x + 0.5), hy = sy(hk.y + 0.4);
+    rr(g, hx - s * 0.32, hy - s * 0.62, s * 0.64, s * 0.18, s * 0.06); g.fillStyle = '#8a8fa6'; g.fill(); ink(0.05); g.stroke();
+    g.strokeStyle = INK; g.lineWidth = s * 0.11; g.beginPath(); g.moveTo(hx, hy - s * 0.46); g.lineTo(hx, hy - s * 0.2); g.stroke();
+    g.beginPath(); g.arc(hx, hy, s * 0.2, 0, Math.PI * 2); g.lineWidth = s * 0.13; g.strokeStyle = INK; g.stroke();
+    g.lineWidth = s * 0.07; g.strokeStyle = '#ffcf3a'; g.stroke();
+  }
 }
 function drawKey(g, x, y, s, rot) {
   g.save(); g.translate(x, y); g.rotate(rot);
