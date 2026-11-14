@@ -14,7 +14,8 @@
   <link rel="stylesheet" href="shared/base.css?v=16">
   <link rel="stylesheet" href="shared/themes.css?v=5">
   <link rel="stylesheet" href="shared/chat.css?v=6">
-  <link rel="stylesheet" href="ludo/ludo.css?v=12">
+  <link rel="stylesheet" href="ludo/ludo.css?v=13">
+  <link rel="stylesheet" href="shared/dice3d.css?v=1">
 </head>
 <body class="pal-sunset">
   <div id="scene" aria-hidden="true"><i class="a up"></i><i class="b up"></i></div>
@@ -79,7 +80,7 @@
         <div id="board-label" class="board-label" aria-live="polite"></div>
       </div>
       <div class="dock">
-        <button id="dice" class="dice-btn" type="button" aria-label="Roll the dice"><div id="dice-cube" class="dice"></div></button>
+        <button id="dice" class="dice-btn" type="button" aria-label="Roll the dice"></button>
         <p id="status" class="status" aria-live="polite"></p>
         <div class="corner right" data-corner="br"></div>
       </div>
@@ -127,13 +128,15 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
   <script src="shared/core.js?v=17"></script>
   <script src="shared/rng.js?v=1"></script>
+  <script src="shared/sound.js?v=3"></script>
+  <script src="shared/dice3d.js?v=1"></script>
   <script src="shared/avatars.js?v=4"></script>
   <script src="shared/net.js?v=9"></script>
   <script src="ludo/rules.js?v=8"></script>
   <script src="shared/records.js?v=13"></script>
   <script src="shared/rewards.js?v=8"></script>
   <script src="shared/chat.js?v=9"></script>
-  <script src="ludo/game.js?v=12"></script>
+  <script src="ludo/game.js?v=13"></script>
   <script src="ludo/social.js?v=10"></script>
 </body>
 </html>

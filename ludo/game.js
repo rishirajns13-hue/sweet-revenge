@@ -69,22 +69,12 @@ function buildBoard() {
 }
 
 /* ================= dice ================= */
-const PIPS = { 1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9] };
-const FACE_ROT = { 1: [0, 0], 2: [-90, 0], 3: [0, -90], 4: [0, 90], 5: [90, 0], 6: [0, 180] };
-let diceRot = [0, 0];
-function buildDice() {
-  $('#dice-cube').innerHTML = [1, 2, 3, 4, 5, 6].map((n) =>
-    `<div class="face f${n}">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => `<i class="${PIPS[n].includes(k) ? 'on' : ''}"></i>`).join('')}</div>`
-  ).join('');
-}
-// Always rotate forwards to the target face (plus two full turns when spinning), never backwards.
+// A real 3D die (shared/dice3d.js): thrown in, bouncing, landing on the value the host already rolled.
+let die3d = null;
+function buildDice() { die3d = Dice3D.mount($('#dice'), { size: innerWidth <= 480 ? 60 : 68 }); }
 function showDice(value, spin) {
-  const mod = (a) => ((a % 360) + 360) % 360;
-  diceRot = FACE_ROT[value].map((target, k) => {
-    const cur = diceRot[k];
-    return cur + mod(target - cur) + (spin ? 720 : 0);
-  });
-  $('#dice-cube').style.transform = `rotateX(${diceRot[0]}deg) rotateY(${diceRot[1]}deg)`;
+  if (!spin) { die3d.show(value); return Promise.resolve(); }
+  return die3d.roll(value, { duration: 980, sound: !sfx.muted });
 }
 
 /* ================= sounds (WebAudio, no files) ================= */
@@ -105,7 +95,6 @@ const sfx = (() => {
     } catch (e) { /* audio not available */ }
   }
   return {
-    roll() { for (let k = 0; k < 7; k++) tone(180 + Math.random() * 320, 0.05, 'square', 0.05, k * 0.09); },
     hop() { tone(520, 0.08, 'triangle', 0.12, 0, 800); },
     six() { tone(880, 0.12, 'triangle', 0.1); tone(1320, 0.18, 'triangle', 0.1, 0.1); },
     capture() { tone(700, 0.4, 'sawtooth', 0.1, 0, 80); tone(120, 0.25, 'square', 0.1, 0.05, 50); },
@@ -115,6 +104,7 @@ const sfx = (() => {
     sad() { tone(400, 0.3, 'triangle', 0.1, 0, 200); },
     gasp() { tone(300, 0.5, 'sine', 0.1, 0, 900); },
     toggle() { muted = !muted; return muted; },
+    get muted() { return muted; },
   };
 })();
 
@@ -315,7 +305,7 @@ function renderControls() {
   dice.classList.toggle('ready', canRoll());
   document.querySelectorAll('.token.can').forEach((el) => el.classList.remove('can'));
   movable().forEach(([c, i]) => tokenEl(c, i).classList.add('can'));
-  if (game) $('#dice-cube').style.setProperty('--dc', COLORS[R.current(game)]);
+  if (game) $('#dice').style.setProperty('--pip', COLORS[R.current(game)]);
   if (busy || !game) return;
 
   let text = '';
@@ -409,11 +399,9 @@ async function applyState(s, sync) {
 }
 
 async function animateRoll(ev) {
-  $('#dice-cube').style.setProperty('--dc', COLORS[ev.color]);
-  sfx.roll();
-  showDice(ev.value, true);
+  $('#dice').style.setProperty('--pip', COLORS[ev.color]);
   $('#status').textContent = `${shortName(ev.color)} rolled…`;
-  await sleep(850);
+  await showDice(ev.value, true);
   $('#status').textContent = `${ev.value}!`;
   if (ev.value === 6) sfx.six();
   if (ev.note === 'three6') { toast('Three 6s in a row! Turn skipped 😵'); sfx.sad(); await sleep(900); }

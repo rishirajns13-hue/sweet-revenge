@@ -1,0 +1,43 @@
+/* Sweet Revenge 3D die (shared/dice3d.js). The host element (the roll button) sets the size with
+   --d3 and the pip colour with --pip; the die may fly outside the button while it's thrown. */
+.d3-host { position: relative; overflow: visible; }
+.d3-stage {
+  position: absolute; left: 50%; top: 50%; width: var(--d3); height: var(--d3);
+  margin: calc(var(--d3) / -2) 0 0 calc(var(--d3) / -2);
+  perspective: calc(var(--d3) * 9); transform-style: preserve-3d; pointer-events: none;
+}
+.d3-shadow {
+  position: absolute; inset: 8% 6% -4% 6%; border-radius: 30%;
+  background: radial-gradient(closest-side, rgba(30, 16, 50, .55), rgba(30, 16, 50, 0));
+  filter: blur(3px); opacity: .5; will-change: transform, opacity;
+}
+.d3-die { position: absolute; inset: 0; transform-style: preserve-3d; will-change: transform; }
+.d3-face, .d3-core { position: absolute; inset: 0; backface-visibility: hidden; }
+.d3-face {
+  --half: calc(var(--d3) / 2);
+  display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: 15%;
+  border-radius: 22%; border: calc(var(--d3) * .045) solid var(--ink, #2b2140);
+  background: radial-gradient(circle at 30% 24%, #ffffff 0 30%, #f6f2fc 62%, #e6def3 100%);
+}
+/* light and shade: --dark is set per face from its angle to the light */
+.d3-face b { position: absolute; inset: -1px; border-radius: inherit; background: #2a1b4a; opacity: var(--dark, 0); pointer-events: none; }
+.d3-face i { border-radius: 50%; margin: 9%; }
+.d3-face i.on {
+  background: radial-gradient(circle at 40% 35%, color-mix(in srgb, var(--pip, var(--ink, #2b2140)) 75%, #fff) 0 18%, var(--pip, var(--ink, #2b2140)) 46%);
+  box-shadow: inset 0 calc(var(--d3) * .02) calc(var(--d3) * .02) rgba(0, 0, 0, .45), 0 1px 0 rgba(255, 255, 255, .7);
+}
+.d3-face.f1 i.on { margin: 2%; } /* the single pip is a bit bigger, like on real dice */
+.d3-face.f1 { transform: translateZ(var(--half)); }
+.d3-face.f6 { transform: rotateY(180deg) translateZ(var(--half)); }
+.d3-face.f3 { transform: rotateY(90deg) translateZ(var(--half)); }
+.d3-face.f4 { transform: rotateY(-90deg) translateZ(var(--half)); }
+.d3-face.f2 { transform: rotateX(90deg) translateZ(var(--half)); }
+.d3-face.f5 { transform: rotateX(-90deg) translateZ(var(--half)); }
+/* three planes through the middle fill the rounded corners, so the die looks solid from any angle */
+.d3-core { inset: 4%; background: #d9d0ea; border-radius: 8%; backface-visibility: visible; }
+.d3-core.b { transform: rotateY(90deg); }
+.d3-core.c { transform: rotateX(90deg); }
+/* the little settle when it lands */
+.d3-host.d3-land .d3-stage { animation: d3-land .32s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes d3-land { 0% { scale: 1.06 .92; } 60% { scale: .98 1.03; } 100% { scale: 1; } }
+@media (prefers-reduced-motion: reduce) { .d3-host.d3-land .d3-stage { animation: none; } }

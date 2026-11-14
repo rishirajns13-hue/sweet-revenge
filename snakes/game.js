@@ -578,9 +578,9 @@ function renderStatus() {
     el.innerHTML = p && (p.bot || (v.offline || []).includes(p.k)) ? `${who} is rolling<span class="dots"><i>.</i><i>.</i><i>.</i></span>` : `${who}'s turn`;
   }
 }
-const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
-function faceHTML(d) { return Array.from({ length: 9 }, (_, i) => `<i${PIPS[d].includes(i) ? ' class="on"' : ''}></i>`).join(''); }
-function setFace(d) { $('#die-face').innerHTML = faceHTML(d); }
+// A real 3D die (shared/dice3d.js) in the tray: thrown in, landing on the value the host already rolled.
+let die3d = null;
+function setFace(d) { if (!die3d) die3d = Dice3D.mount($('#die'), { size: innerWidth <= 760 ? 56 : 72 }); die3d.show(d); }
 function renderDie() {
   const v = view, ready = !!(v && v.turn === myK && !v.winner && !running && !waiting);
   $('#die').classList.toggle('ready', ready);
@@ -617,13 +617,10 @@ function react(k, mood, ms) {
 async function animate(e, v) {
   const n = nameOf(e.k);
   if (e.t === 'roll') {
-    sfx.roll();
-    const die = $('#die');
-    die.style.setProperty('--c', colorOf(e.k));
-    retrigger(die, 'tumble');
-    for (let i = 0; i < 6; i++) { setFace(1 + Math.floor(Math.random() * 6)); await sleep(60); }
-    setFace(e.d);
-    await sleep(220);
+    $('#die').style.setProperty('--c', colorOf(e.k));
+    if (!die3d) setFace(1);
+    await die3d.roll(e.d, { duration: 900, sound: !sfx.muted });
+    await sleep(120);
     if (e.d === 6 && e.streak >= R.MAX_SIXES) ticker(line('three', { n }));
   } else if (e.t === 'move') {
     lift(e.k);

@@ -85,22 +85,6 @@
 /* The glow lives on the button: a filter on the preserve-3d cube would flatten it and hide every face. */
 .dice-btn.ready { animation: dice-pulse 1s ease-in-out infinite; }
 @keyframes dice-pulse { 50% { filter: drop-shadow(0 0 12px #fff) drop-shadow(0 0 4px #fff); } }
-.dice {
-  --half: 34px; width: 68px; height: 68px; margin: 8px; position: relative; transform-style: preserve-3d;
-  transition: transform .8s cubic-bezier(.2, .9, .3, 1.05);
-}
-.face {
-  position: absolute; inset: 0; background: #fff; border: 3px solid var(--ink); border-radius: 14px;
-  display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: 8px; backface-visibility: hidden;
-}
-.face i { border-radius: 50%; margin: 2px; }
-.face i.on { background: var(--dc, var(--ink)); }
-.face.f1 { transform: translateZ(var(--half)); }
-.face.f6 { transform: rotateY(180deg) translateZ(var(--half)); }
-.face.f3 { transform: rotateY(90deg) translateZ(var(--half)); }
-.face.f4 { transform: rotateY(-90deg) translateZ(var(--half)); }
-.face.f2 { transform: rotateX(90deg) translateZ(var(--half)); }
-.face.f5 { transform: rotateX(-90deg) translateZ(var(--half)); }
 .status { margin: 0; flex: 1; min-width: 0; font-size: 20px; font-weight: 600; color: #fff; text-shadow: 2px 2px 0 var(--ink); line-height: 1.2; }
 .status small { display: block; font-family: var(--body); font-size: 13px; font-weight: 800; }
 .dock .corner { flex: none; max-width: 45%; }
@@ -129,7 +113,6 @@
 @media (max-width: 480px) {
   .status { font-size: 17px; }
   .dice-btn { width: 76px; height: 76px; }
-  .dice { --half: 30px; width: 60px; height: 60px; }
   .chip { font-size: 14px; }
   .chip .av { width: 28px; height: 28px; font-size: 15px; }
 }
