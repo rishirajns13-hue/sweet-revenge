@@ -88,3 +88,21 @@ test('Sticky Situation: Cherry on Top for a climb with no falls, Glued Together 
   assert.deepEqual([ach(facts({ games: [climb(), climb(), g()] }), 'glued_together').have], [2]);
   assert.equal(ach(facts({ games: Array.from({ length: 5 }, () => climb()) }), 'glued_together').done, true);
 });
+
+test('Two Peas trophies: stages cleared, Swing Set, speed and splat-free runs', async () => {
+  const P = await import('../shared/progress.mjs');
+  const clear = (stage, secs = 60, clean = false) => ({ kind: 'sticky', practice: false, won: true, bonks: 0, bombs: 0, bombCards: 0, stage, secs, cleanClimb: clean });
+  const base = { bigBomb: 0, maxBonkedInGame: 0, chats: 0, seriesWon: 0, revengeBonk: false, revengeBomb: false };
+  const get = (games) => Object.fromEntries(P.progress({ ...base, games }).achievements.map((a) => [a.id, a]));
+  let a = get(['1-1', '1-2', '1-3', '1-4', '1-5'].map((s) => clear(s)));
+  assert.strictEqual(a.peas_world1.done, true);
+  assert.strictEqual(a.peas_swing.done, true);
+  assert.strictEqual(a.peas_all.done, false);
+  a = get([clear('1-1', 25)]);
+  assert.strictEqual(a.peas_speed.done, true);
+  a = get([clear('1-1', 60, true), clear('1-2', 60, true), clear('1-3', 60, false), clear('1-3', 60, true)]);
+  assert.strictEqual(a.peas_clean3.done, false, 'a splat breaks the run');
+  a = get([clear('1-1', 60, true), clear('1-2', 60, true), clear('1-3', 60, true)]);
+  assert.strictEqual(a.peas_clean3.done, true);
+  assert.strictEqual(P.PEAS_ALL, require('../coop/levels.js').LEVELS.length, 'Tied for Life needs every stage');
+});

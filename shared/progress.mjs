@@ -10,7 +10,7 @@ export const LEVELS = [
 export const KINDS = ['ludo', 'plusfour', 'doodle', 'snakes'];
 
 /* facts = {
-     games: [{ kind, practice, won, bonks, bombs, bombCards, score, fastest, snakesSlid, longestLadder, cleanClimb }]  oldest first
+     games: [{ kind, practice, won, bonks, bombs, bombCards, score, fastest, snakesSlid, longestLadder, cleanClimb, stage, secs }]  oldest first
      bigBomb, maxBonkedInGame, revengeBonk, revengeBomb, chats, seriesWon } */
 export function xpFor(f) {
   return f.games.reduce((sum, g) => {
@@ -52,7 +52,17 @@ export const ACHIEVEMENTS = [
   ['sky_high', '🪜', 'Sky High', 'Climb a ladder 30+ squares long', (f) => [Math.max(0, ...f.games.map((g) => g.longestLadder || 0)) >= 30 ? 1 : 0, 1]],
   ['cherry_on_top', '⭐', 'Not a Scratch', 'Clear a stage of Two Peas without anyone going splat', (f) => [f.games.some((g) => g.kind === 'sticky' && g.won && g.cleanClimb) ? 1 : 0, 1]],
   ['glued_together', '🫛', 'Two Peas in a Pod', 'Clear 5 stages of Two Peas together', (f) => [Math.min(f.games.filter((g) => g.kind === 'sticky' && g.won).length, 5), 5]],
+  // Two Peas (tied together, 15 Nov 2026): stage-based goals
+  ['peas_world1', '🌱', 'First Steps', 'Clear every World 1 stage of Two Peas', (f) => [Math.min(peasStages(f).filter((s) => s.startsWith('1-')).length, PEAS_W1), PEAS_W1]],
+  ['peas_all', '🪢', 'Tied for Life', 'Clear every stage of Two Peas', (f) => [Math.min(peasStages(f).length, PEAS_ALL), PEAS_ALL]],
+  ['peas_swing', '🪝', 'Trapeze Act', 'Clear Swing Set in Two Peas', (f) => [peasStages(f).includes('1-4') ? 1 : 0, 1]],
+  ['peas_speed', '⚡', 'Speedrunners', 'Clear a Two Peas stage in under 30 seconds', (f) => [f.games.some((g) => g.kind === 'sticky' && g.won && g.secs > 0 && g.secs < 30) ? 1 : 0, 1]],
+  ['peas_clean3', '🫶', 'Never Let Go', 'Clear 3 Two Peas stages in a row with nobody going splat', (f) => [Math.min(cleanRun(f.games), 3), 3]],
 ];
+// Two Peas: which stages you have cleared (distinct), and the longest run of splat-free clears.
+export const PEAS_W1 = 5, PEAS_ALL = 7;
+function peasStages(f) { return [...new Set(f.games.filter((g) => g.kind === 'sticky' && g.won && g.stage).map((g) => g.stage))]; }
+function cleanRun(games) { let run = 0, best = 0; for (const g of games) { if (g.kind !== 'sticky' || !g.won) continue; run = g.cleanClimb ? run + 1 : 0; best = Math.max(best, run); } return best; }
 
 export function progress(f) {
   const xp = xpFor(f);

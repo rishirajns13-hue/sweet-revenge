@@ -6,7 +6,7 @@
 //  2. Sending shows the bubble at once; the database write happens behind it, and failed sends wait in
 //     an outbox (kept with the cache) and are retried.
 //  3. One realtime channel brings new messages, edits, reactions, seen receipts, typing and "active now".
-import { merge, bucketOf, isIg } from './logic.mjs?v=12';
+import { merge, bucketOf, isIg } from './logic.mjs?v=13';
 
 const CACHE_MAX = 400, WINDOW = 200, PAGE = 150;
 const listeners = new Set();
