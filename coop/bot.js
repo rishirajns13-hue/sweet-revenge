@@ -8,6 +8,8 @@
 //   ['until', name]      wait until a named condition (see COND) is true
 //   ['door']             step into the exit door (walks to it first)
 //   ['say', name]        mark a sync point other scripts can wait for with ['until', 'said:name']
+//   ['grab', true|false] start/stop anchoring (feet planted) — stays on until switched off
+//   ['reel', 'in'|'out', secs]  while anchored: pull your partner in / let them out
 (function (root) {
   'use strict';
   const COND = {
@@ -16,6 +18,8 @@
     unlocked: (W) => W.locks.some((l) => l.open), allUnlocked: (W) => W.locks.every((l) => l.open),
     aHasKey: (W) => W.a.carry >= 0, bHasKey: (W) => W.b.carry >= 0,
     aIn: (W) => W.a.inDoor, bIn: (W) => W.b.inDoor,
+    aHang: (W) => !!W.a.hang, bHang: (W) => !!W.b.hang, aGround: (W) => W.a.ground, bGround: (W) => W.b.ground,
+    ropeShort: (W) => W.ropeL < 1.6,
     ferryLeft: (W) => W.movers[0] && W.movers[0].cx < W.movers[0].x - (W.movers[0].ax || 0) + 0.25,
     ferryRight: (W) => W.movers[0] && W.movers[0].cx > W.movers[0].x + (W.movers[0].ax || 0) - 0.25,
   };
@@ -28,13 +32,15 @@
     for (let f = 0; f < frames && !W.done; f++) {
       const inputs = {};
       for (const k of ['a', 'b']) {
-        const s = st[k], h = W[k], inp = {};
+        const s = st[k], h = W[k], inp = { grab: !!s.grab };
         inputs[k] = inp;
         if (h.dead > 0) continue;
         while (s.q.length) {
           const [cmd, p1, p2] = s.q[0];
           const next = () => { s.q.shift(); s.t = 0; };
           if (cmd === 'say') { said.add(p1); next(); continue; }
+          if (cmd === 'grab') { s.grab = !!p1; inp.grab = s.grab; next(); continue; }
+          if (cmd === 'reel') { s.t += Phys.P.dt; if (p1 === 'in') inp.reelIn = true; else inp.reelOut = true; if (s.t >= p2) { next(); continue; } break; }
           if (cmd === 'until') { const ok = p1.startsWith('said:') ? said.has(p1.slice(5)) : COND[p1](W); if (ok) { next(); continue; } break; }
           if (cmd === 'wait') { s.t += Phys.P.dt; if (s.t >= p1) { next(); continue; } break; }
           if (cmd === 'go' || cmd === 'door') {
@@ -54,6 +60,15 @@
             if (s.jumped && h.ground && s.t > 0.15) { s.jumped = false; next(); continue; }
             if (s.jumped) s.t += Phys.P.dt;
             if (Math.abs(d) < 0.15) { s.jumped = false; next(); continue; }
+            break;
+          }
+          if (cmd === 'leap') { // walk toward p2, jump at p1, and grab as soon as you're in the air (for hooks)
+            const d = p2 - h.x; if (d > 0) inp.right = true; else inp.left = true;
+            if (!s.jumped && ((d > 0 && h.x >= p1) || (d < 0 && h.x <= p1)) && h.ground) { inp.jump = true; s.jumped = true; }
+            if (s.jumped && !h.ground) { s.grab = true; inp.grab = true; }
+            if (h.hang) { s.jumped = false; next(); continue; }
+            if (s.jumped && h.ground && s.t > 0.3) { s.jumped = false; s.grab = false; next(); continue; }
+            if (s.jumped) s.t += Phys.P.dt;
             break;
           }
           if (cmd === 'jump') { if (h.ground) { inp.jump = true; next(); continue; } break; }

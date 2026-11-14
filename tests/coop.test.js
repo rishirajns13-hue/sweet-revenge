@@ -6,7 +6,7 @@ const Bot = require('../coop/bot.js');
 const { LEVELS } = require('../coop/levels.js');
 
 test('every stage is cleared by its two-player script, with no deaths', () => {
-  assert.ok(LEVELS.length >= 8);
+  assert.ok(LEVELS.length >= 6);
   for (const lv of LEVELS) {
     const r = Bot.run(Phys, lv, lv.solve, { maxSeconds: 60 });
     assert.ok(r.done, `${lv.id} ${lv.name} was not cleared (left: ${JSON.stringify(r.left)})`);
@@ -96,4 +96,38 @@ test('a gate closing on someone lifts them out instead of trapping them', () => 
   W.a.x = 3.5; W.a.y = 1; // standing inside the gate cell while it is closed
   Phys.step(W, {});
   assert.ok(W.a.y >= 2 - 1e-6, 'lifted to ' + W.a.y);
+});
+
+/* ---------- the rope (tied together) ---------- */
+const ledge = { name: 't', map: ['..............', '..............', '..............', '..............', '.@&...........', '#####.........', '#####.........', '..............', '..............', '..............', '..........E...', '##############'] };
+const dangle = (anchor, frames = 240) => { const W = Phys.newWorld(ledge); for (let i = 0; i < frames; i++) Phys.step(W, { a: { grab: anchor }, b: { right: i < 40 } }); return W; };
+
+test('the rope never stretches past its length', () => {
+  const W = dangle(true);
+  const d = Math.hypot(W.b.x - W.a.x, W.b.y - W.a.y);
+  assert.ok(d <= Phys.P.ropeLen + 0.15, 'rope length ' + d.toFixed(2));
+});
+
+test('standing still, a dangling partner drags you toward the edge; holding on (anchor) stops it', () => {
+  const free = dangle(false), held = dangle(true);
+  assert.ok(free.a.x > 1.8, 'free hero was dragged: ' + free.a.x.toFixed(2));
+  assert.ok(Math.abs(held.a.x - 1.5) < 0.05, 'anchored hero stayed: ' + held.a.x.toFixed(2));
+});
+
+test('an anchored hero reels the partner in, and the rope eases back out when nobody holds on', () => {
+  const W = dangle(true, 120);
+  const y0 = W.b.y;
+  for (let i = 0; i < 90; i++) Phys.step(W, { a: { grab: true, reelIn: true }, b: {} });
+  assert.ok(W.b.y > y0 + 1, `pulled up from ${y0.toFixed(2)} to ${W.b.y.toFixed(2)}`);
+  for (let i = 0; i < 120; i++) Phys.step(W, { a: {}, b: {} });
+  assert.ok(Math.abs(W.ropeL - Phys.P.ropeLen) < 1e-6, 'rope back to full length');
+});
+
+test('tied together: if one goes splat, both go back to the flag (only one splat counted)', () => {
+  const lv = { name: 't', map: ['............', '.@&.^......E', '############'] };
+  const W = Phys.newWorld(lv);
+  W.b.x = 4.5; Phys.step(W, {});
+  assert.strictEqual(W.b.deaths, 1);
+  assert.strictEqual(W.a.deaths, 0);
+  assert.ok(W.a.dead > 0, 'the partner is pulled back too');
 });

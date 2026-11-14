@@ -36,7 +36,7 @@
       </header>
       <div class="card cp-hero">
         <div class="cp-hero-art" aria-hidden="true"><i>🩷</i><i>🚪</i><i>💙</i></div>
-        <p class="cp-pitch">Short, clever stages that <b>only work together</b>. Stand on each other's heads, push the heavy crate as a team, carry the key, and get you <b>both</b> through the door.</p>
+        <p class="cp-pitch">You're <b>tied together</b> by a candy rope. Hold on while your partner dangles, haul them up, boost each other over walls, and get you <b>both</b> through the door.</p>
         <p id="cp-progress" class="cp-progress"></p>
       </div>
       <button id="btn-resume" class="btn big resume" type="button" data-icon="play" hidden>Back to your room · <span id="resume-code"></span></button>
@@ -49,9 +49,9 @@
       <p id="home-error" class="error light" role="alert"></p>
       <div id="cp-stages-home" class="cp-stages-wrap" aria-label="Stages"></div>
       <div class="card cp-keys">
-        <div><b>Online</b><span><kbd>A</kbd><kbd>D</kbd> or <kbd>←</kbd><kbd>→</kbd> move · <kbd>W</kbd> <kbd>↑</kbd> or <kbd>Space</kbd> jump · <kbd>S</kbd> <kbd>↓</kbd> or <kbd>E</kbd> door · <kbd>R</kbd> restart · <kbd>1</kbd>–<kbd>4</kbd> shout · hold <kbd>V</kbd> to talk</span></div>
-        <div><b>Same laptop · Pink</b><span><kbd>A</kbd><kbd>D</kbd> move · <kbd>W</kbd> jump · <kbd>S</kbd> door</span></div>
-        <div><b>Same laptop · Blue</b><span><kbd>←</kbd><kbd>→</kbd> move · <kbd>↑</kbd> jump · <kbd>↓</kbd> door</span></div>
+        <div><b>Online</b><span><kbd>A</kbd><kbd>D</kbd> or <kbd>←</kbd><kbd>→</kbd> move · <kbd>W</kbd> <kbd>↑</kbd> <kbd>Space</kbd> jump · hold <kbd>Shift</kbd> (or <kbd>J</kbd>) to hold on, then <kbd>W</kbd> reel in / <kbd>S</kbd> let out · <kbd>S</kbd> <kbd>↓</kbd> <kbd>E</kbd> door · <kbd>R</kbd> restart · <kbd>1</kbd>–<kbd>4</kbd> shout · hold <kbd>V</kbd> to talk</span></div>
+        <div><b>Same laptop · Pink</b><span><kbd>A</kbd><kbd>D</kbd> move · <kbd>W</kbd> jump · hold <kbd>Left Shift</kbd> or <kbd>F</kbd> to hold on · <kbd>S</kbd> door</span></div>
+        <div><b>Same laptop · Blue</b><span><kbd>←</kbd><kbd>→</kbd> move · <kbd>↑</kbd> jump · hold <kbd>Right Shift</kbd> or <kbd>/</kbd> to hold on · <kbd>↓</kbd> door</span></div>
       </div>
     </section>
 
@@ -71,6 +71,7 @@
         <b>How it works</b>
         <ul>
           <li><span>🚪</span><p>Get <b>both</b> of you through the door: walk in and press <kbd>S</kbd> / <kbd>↓</kbd>.</p></li>
+          <li><span>🪢</span><p>You're tied together. Hold <kbd>Shift</kbd> to plant your feet, then <kbd>W</kbd> hauls your partner up and <kbd>S</kbd> lowers them.</p></li>
           <li><span>🧍</span><p>Heads are floors. Alone you clear 2 blocks, on your partner 3.</p></li>
           <li><span>📣</span><p>No call needed: press <kbd>1</kbd>–<kbd>4</kbd> to shout HOLD ON!, JUMP!, WAIT or SORRY, or hold <kbd>V</kbd> to talk.</p></li>
         </ul>
@@ -139,8 +140,8 @@
   <script src="shared/rewards.js?v=8"></script>
   <script src="shared/howto.js?v=1"></script>
   <script src="shared/chat.js?v=9"></script>
-  <script src="coop/physics.js?v=2"></script>
-  <script src="coop/levels.js?v=2"></script>
-  <script src="coop/game.js?v=2"></script>
+  <script src="coop/physics.js?v=3"></script>
+  <script src="coop/levels.js?v=3"></script>
+  <script src="coop/game.js?v=3"></script>
 </body>
 </html>

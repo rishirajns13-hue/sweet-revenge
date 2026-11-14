@@ -52,7 +52,7 @@ const playerOf = (k) => players.find((p) => p.k === k);
 const nameOf = (k) => (mode === 'couch' ? (k === 'a' ? 'Pink' : 'Blue') : k === myK ? 'You' : playerOf(k) ? firstName(playerOf(k).name) : 'Your partner');
 // The 3D view (three.js + models) loads only on this page, and not before the menu shows: it starts
 // downloading in the background once the home screen is up, so the first stage opens quickly.
-const VIEW_SRC = './view.js?v=1'; // import() in a classic script resolves from this file's folder
+const VIEW_SRC = './view2d.js?v=1'; // import() in a classic script resolves from this file's folder
 let viewLoad = null;
 const loadView = () => (viewLoad ||= import(VIEW_SRC).catch((e) => { viewLoad = null; throw e; }));
 
@@ -97,11 +97,12 @@ const clock = (n) => `${Math.floor(n / 60)}:${String(Math.round(n) % 60).padStar
 
 /* ================= keys ================= */
 const keys = new Set(), pressed = new Set();
-const P1 = { left: ['a'], right: ['d'], jump: ['w', ' '], up: ['s', 'e'] };
-const P2 = { left: ['arrowleft'], right: ['arrowright'], jump: ['arrowup'], up: ['arrowdown', '/'] };
-const ME = { left: ['a', 'arrowleft'], right: ['d', 'arrowright'], jump: ['w', 'arrowup', ' '], up: ['s', 'arrowdown', 'e'] };
+// grab = plant your feet (anchor); while anchored, jump keys reel your partner in and door keys let them out
+const P1 = { left: ['a'], right: ['d'], jump: ['w', ' '], up: ['s', 'e'], grab: ['shift-left', 'f'] };
+const P2 = { left: ['arrowleft'], right: ['arrowright'], jump: ['arrowup'], up: ['arrowdown'], grab: ['/', 'shift-right', 'enter'] };
+const ME = { left: ['a', 'arrowleft'], right: ['d', 'arrowright'], jump: ['w', 'arrowup', ' '], up: ['s', 'arrowdown', 'e'], grab: ['shift-left', 'shift-right', 'j', 'k'] };
 const SHOUTS = ['hold', 'jump', 'wait', 'sorry'];
-const keyName = (e) => e.key.toLowerCase();
+const keyName = (e) => (e.key === 'Shift' ? (e.code === 'ShiftRight' ? 'shift-right' : 'shift-left') : e.key.toLowerCase());
 addEventListener('keydown', (e) => {
   if (!running || chat.typing(e)) return;
   const k = keyName(e);
@@ -109,13 +110,14 @@ addEventListener('keydown', (e) => {
   keys.add(k);
   if (online() && !e.repeat && /^[1-4]$/.test(k)) chat.sticker(SHOUTS[+k - 1]);
   if (k === 'r' && !e.repeat) restartStage();
-  if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', ' ', '/'].includes(k)) e.preventDefault();
+  if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', ' ', '/', 'enter'].includes(k)) e.preventDefault();
 });
 addEventListener('keyup', (e) => keys.delete(keyName(e)));
 addEventListener('blur', () => keys.clear());
 const inputFor = (map) => ({
   left: map.left.some((k) => keys.has(k)), right: map.right.some((k) => keys.has(k)),
   jump: map.jump.some((k) => pressed.has(k)), up: map.up.some((k) => pressed.has(k)),
+  grab: map.grab.some((k) => keys.has(k)), reelIn: map.jump.some((k) => keys.has(k)), reelOut: map.up.some((k) => keys.has(k)),
 });
 
 /* ================= a stage ================= */
@@ -189,6 +191,10 @@ function steerRemote() {
   h.x = nx; h.y = ny; h.vx = m.vx; h.vy = m.vy; h.ground = m.g; h.face = m.f || h.face;
   h.inDoor = m.d; h.dead = m.dead ? 0.5 : 0;
   if (m.n !== null) h.deaths = m.n;
+  h.anchor = !!m.an;
+  // tied together: when they go splat, I'm pulled back to the flag too
+  const mine = world[myK];
+  if (m.dead && world.L.rope && !(mine.dead > 0) && performance.now() - (steerRemote.tug || 0) > 2000) { steerRemote.tug = performance.now(); mine.dead = 0.9; mine.vx = 0; mine.vy = 0; mine.inDoor = false; }
 }
 
 function onEvent(e) {
@@ -320,7 +326,7 @@ function sendPosition() {
   const link = mode === 'host' ? room && room.seats[1] && room.seats[1].link : conn;
   if (link && !link.direct && posSeq % 3) return; // over the public relay every third tick is plenty
   const dir = (ME.right.some((k) => keys.has(k)) ? 1 : 0) - (ME.left.some((k) => keys.has(k)) ? 1 : 0);
-  send({ t: 'p', q: posSeq, s: stageId, x: r2(h.x), y: r2(h.y), vx: r2(h.vx), vy: r2(h.vy), g: h.ground ? 1 : 0, f: h.face, d: h.inDoor ? 1 : 0, dead: h.dead > 0 ? 1 : 0, dn: h.deaths, dir }, true); // (never call a field 'n': net.js numbers messages with it)
+  send({ t: 'p', q: posSeq, s: stageId, x: r2(h.x), y: r2(h.y), vx: r2(h.vx), vy: r2(h.vy), g: h.ground ? 1 : 0, f: h.face, d: h.inDoor ? 1 : 0, dead: h.dead > 0 ? 1 : 0, dn: h.deaths, dir, an: h.anchor ? 1 : 0, rl: h.anchor ? +world.ropeL.toFixed(3) : undefined }, true); // (never call a field 'n': net.js numbers messages with it)
 }
 function sendSnapshot() {
   if (!world || !running || mode !== 'host') return;
@@ -334,6 +340,8 @@ function onPosition(m) {
   if (Number.isFinite(m.q)) { if (m.q <= lastQ && lastQ - m.q < 1000) return; lastQ = m.q; }
   incoming = { x: m.x, y: m.y, vx: m.vx, vy: m.vy, g: !!m.g, f: m.f === -1 ? -1 : 1, d: !!m.d, dead: !!m.dead, n: Number.isInteger(m.dn) ? m.dn : null };
   remoteDir = m.dir > 0 ? 1 : m.dir < 0 ? -1 : 0;
+  incoming.an = !!m.an;
+  if (m.an && Number.isFinite(m.rl)) world.ropeL = Math.max(CP.P.ropeMin, Math.min(world.L.ropeLen, m.rl)); // they hold the rope: their length wins
   if (partnerAway) { partnerAway = false; $('#cp-wait').hidden = true; }
 }
 function onSnapshot(m) {
@@ -526,9 +534,10 @@ function howTo(force = false) {
   if (typeof showHowTo !== 'function') return;
   showHowTo('coop', [
     { icon: '🚪', title: 'Both through the door', text: 'Walk into the door and press S (or ↓ / E) to step in. When you\'re both in, the stage is clear.' },
+    { icon: '🪢', title: 'Tied together', text: 'A candy rope ties you. If one falls, the other gets dragged. Hold Shift (or J) to plant your feet; then W reels your partner in and S lets them out.' },
     { icon: '🧍', title: 'Heads are floors', text: 'Stand on your partner to reach high places. Alone you clear 2 blocks; on a head, 3.' },
     { icon: '🔑', title: 'Keys, buttons, crates', text: 'Carry keys to locks. Buttons hold gates open only while someone stands on them. Heavy crates need both of you pushing.' },
-    { icon: '⌨️', title: 'Controls', text: 'A/D or ←/→ move · W, ↑ or Space jump · S, ↓ or E door · R restart · 1–4 shout · hold V to talk.' },
+    { icon: '⌨️', title: 'Controls', text: 'A/D or ←/→ move · W, ↑ or Space jump · hold Shift/J to hold on · S, ↓ or E door · R restart · 1–4 shout · hold V to talk.' },
   ], { title: `How to play ${GAME_NAME}`, force });
 }
 
