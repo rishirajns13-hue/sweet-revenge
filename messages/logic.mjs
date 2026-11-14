@@ -70,7 +70,7 @@ export const GAME_NAMES = { snakes: 'Snakes & Ladders', plusfour: 'Plus Four', l
 // "in Snakes & Ladders" under a message that was sent in a game room.
 export const gameLabel = (m) => (m && m.meta && m.meta.game ? 'in ' + (GAME_NAMES[m.meta.game] || m.meta.game) : '');
 // Which storage bucket a message's file is in.
-export const bucketOf = (m) => (m.meta && m.meta.bucket) || (m.kind === 'photo' ? 'dm-once' : 'dm-voice');
+export const bucketOf = (m) => (m.meta && m.meta.bucket) || (m.kind === 'photo' || m.kind === 'doodle' ? 'dm-once' : 'dm-voice');
 // Stickers, GIFs, likes and big emoji stand alone instead of joining a bubble group.
 function big(m) { return m.kind !== 'text' && m.kind !== 'voice' ? true : m.kind === 'text' && emojiOnly(m.body) > 0; }
 
@@ -169,6 +169,7 @@ export function preview(m) {
     case 'gif': return 'GIF';
     case 'voice': return `Voice message${m.meta && m.meta.dur ? ' · ' + fmtDuration(m.meta.dur) : ''}`;
     case 'photo': return 'Photo';
+    case 'doodle': return 'Drew on the chat';
     case 'video': return `Video${m.meta && m.meta.dur ? ' · ' + fmtDuration(m.meta.dur) : ''}`;
     case 'share': return m.body ? (m.body.length > 80 ? m.body.slice(0, 80) + '…' : m.body) : shareLabel(m.meta);
     default: return '';
@@ -234,7 +235,7 @@ export function exportChat({ messages, reactions, players, nicknames = {} }, now
       kind: m.kind,
       ...(m.kind === 'system' ? { event: m.meta } : { text: m.body || preview(m) }),
       ...(m.kind === 'gif' || m.kind === 'sticker' || m.kind === 'share' ? { media: m.meta } : {}),
-      ...((m.kind === 'photo' || m.kind === 'video') && m.meta && m.meta.path ? { file: m.meta.path } : {}),
+      ...((m.kind === 'photo' || m.kind === 'video' || m.kind === 'doodle') && m.meta && m.meta.path ? { file: m.meta.path } : {}),
       ...(m.kind === 'voice' ? { voice_file: m.meta && m.meta.path ? 'voice/' + m.meta.path.split('/').pop() : null, seconds: m.meta && m.meta.dur } : {}),
       ...(m.reply_to ? { reply_to: m.reply_to } : {}),
       ...(m.edited_at ? { edited_at: m.edited_at } : {}),

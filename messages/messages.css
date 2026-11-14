@@ -809,3 +809,60 @@ body.typing #dm-root .dm-nav { display: none; }
 #dm-root .video-bub.loading, #dm-root .mg-voice.loading .pl { animation: dm-load-pulse 1s ease-in-out infinite; }
 @keyframes dm-load-pulse { 50% { opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { #dm-root .video-bub.loading, #dm-root .mg-voice.loading .pl { animation: none; opacity: .7; } }
+
+/* ===== Drawing on the chat (Instagram-style Draw). Pins sit over the messages; the editor covers the chat. ===== */
+#dm-root .field.has-text #btn-draw { display: none; }
+#dm-root .thread { position: relative; }
+#dm-root .dpin { position: relative; height: 0; z-index: 4; pointer-events: none; }
+#dm-root .dpin img { position: absolute; left: calc(var(--xf) * 100%); top: calc(var(--dy) * 1px); width: min(calc(var(--wf) * 100%), calc(var(--w) * 1.5px)); max-width: calc((1 - var(--xf)) * 100% + 8px); aspect-ratio: var(--ar); display: block; user-select: none; -webkit-user-drag: none; }
+#dm-root .dpin.lost img { left: auto; right: 0; }
+#dm-root .dpin.pending img { opacity: .85; }
+#dm-root .dpin img.flash { animation: dw-flash .9s var(--ease-out); }
+@keyframes dw-flash { 0% { transform: scale(1); } 30% { transform: scale(1.06) rotate(-1.5deg); filter: drop-shadow(0 0 10px #fff8); } 60% { transform: scale(.98) rotate(1deg); } 100% { transform: none; } }
+#dm-root .doodle-bub { padding: 0 !important; }
+#dm-root .doodle-note { display: flex; align-items: center; gap: 10px; padding: 9px 14px 9px 11px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+#dm-root .doodle-note .ic { width: 26px; height: 26px; flex: none; padding: 4px; border-radius: 50%; background: color-mix(in srgb, currentColor 16%, transparent); }
+#dm-root .doodle-note span { display: flex; flex-direction: column; line-height: 1.25; }
+#dm-root .doodle-note b { font-weight: 800; font-size: 14px; }
+#dm-root .doodle-note small { font-size: 12px; opacity: .8; }
+
+#dm-root .dm-app.drawing .composer, #dm-root .dm-app.drawing .jump-down { visibility: hidden; }
+#dm-root .dw { position: absolute; inset: 0; z-index: 40; touch-action: none; user-select: none; -webkit-user-select: none; opacity: 0; transition: opacity .16s; }
+#dm-root .dw.in { opacity: 1; }
+#dm-root .dw.out { opacity: 0; pointer-events: none; }
+#dm-root .dw-scrim { position: absolute; inset: 0; background: #0a061433; }
+#dm-root .dw canvas { position: absolute; touch-action: none; }
+#dm-root .dw-live { cursor: crosshair; }
+#dm-root .dw-core { pointer-events: none; }
+#dm-root .dw.erasing .dw-live { cursor: cell; }
+#dm-root .dw-top { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 10px; padding: 0 12px; background: #120b20cc; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: #fff; }
+#dm-root .dw-txt { border: 0; background: none; color: #fff; font: 800 15px var(--read); padding: 8px 6px; cursor: pointer; }
+#dm-root .dw-round { margin-left: auto; width: 38px; height: 38px; border-radius: 50%; border: 0; display: grid; place-items: center; background: #ffffff1f; color: #fff; cursor: pointer; transition: opacity .15s, transform .1s; }
+#dm-root .dw-round:disabled { opacity: .35; cursor: default; }
+#dm-root .dw-round:not(:disabled):active, #dm-root .dw-send:not(:disabled):active { transform: scale(.92); }
+#dm-root .dw-send { border: 2.5px solid #fff; border-radius: 999px; padding: 7px 18px; font: 400 16px var(--toon); letter-spacing: .02em; background: var(--accent, #3897f0); color: #fff; box-shadow: 2px 3px 0 #00000055; cursor: pointer; transition: opacity .15s, transform .1s; }
+#dm-root .dw-send:disabled { opacity: .45; cursor: default; box-shadow: none; }
+#dm-root .dw-hint { position: absolute; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-radius: 999px; background: #120b20b3; color: #fff; font: 800 13px var(--read); pointer-events: none; transition: opacity .25s; white-space: nowrap; }
+#dm-root .dw.inked .dw-hint, #dm-root .dw.busy .dw-hint { opacity: 0; }
+#dm-root .dw-size { position: absolute; left: 10px; width: 36px; height: min(220px, 34%); touch-action: none; cursor: ns-resize; outline: none; }
+#dm-root .dw-track { position: absolute; left: 50%; top: 0; bottom: 0; width: 14px; transform: translateX(-50%); border-radius: 999px; background: linear-gradient(#ffffffcc, #ffffffcc) center / 100% 100% no-repeat; clip-path: polygon(0 0, 100% 0, 64% 100%, 36% 100%); box-shadow: 0 0 0 1px #0003; opacity: .9; }
+#dm-root .dw-knob { position: absolute; left: 50%; top: calc(var(--y) * 100%); width: var(--d); height: var(--d); transform: translate(-50%, -50%); border-radius: 50%; background: var(--c); border: 2.5px solid #fff; box-shadow: 0 1px 6px #0007; transition: width .1s, height .1s; }
+#dm-root .dw-size:focus-visible .dw-track { box-shadow: 0 0 0 3px var(--accent, #3897f0); }
+#dm-root .dw.busy .dw-size, #dm-root .dw.busy .dw-bottom, #dm-root .dw.busy .dw-top { opacity: .35; transition: opacity .2s; }
+#dm-root .dw-bottom { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: #120b20cc; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); transition: opacity .2s; }
+#dm-root .dw-tools { display: flex; justify-content: center; gap: 8px; }
+#dm-root .dw-tools button { display: flex; align-items: center; gap: 6px; border: 2px solid transparent; border-radius: 999px; padding: 6px 12px 6px 9px; background: #ffffff14; color: #fffc; font: 800 13px var(--read); cursor: pointer; }
+#dm-root .dw-tools button .ic { width: 20px; height: 20px; }
+#dm-root .dw-tools button[aria-checked="true"] { background: #fff; color: #120b20; border-color: #fff; }
+#dm-root .dw-cols { display: flex; justify-content: center; gap: 9px; flex-wrap: wrap; }
+#dm-root .dw-cols button { width: 28px; height: 28px; border-radius: 50%; padding: 0; border: 2.5px solid #fff; background: var(--c); cursor: pointer; box-shadow: 0 1px 4px #0006; transition: transform .12s; }
+#dm-root .dw-cols button[aria-checked="true"] { transform: scale(1.22); box-shadow: 0 0 0 2.5px #120b20, 0 0 0 5px #fff; }
+@media (max-width: 420px) {
+  #dm-root .dw-tools { gap: 6px; }
+  #dm-root .dw-tools button { padding: 7px 9px; }
+  #dm-root .dw-tools button span { display: none; }
+  #dm-root .dw-tools button .ic { width: 22px; height: 22px; }
+  #dm-root .dw-cols { gap: 7px; }
+  #dm-root .dw-cols button { width: 26px; height: 26px; }
+}
+@media (prefers-reduced-motion: reduce) { #dm-root .dw, #dm-root .dpin img.flash { transition: none; animation: none; } }

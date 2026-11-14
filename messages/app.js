@@ -1,12 +1,13 @@
 // Messages: the private chat between the two friends. This file draws the chat and handles every
 // gesture; data.js talks to the database, logic.mjs holds the tested pure parts.
 // Needs the classic scripts loaded first: shared/core.js, shared/avatars.js, shared/sound.js.
-import * as L from './logic.mjs?v=11';
+import * as L from './logic.mjs?v=12';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
-import * as D from './data.js?v=14';
-import * as V from './voice.js?v=7';
+import * as D from './data.js?v=15';
+import * as V from './voice.js?v=8';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=5';
+import { openDraw, closeDraw, drawing } from './draw.js?v=1';
 
 const S = D.S;
 // Everything the chat draws lives inside #dm-root, so its theme and classes never leak into the rest of the app.
@@ -98,6 +99,7 @@ const popReacts = new Set();
 let painted = false;
 
 function sigOf(r) {
+  if (r.type === 'pin') return 'p' + JSON.stringify([r.m.meta, !!r.m._url, r.lost, !!r.m.pending]);
   if (r.type === 'divider') return 'd' + L.dividerLabel(r.at);
   if (r.type === 'igline') return 'ig';
   if (r.type === 'seen') return 's' + L.seenLabel(r.at);
@@ -110,8 +112,15 @@ function sigOf(r) {
 function render({ enter } = {}) {
   const rows = L.buildRows(S.messages);
   const seen = S.hasNewer ? null : L.seenTarget(S.messages, me.user); // a window back in time has no 'Seen'
-  const want = [];
+  const want = [], pins = new Map(), ids = new Set(rows.map((r) => r.key));
+  // Drawings sit over the chat: each is pinned just above the message that was under its top edge.
+  for (const r of rows) if (r.type === 'msg' && r.m.kind === 'doodle' && r.m.meta && (r.m.meta.path || r.m._url)) {
+    const at = ids.has(r.m.meta.anchor) ? r.m.meta.anchor : r.m.id;
+    if (!pins.has(at)) pins.set(at, []);
+    pins.get(at).push({ type: 'pin', key: 'pin:' + r.m.id, m: r.m, lost: at === r.m.id });
+  }
   for (const r of rows) {
+    if (pins.has(r.key)) want.push(...pins.get(r.key));
     want.push(r);
     if (seen && r.type === 'msg' && r.m.id === seen.id) want.push({ type: 'seen', key: 'seen', at: seen.at });
   }
@@ -139,6 +148,7 @@ function render({ enter } = {}) {
 }
 
 function paintRow(el, r) {
+  if (r.type === 'pin') { paintPin(el, r); return; }
   if (r.type === 'divider') { el.className = 'divider'; el.textContent = L.dividerLabel(r.at); return; }
   if (r.type === 'igline') { el.className = 'igline'; el.innerHTML = '<span>Above: our old chats from Instagram and the games</span>'; return; }
   if (r.type === 'seen') { el.className = 'seen'; el.textContent = L.seenLabel(r.at); return; }
@@ -165,6 +175,7 @@ function bubbleHTML(m) {
   switch (m.kind) {
     case 'like': return '<div class="bub like" aria-label="Heart">❤️</div>';
     case 'photo': return photoBubble(m);
+    case 'doodle': return doodleBubble(m);
     case 'video': return videoBubble(m);
     case 'share': return shareBubble(m);
     case 'sticker': case 'gif': return `<div class="bub media">${stickerHTML(m.meta || {})}</div>`;
@@ -195,6 +206,20 @@ function photoBubble(m) {
   const line = state === 'ready' ? (left === 1 && views === 2 ? 'Tap to view · last view' : 'Tap to view')
     : state === 'sent' ? (m.pending ? 'Sending…' : 'Delivered') : state === 'opened' ? (left ? 'Opened once' : 'Opened') : 'No longer available';
   return `<div class="bub paint once-bub" data-state="${state}"><button type="button" class="once" data-act="photo"${state === 'ready' ? '' : ' disabled'}>${CAM}<span><b>${kindLabel}</b><small>${line}</small></span></button></div>`;
+}
+// A drawing on the chat: the ink itself is a pin over the messages; in the timeline it's a small note.
+const PENCIL = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19l1.2-4.3L16.4 4.5a2 2 0 0 1 2.9 0l.2.2a2 2 0 0 1 0 2.9L9.3 17.8z"/><path d="M14.5 6.4l3.1 3.1"/></svg>';
+function doodleBubble(m) {
+  const who = m.sender === me.user ? 'You drew on the chat' : `${escapeHtml(firstName(m.sender))} drew on the chat`;
+  return `<div class="bub paint doodle-bub"><button type="button" class="doodle-note" data-act="doodle">${PENCIL}<span><b>${who}</b><small>${m.pending ? 'Sending…' : 'Tap to see it'}</small></span></button></div>`;
+}
+function paintPin(el, r) {
+  const m = r.m, d = m.meta || {}, tw = +d.tw || 360, w = +d.w || 100, h = +d.h || 100;
+  el.className = 'dpin' + (r.lost ? ' lost' : '') + (m.pending ? ' pending' : '');
+  el.dataset.pin = m.id;
+  // Across screens: the same place across the chat's width, scaled with it (within reason); the same height from the message.
+  el.style.cssText = `--xf:${+d.xf || 0};--wf:${w / tw};--w:${w};--ar:${w} / ${h};--dy:${r.lost ? -h - 6 : +d.dy || 0}`;
+  el.innerHTML = `<img alt="" data-doodle-img="${escapeHtml(m.id)}"${m._url ? ` src="${escapeHtml(m._url)}"` : ''}>`;
 }
 // Videos (only in the Instagram archive so far): the browser's own player, loaded once drawn.
 function videoBubble(m) {
@@ -230,6 +255,12 @@ function hydratePhotos() {
       if (bub) bub.classList.remove('loading');
       if (local) { v.src = local; v.play().catch(() => {}); } else { delete v.dataset.local; toast('That video didn\'t load. Check the connection.'); }
     });
+  });
+  els.thread.querySelectorAll('img[data-doodle-img]:not([src])').forEach((img) => {
+    const m = find(img.dataset.doodleImg);
+    if (!m || !m.meta || !m.meta.path) return;
+    img.setAttribute('src', '');
+    D.mediaUrl(L.bucketOf(m), m.meta.path).then((url) => { if (url) img.src = url; });
   });
   els.thread.querySelectorAll('img[data-photo-img]:not([src])').forEach((img) => {
     const m = find(img.dataset.photoImg);
@@ -606,6 +637,7 @@ els.thread.addEventListener('click', (e) => {
   else if (a === 'reacts') openReactions(row, m);
   else if (a === 'quote') jumpTo(act.dataset.to);
   else if (a === 'photo') { fromGallery = false; viewPhoto(m); }
+  else if (a === 'doodle') showDoodle(m.id);
   else if (a === 'reel') { if (openReels.has(m.id)) openReels.delete(m.id); else openReels.add(m.id); render(); }
 });
 
@@ -716,6 +748,39 @@ $('#pt-mode').addEventListener('click', (e) => { const b = e.target.closest('[da
 $('#pt-send').addEventListener('click', sendTray);
 $('#pt-cancel').addEventListener('click', clearTray);
 $('#btn-photo').addEventListener('click', () => $('#photo-file').click());
+
+/* ---------------- drawing on the chat ---------------- */
+let drawOpen = false;
+$('#btn-draw').addEventListener('click', startDraw);
+function startDraw() {
+  if (drawing() || !inThread()) return;
+  closeMenu(); if (pickerOpen()) closePicker();
+  input.blur();
+  drawOpen = true; els.app.classList.add('drawing'); syncLayers(); // the phone's tab bar steps aside first
+  openDraw({ host: els.scroller, app: els.app, onSend: sendDoodle, onClose: () => { drawOpen = false; els.app.classList.remove('drawing'); syncLayers(); } });
+}
+// Where the drawing sat: the message under its top edge, how far below that message's top, and across the chat's width.
+function sendDoodle({ blob, box }) {
+  const tr = els.thread.getBoundingClientRect(), tw = Math.round(tr.width);
+  const rows = [...els.thread.querySelectorAll(':scope > .row.msg[data-id]')].filter((el) => !el.classList.contains('pending'));
+  let anchor = null;
+  for (const el of rows) { const t = el.getBoundingClientRect().top; if (t <= box.y) anchor = el; else break; }
+  if (!anchor) anchor = rows[0];
+  const meta = {
+    // measured from the top of the row's margin, which is where its pin starts
+    anchor: anchor ? anchor.dataset.id : null, dy: Math.round(box.y - (anchor ? anchor.getBoundingClientRect().top - (parseFloat(getComputedStyle(anchor).marginTop) || 0) : tr.top)),
+    xf: +((box.x - tr.left) / tw).toFixed(4), tw, w: Math.round(box.w), h: Math.round(box.h),
+  };
+  D.send('doodle', '', meta, null, blob, { _url: URL.createObjectURL(blob) });
+}
+// Tapping "drew on the chat" scrolls the drawing into view and makes it wiggle.
+function showDoodle(id) {
+  const pin = els.thread.querySelector(`.dpin[data-pin="${CSS.escape(id)}"] img`);
+  if (!pin) return;
+  const r = pin.getBoundingClientRect(), s = els.scroller.getBoundingClientRect();
+  els.scroller.scrollBy({ top: r.top - s.top - Math.max(16, (s.height - r.height) / 2), behavior: reduced ? 'auto' : 'smooth' });
+  pin.classList.remove('flash'); void pin.offsetWidth; pin.classList.add('flash');
+}
 $('#photo-file').addEventListener('change', (e) => { addPhotos(e.target.files); e.target.value = ''; });
 // Pasting a photo anywhere in the open conversation (Ctrl+V, or paste on a phone) puts it in the tray.
 document.addEventListener('paste', (e) => {
@@ -1072,7 +1137,7 @@ function openDetails() {
 // The shell's CSS keys off this class; :has() rules there re-styled the whole page on every change in the chat.
 const layerWatch = new MutationObserver(syncLayers);
 function syncLayers() {
-  const open = !det.hidden || !els.menu.hidden || !viewer.hidden || !!ROOT.querySelector(':scope > .picker.open');
+  const open = drawOpen || !det.hidden || !els.menu.hidden || !viewer.hidden || !!ROOT.querySelector(':scope > .picker.open');
   document.body.classList.toggle('dm-layer', open);
 }
 [det, els.menu, viewer].forEach((el) => layerWatch.observe(el, { attributes: true, attributeFilter: ['hidden'] }));
@@ -1381,6 +1446,7 @@ function openThread({ push = true } = {}) {
 }
 // Leaving the conversation counts as leaving it: vanish-mode messages go, presence and typing stop.
 function leaveThread() {
+  closeDraw();
   D.vanishSweepOnLeave(); render();
   D.sendTyping(false);
   D.setHere(false);

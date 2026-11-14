@@ -6,7 +6,7 @@
 //  2. Sending shows the bubble at once; the database write happens behind it, and failed sends wait in
 //     an outbox (kept with the cache) and are retried.
 //  3. One realtime channel brings new messages, edits, reactions, seen receipts, typing and "active now".
-import { merge, bucketOf, isIg } from './logic.mjs?v=11';
+import { merge, bucketOf, isIg } from './logic.mjs?v=12';
 
 const CACHE_MAX = 400, WINDOW = 200, PAGE = 150;
 const listeners = new Set();
@@ -227,6 +227,7 @@ export async function ensureLoaded(id, at) {
 /* ---------------- sending (optimistic, with an outbox) ---------------- */
 const uuid = () => (crypto.randomUUID ? crypto.randomUUID()
   : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)));
+const L_FILE = new Set(['voice', 'photo', 'doodle']); // kinds that upload a file first
 const blobs = new Map(); // id → voice recording still to upload (only while this page is open)
 
 export function send(kind, body = '', meta = {}, replyTo = null, blob = null, local = {}) {
@@ -249,10 +250,10 @@ async function deliver(m) {
   inFlight.add(m.id);
   try {
     let meta = m.meta;
-    if ((m.kind === 'voice' || m.kind === 'photo') && !meta.path) {
+    if (L_FILE.has(m.kind) && !meta.path) {
       const blob = blobs.get(m.id);
       if (!blob) throw new Error('file lost');
-      const photo = m.kind === 'photo';
+      const photo = m.kind === 'photo' || m.kind === 'doodle';
       const ext = photo ? (/png/.test(blob.type) ? 'png' : /jpe?g/.test(blob.type) ? 'jpg' : 'webp')
         : /mp4|aac/.test(blob.type) ? 'm4a' : /ogg/.test(blob.type) ? 'ogg' : 'webm';
       const path = `${me.uid}/${m.id}.${ext}`;
@@ -303,7 +304,7 @@ export function retry(id) {
 // Pending sends left over from last time (the tab closed or the network dropped).
 export function flushOutbox() {
   S.messages.filter((m) => m.pending || m.failed).forEach((m) => {
-    if ((m.kind === 'voice' || m.kind === 'photo') && !m.meta.path && !blobs.has(m.id)) { drop(m.id); return; } // the file didn't survive a reload
+    if (L_FILE.has(m.kind) && !m.meta.path && !blobs.has(m.id)) { drop(m.id); return; } // the file didn't survive a reload
     if (m.pending) deliver(m);
   });
 }
@@ -330,7 +331,7 @@ export async function unsend(id) {
   emit('all'); saveCache();
   const { data: path, error } = await sb.rpc('dm_unsend', { p_id: id });
   if (error) { S.messages = merge(S.messages, [m]); emit('all'); throw error; }
-  const file = path || (m.kind === 'photo' && m.meta && m.meta.path);
+  const file = path || ((m.kind === 'photo' || m.kind === 'doodle') && m.meta && m.meta.path);
   if (file && !isIg(m)) sb.storage.from(bucketOf(m)).remove([file]); // the Instagram archive keeps its files
 }
 
@@ -417,7 +418,7 @@ export async function vanishSweep(mineOnly = true) {
 function cleanupFiles(m) {
   if (m.sender !== me.user || !m.meta || !m.meta.path || isIg(m)) return;
   if (m.kind === 'voice') sb.storage.from('dm-voice').remove([m.meta.path]).then(() => {});
-  if (m.kind === 'photo') sb.storage.from('dm-once').remove([m.meta.path]).then(() => {});
+  if (m.kind === 'photo' || m.kind === 'doodle') sb.storage.from('dm-once').remove([m.meta.path]).then(() => {});
 }
 
 /* ---------------- photos: unlimited (kept for good), view once or view twice (deleted once seen) ---------------- */

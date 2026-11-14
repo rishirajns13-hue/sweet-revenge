@@ -1,5 +1,5 @@
 // Voice notes: the recorder (with a live waveform) and one shared player for every voice bubble.
-import { waveform } from './logic.mjs?v=11';
+import { waveform } from './logic.mjs?v=12';
 
 export const MAX_SECONDS = 300;
 

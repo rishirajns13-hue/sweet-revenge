@@ -891,7 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const dmPeek = { names: {}, last: null, count: 0, other: null };
 const PAIR_IDS = ['ammu', 'panchara kunju'];
 const otherOf = () => PAIR_IDS.find((id) => id !== me.user) || PAIR_IDS[0];
-const KIND_TEXT = { voice: 'Voice message', gif: 'GIF', sticker: 'Sticker', like: '❤️', photo: 'Photo' };
+const KIND_TEXT = { voice: 'Voice message', gif: 'GIF', sticker: 'Sticker', like: '❤️', photo: 'Photo', doodle: 'Drew on the chat ✏️' };
 // The poster's data: live from the chat once it has loaded, else this device's saved copy of the chat.
 function homeChatData() {
   if (chatApi) return chatApi.peek(3);
@@ -1049,7 +1049,7 @@ function startMessages() {
       if (e.eventType === 'INSERT' && m && m.kind !== 'system' && !m.vanish) { dmPeek.last = m; renderHome(); }
       if (e.eventType !== 'INSERT' || !m || m.sender === me.user || m.kind === 'system' || currentTab === 'chat') return;
       const what = m.vanish ? 'sent a message' : m.kind === 'text' ? '' : m.kind === 'voice' ? 'sent a voice message'
-        : m.kind === 'gif' ? 'sent a GIF' : m.kind === 'sticker' ? 'sent a sticker' : 'sent a ❤️';
+        : m.kind === 'gif' ? 'sent a GIF' : m.kind === 'sticker' ? 'sent a sticker' : m.kind === 'photo' ? 'sent a photo' : m.kind === 'doodle' ? 'drew on the chat ✏️' : 'sent a ❤️';
       const who = names[m.sender] || m.sender;
       toast(`💬 ${who}${what ? ' ' + what : ': ' + (m.body.length > 60 ? m.body.slice(0, 60) + '…' : m.body)}`, 3500);
       sfx.pop();
