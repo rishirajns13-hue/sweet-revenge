@@ -8,7 +8,7 @@
 //  3. One realtime channel brings new messages, edits, reactions, seen receipts, typing and "active now".
 import { merge, bucketOf, isIg } from './logic.mjs?v=9';
 
-const CACHE_MAX = 400, WINDOW = 200, PAGE = 50;
+const CACHE_MAX = 400, WINDOW = 200, PAGE = 150;
 const listeners = new Set();
 const emit = (what, extra) => listeners.forEach((fn) => fn(what, extra));
 export const onData = (fn) => listeners.add(fn);

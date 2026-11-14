@@ -77,7 +77,7 @@
   .nav-i .ic { --is: 22px; }
   .nav-face { display: none !important; }
   .nav-badge { top: -9px; right: -6px; }
-  body:has(#screen-hub.active) main { padding-top: calc(var(--bar-space) + 4px); }
+  body.on-hub main { padding-top: calc(var(--bar-space) + 4px); }
   #screen-hub .topbar { position: fixed; z-index: 41; top: var(--bar-top); right: calc(max(20px, env(safe-area-inset-right)) + 16px); height: var(--bar-h); display: flex !important; align-items: center; pointer-events: none; }
   #screen-hub .topbar > * { pointer-events: auto; }
   .topbar .brand.tiny { display: none; }
@@ -96,7 +96,7 @@
 }
 /* full-screen sheets in the chat cover the bar on phones */
 @media (max-width: 899px) {
-  body:has(#details:not([hidden]), #menu:not([hidden]), #dm-root .picker.open) .app-nav { display: none !important; }
+  body.dm-layer .app-nav { display: none !important; }
 }
 @media (max-width: 899px) and (pointer: coarse) {
   body.typing .app-nav { display: none !important; }
@@ -168,8 +168,8 @@ html[data-vt="chat-back"]::view-transition-new(root) { animation: sr-vt-from-lef
 
 /* Full-screen layers from the chat (photo viewer, long-press menu, pickers, details) go over the top bar;
    messages pop up just under the bar instead of over it. */
-#tab-chat:has(.ph-view:not([hidden]), .menu:not([hidden]), .picker.open, .details:not([hidden])) { z-index: 60; }
+body.dm-layer #tab-chat { z-index: 60; }
 @media (min-width: 900px) { body.home .toast { top: calc(var(--bar-top) + var(--bar-h) + 12px); } }
 /* phones: scrolling to something (keyboard focus, links) keeps it clear of the bottom bar */
-@media (max-width: 899px) { html:has(#screen-hub.active) { scroll-padding-bottom: calc(var(--nav-h) + 12px); } }
+@media (max-width: 899px) { html:has(body.on-hub) { scroll-padding-bottom: calc(var(--nav-h) + 12px); } }
 body.home .toast:not(.show) { visibility: hidden; transition: transform .3s cubic-bezier(.3, 1.6, .5, 1), visibility 0s .3s; }

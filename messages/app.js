@@ -4,9 +4,9 @@
 import * as L from './logic.mjs?v=9';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
-import * as D from './data.js?v=8';
+import * as D from './data.js?v=9';
 import * as V from './voice.js?v=4';
-import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=4';
+import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=5';
 
 const S = D.S;
 // Everything the chat draws lives inside #dm-root, so its theme and classes never leak into the rest of the app.
@@ -288,7 +288,7 @@ function updateJump() {
 els.jump.onclick = () => { missed = 0; toBottom(true); };
 sc.addEventListener('scroll', () => {
   updateJump();
-  if (sc.scrollTop < 400 && S.hasOlder && painted) loadOlder();
+  if (sc.scrollTop < 2500 && S.hasOlder && painted) loadOlder(); // early, so the next page is in before you reach the top
   if (nearBottom(4)) { if (!atBottomSince) atBottomSince = performance.now(); } else atBottomSince = 0;
 }, { passive: true });
 async function loadOlder() {
@@ -978,10 +978,21 @@ $('#seg-size').addEventListener('click', (e) => { const b = e.target.closest('[d
 const det = els.details;
 function openDetails() {
   renderDetails();
-  det.hidden = false;
+  det.hidden = false; ROOT.classList.add('details-open'); // a class, not :has(): :has() re-styled the whole chat on every change
   requestAnimationFrame(() => det.classList.add('open'));
 }
-function closeDetails() { det.classList.remove('open'); setTimeout(() => { det.hidden = true; }, 300); }
+// body.dm-layer while a full-screen layer of the chat is open (details, long-press menu, photo viewer, picker).
+// The shell's CSS keys off this class; :has() rules there re-styled the whole page on every change in the chat.
+const layerWatch = new MutationObserver(syncLayers);
+function syncLayers() {
+  const open = !det.hidden || !els.menu.hidden || !viewer.hidden || !!ROOT.querySelector(':scope > .picker.open');
+  document.body.classList.toggle('dm-layer', open);
+}
+[det, els.menu, viewer].forEach((el) => layerWatch.observe(el, { attributes: true, attributeFilter: ['hidden'] }));
+new MutationObserver((list) => list.forEach((m) => m.addedNodes.forEach((n) => {
+  if (n.classList && n.classList.contains('picker')) layerWatch.observe(n, { attributes: true, attributeFilter: ['class'] });
+}))).observe(ROOT, { childList: true });
+function closeDetails() { det.classList.remove('open'); setTimeout(() => { det.hidden = true; ROOT.classList.remove('details-open'); }, 300); }
 $('#btn-info').onclick = openDetails;
 $('#btn-peer').onclick = openDetails;
 det.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeDetails(); });

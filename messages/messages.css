@@ -339,7 +339,7 @@
 #dm-root .picker-note { color: var(--sub); text-align: center; font-size: 14px; padding: 20px 10px; margin: 0; }
 #dm-root .giphy-credit { text-align: center; font-size: 11px; color: var(--sub); font-weight: 800; margin: 12px 0 0; }
 #dm-root emoji-picker { width: 100%; height: 100%; --background: var(--sheet); --border-color: transparent; --input-border-color: var(--line); --input-font-color: var(--text); --category-font-color: var(--sub); --indicator-color: var(--accent); --outline-color: var(--accent); --num-columns: 9; --emoji-size: 1.6rem; }
-#dm-root .picker-body:has(emoji-picker) { padding: 0; overflow: hidden; }
+#dm-root .picker-body.is-emoji { padding: 0; overflow: hidden; }
 
 /* ---------- details panel ---------- */
 #dm-root .details { position: fixed; inset: 0; z-index: 100; }
@@ -523,7 +523,7 @@ body.typing #dm-root .dm-nav { display: none; }
 /* wide screens: Details sits beside the conversation instead of over it */
 @media (min-width: 1200px) {
   #tab-chat #dm-root { transition: padding-right .32s var(--ease-out); }
-  #tab-chat #dm-root:has(.details:not([hidden])) { padding-right: 400px; }
+  #tab-chat #dm-root.details-open { padding-right: 400px; }
   #tab-chat #dm-root .details { position: absolute; inset: 0 0 0 auto; width: 400px; z-index: 6; }
   #tab-chat #dm-root .details-scrim { display: none; }
   #tab-chat #dm-root .details-panel { width: 100%; box-shadow: -18px 0 40px -30px #2b214066; border-left: 1px solid var(--line); }
@@ -753,3 +753,6 @@ body.typing #dm-root .dm-nav { display: none; }
 #dm-root .igline { align-self: stretch; display: flex; align-items: center; gap: 10px; margin: 22px 8px 10px; font-size: 12px; font-weight: 800; color: var(--sub); }
 #dm-root .igline::before, #dm-root .igline::after { content: ''; flex: 1; border-top: 2px dashed color-mix(in srgb, var(--sub) 45%, transparent); }
 #dm-root .igline span { padding: 5px 12px; border-radius: 999px; background: color-mix(in srgb, var(--sheet) 70%, transparent); }
+
+/* Speed: rows scrolled far off screen skip layout, paint and hit-testing (the chat can hold 36k+ messages). */
+#dm-root .thread > .row { content-visibility: auto; contain-intrinsic-size: auto 46px; }

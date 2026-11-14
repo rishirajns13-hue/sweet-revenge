@@ -97,6 +97,7 @@ async function show(which) {
     const others = (typeof AVATAR_ART !== 'undefined' ? AVATAR_ART.order : []).filter((k) => k !== '🤖').slice(0, 12)
       .map((k, i) => ({ kind: 'sticker', meta: { pack: 'critter', critter: k, mood: ['cheer', 'happy', 'smug', 'sulk', 'sweat'][i % 5], text: '' } }));
     const rec = recent().filter((r) => r.kind === 'sticker');
+    body.classList.remove('is-emoji');
     body.innerHTML = `${q ? '' : section('Recent', rec, 'stickers') + section('Your critter', critters, 'stickers') + section('Critter crew', others, 'stickers')}
       <div class="giphy-slot"></div>`;
     if (GIPHY_KEY) loadGiphy('stickers', q, body.querySelector('.giphy-slot'), q ? null : 'Trending stickers');
@@ -104,6 +105,7 @@ async function show(which) {
   }
   // GIFs
   const rec = recent().filter((r) => r.kind === 'gif');
+  body.classList.remove('is-emoji');
   body.innerHTML = `${q ? '' : section('Recent', rec, 'gifs')}<div class="giphy-slot"></div>`;
   if (!GIPHY_KEY) {
     body.querySelector('.giphy-slot').innerHTML = '<p class="picker-note">GIF search turns on once a GIPHY key is added. Critter stickers work already.</p>';
@@ -149,6 +151,7 @@ async function loadGiphy(kind, q, slot, title) {
 }
 
 async function showEmoji() {
+  body.classList.remove('is-emoji');
   body.innerHTML = '<p class="picker-note">Loading emoji…</p>';
   try {
     emojiLoaded = emojiLoaded || import(EMOJI_PICKER);
@@ -166,4 +169,5 @@ async function showEmoji() {
     if (opts.react) closePicker();
   });
   body.appendChild(el);
+  body.classList.add('is-emoji');
 }

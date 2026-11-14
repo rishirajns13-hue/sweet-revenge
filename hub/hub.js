@@ -39,6 +39,7 @@ const sfx = {
 /* ================= little helpers ================= */
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === 'screen-' + name));
+  document.body.classList.toggle('on-hub', name === 'hub'); // for CSS: a class, not :has() (that re-styled the page on every chat update)
 }
 function timeAgo(t) {
   const s = Math.max(0, (Date.now() - new Date(t).getTime()) / 1000);
@@ -293,7 +294,7 @@ let chatApi = null, chatLoad = null;
 function ensureChat(show) {
   if (!me) return Promise.resolve(null);
   if (!chatLoad) {
-    chatLoad = loginReady.then(() => import(new URL('messages/app.js?v=21', document.baseURI).href))
+    chatLoad = loginReady.then(() => import(new URL('messages/app.js?v=22', document.baseURI).href))
       .then((mod) => mod.mountChat(undefined, { show: currentTab === 'chat' }))
       .then((api) => { chatApi = api; renderHome(); return api; })
       .catch((e) => { chatLoad = null; console.error(e); toast('The chat didn\'t load. Check the connection.'); return null; });
