@@ -42,6 +42,7 @@ export function buildRows(messages) {
   const rows = [];
   let prev = null, sawIg = false, igLine = false;
   for (const m of messages) {
+    if (m.kind === 'doodle') continue; // drawn over the chat, not a bubble in it (app.js pins it)
     const at = t(m);
     // The old chats (Instagram, meta.ig; game rooms, meta.game) sit above one line, placed where this chat's own first message is.
     if (isOld(m)) sawIg = true;
@@ -78,7 +79,7 @@ function big(m) { return m.kind !== 'text' && m.kind !== 'voice' ? true : m.kind
 export function seenTarget(messages, meId) {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
-    if (m.kind === 'system') continue;
+    if (m.kind === 'system' || m.kind === 'doodle') continue;
     if (m.sender !== meId) return null;
     if (m.pending || m.failed) return null;
     return m.seen_at ? { id: m.id, at: t({ created_at: m.seen_at }) } : null;

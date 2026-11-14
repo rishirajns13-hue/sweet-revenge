@@ -1,11 +1,11 @@
 // Messages: the private chat between the two friends. This file draws the chat and handles every
 // gesture; data.js talks to the database, logic.mjs holds the tested pure parts.
 // Needs the classic scripts loaded first: shared/core.js, shared/avatars.js, shared/sound.js.
-import * as L from './logic.mjs?v=12';
+import * as L from './logic.mjs?v=13';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
-import * as D from './data.js?v=15';
-import * as V from './voice.js?v=8';
+import * as D from './data.js?v=16';
+import * as V from './voice.js?v=9';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=5';
 import { openDraw, closeDraw, drawing } from './draw.js?v=1';
 
@@ -113,12 +113,15 @@ function render({ enter } = {}) {
   const rows = L.buildRows(S.messages);
   const seen = S.hasNewer ? null : L.seenTarget(S.messages, me.user); // a window back in time has no 'Seen'
   const want = [], pins = new Map(), ids = new Set(rows.map((r) => r.key));
-  // Drawings sit over the chat: each is pinned just above the message that was under its top edge.
-  for (const r of rows) if (r.type === 'msg' && r.m.kind === 'doodle' && r.m.meta && (r.m.meta.path || r.m._url)) {
-    const at = ids.has(r.m.meta.anchor) ? r.m.meta.anchor : r.m.id;
+  // Drawings sit over the chat (they have no bubble of their own): each is pinned just above the message
+  // that was under its top edge. If that message is gone, it goes above the next message after the drawing.
+  for (const m of S.messages) if (m.kind === 'doodle' && m.meta && (m.meta.path || m._url)) {
+    let at = ids.has(m.meta.anchor) ? m.meta.anchor : null;
+    if (!at) { const next = rows.find((r) => r.type === 'msg' && r.m.created_at >= m.created_at); at = next ? next.key : '$end'; }
     if (!pins.has(at)) pins.set(at, []);
-    pins.get(at).push({ type: 'pin', key: 'pin:' + r.m.id, m: r.m, lost: at === r.m.id });
+    pins.get(at).push({ type: 'pin', key: 'pin:' + m.id, m, lost: at !== m.meta.anchor });
   }
+  if (pins.has('$end')) rows.push(...pins.get('$end')), pins.delete('$end');
   for (const r of rows) {
     if (pins.has(r.key)) want.push(...pins.get(r.key));
     want.push(r);
@@ -175,7 +178,6 @@ function bubbleHTML(m) {
   switch (m.kind) {
     case 'like': return '<div class="bub like" aria-label="Heart">❤️</div>';
     case 'photo': return photoBubble(m);
-    case 'doodle': return doodleBubble(m);
     case 'video': return videoBubble(m);
     case 'share': return shareBubble(m);
     case 'sticker': case 'gif': return `<div class="bub media">${stickerHTML(m.meta || {})}</div>`;
@@ -207,12 +209,7 @@ function photoBubble(m) {
     : state === 'sent' ? (m.pending ? 'Sending…' : 'Delivered') : state === 'opened' ? (left ? 'Opened once' : 'Opened') : 'No longer available';
   return `<div class="bub paint once-bub" data-state="${state}"><button type="button" class="once" data-act="photo"${state === 'ready' ? '' : ' disabled'}>${CAM}<span><b>${kindLabel}</b><small>${line}</small></span></button></div>`;
 }
-// A drawing on the chat: the ink itself is a pin over the messages; in the timeline it's a small note.
-const PENCIL = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19l1.2-4.3L16.4 4.5a2 2 0 0 1 2.9 0l.2.2a2 2 0 0 1 0 2.9L9.3 17.8z"/><path d="M14.5 6.4l3.1 3.1"/></svg>';
-function doodleBubble(m) {
-  const who = m.sender === me.user ? 'You drew on the chat' : `${escapeHtml(firstName(m.sender))} drew on the chat`;
-  return `<div class="bub paint doodle-bub"><button type="button" class="doodle-note" data-act="doodle">${PENCIL}<span><b>${who}</b><small>${m.pending ? 'Sending…' : 'Tap to see it'}</small></span></button></div>`;
-}
+// A drawing on the chat: its ink is pinned over the messages (the message itself has no bubble).
 function paintPin(el, r) {
   const m = r.m, d = m.meta || {}, tw = +d.tw || 360, w = +d.w || 100, h = +d.h || 100;
   el.className = 'dpin' + (r.lost ? ' lost' : '') + (m.pending ? ' pending' : '');
@@ -637,7 +634,6 @@ els.thread.addEventListener('click', (e) => {
   else if (a === 'reacts') openReactions(row, m);
   else if (a === 'quote') jumpTo(act.dataset.to);
   else if (a === 'photo') { fromGallery = false; viewPhoto(m); }
-  else if (a === 'doodle') showDoodle(m.id);
   else if (a === 'reel') { if (openReels.has(m.id)) openReels.delete(m.id); else openReels.add(m.id); render(); }
 });
 
@@ -773,14 +769,6 @@ function sendDoodle({ blob, box }) {
   };
   D.send('doodle', '', meta, null, blob, { _url: URL.createObjectURL(blob) });
 }
-// Tapping "drew on the chat" scrolls the drawing into view and makes it wiggle.
-function showDoodle(id) {
-  const pin = els.thread.querySelector(`.dpin[data-pin="${CSS.escape(id)}"] img`);
-  if (!pin) return;
-  const r = pin.getBoundingClientRect(), s = els.scroller.getBoundingClientRect();
-  els.scroller.scrollBy({ top: r.top - s.top - Math.max(16, (s.height - r.height) / 2), behavior: reduced ? 'auto' : 'smooth' });
-  pin.classList.remove('flash'); void pin.offsetWidth; pin.classList.add('flash');
-}
 $('#photo-file').addEventListener('change', (e) => { addPhotos(e.target.files); e.target.value = ''; });
 // Pasting a photo anywhere in the open conversation (Ctrl+V, or paste on a phone) puts it in the tray.
 document.addEventListener('paste', (e) => {
@@ -799,11 +787,45 @@ els.thread.addEventListener('dblclick', (e) => {
   heart(row, e.clientX, e.clientY);
 });
 els.thread.addEventListener('contextmenu', (e) => {
+  const ink = inkAt(e.clientX, e.clientY);
+  if (ink) { e.preventDefault(); inkMenu(ink, e.clientX, e.clientY); return; }
   const row = e.target.closest('.row.msg');
   if (!row || e.target.closest('a')) return;
   e.preventDefault();
   openMenu(row);
 });
+// Drawings: is there ink of one of MY drawings under this point? (Only the drawn pixels count, not the empty box.)
+const probe = document.createElement('canvas'); probe.width = probe.height = 1;
+function inkAt(x, y) {
+  for (const img of els.thread.querySelectorAll('.dpin img')) {
+    const m = find(img.dataset.doodleImg);
+    if (!m || m.sender !== me.user || m.pending || !img.naturalWidth) continue;
+    const b = img.getBoundingClientRect();
+    if (x < b.left || x > b.right || y < b.top || y > b.bottom) continue;
+    try {
+      const c = probe.getContext('2d', { willReadFrequently: true });
+      c.clearRect(0, 0, 1, 1);
+      // a 1-pixel window onto the picture, a little blurred so thin lines are easy to hit
+      const sx = (x - b.left) / b.width * img.naturalWidth, sy = (y - b.top) / b.height * img.naturalHeight, k = img.naturalWidth / b.width * 10;
+      c.drawImage(img, sx - k / 2, sy - k / 2, k, k, 0, 0, 1, 1);
+      if (c.getImageData(0, 0, 1, 1).data[3] > 4) return m;
+    } catch (e) { return m; }
+  }
+  return null;
+}
+let inkPop = null;
+function closeInkMenu() { if (inkPop) { inkPop.remove(); inkPop = null; } }
+function inkMenu(m, x, y) {
+  closeInkMenu();
+  inkPop = document.createElement('div');
+  inkPop.className = 'ink-pop';
+  inkPop.innerHTML = `<button type="button">${svg('trash')}<span>Remove drawing</span></button>`;
+  inkPop.style.left = Math.min(innerWidth - 190, Math.max(10, x - 90)) + 'px';
+  inkPop.style.top = Math.max(10, y - 64) + 'px';
+  ROOT.appendChild(inkPop);
+  inkPop.querySelector('button').onclick = () => { closeInkMenu(); D.unsend(m.id).catch(() => toast("That drawing wasn't removed. Check the connection.")); };
+  setTimeout(() => addEventListener('pointerdown', (ev) => { if (inkPop && !inkPop.contains(ev.target)) closeInkMenu(); }, { once: true, capture: true }), 0);
+}
 function heart(row, x, y) {
   const m = find(row.dataset.id);
   if (!m || m.pending || m.kind === 'system') return;
@@ -824,7 +846,10 @@ els.thread.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'mouse') return;
   const row = e.target.closest('.row.msg');
   g = { x: e.clientX, y: e.clientY, row, mode: null, t0: performance.now(), buzzed: false };
-  if (row && !e.target.closest('[data-act]')) {
+  const ink = inkAt(e.clientX, e.clientY);
+  if (ink) { // holding your own drawing offers to remove it (it wins over the message under it)
+    g.press = setTimeout(() => { if (g && !g.mode) { g.mode = 'press'; if (navigator.vibrate) navigator.vibrate(10); inkMenu(ink, g.x, g.y); } }, 430);
+  } else if (row && !e.target.closest('[data-act]')) {
     g.press = setTimeout(() => {
       if (g && !g.mode) { g.mode = 'press'; if (navigator.vibrate) navigator.vibrate(10); openMenu(row); }
     }, 430);

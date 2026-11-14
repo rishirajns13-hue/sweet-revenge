@@ -819,13 +819,10 @@ body.typing #dm-root .dm-nav { display: none; }
 #dm-root .dpin.pending img { opacity: .85; }
 #dm-root .dpin img.flash { animation: dw-flash .9s var(--ease-out); }
 @keyframes dw-flash { 0% { transform: scale(1); } 30% { transform: scale(1.06) rotate(-1.5deg); filter: drop-shadow(0 0 10px #fff8); } 60% { transform: scale(.98) rotate(1deg); } 100% { transform: none; } }
-#dm-root .doodle-bub { padding: 0 !important; }
-#dm-root .doodle-note { display: flex; align-items: center; gap: 10px; padding: 9px 14px 9px 11px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-#dm-root .doodle-note .ic { width: 26px; height: 26px; flex: none; padding: 4px; border-radius: 50%; background: color-mix(in srgb, currentColor 16%, transparent); }
-#dm-root .doodle-note span { display: flex; flex-direction: column; line-height: 1.25; }
-#dm-root .doodle-note b { font-weight: 800; font-size: 14px; }
-#dm-root .doodle-note small { font-size: 12px; opacity: .8; }
 
+#dm-root .ink-pop { position: fixed; z-index: 130; animation: dm-pop-in .25s var(--spring) both; }
+#dm-root .ink-pop button { display: flex; align-items: center; gap: 8px; padding: 10px 16px 10px 12px; border: 2.5px solid var(--ol); border-radius: 999px; background: var(--sheet); color: #e5354b; font: 800 14px var(--read); box-shadow: 2px 3px 0 var(--ol-soft), 0 8px 24px #0003; cursor: pointer; }
+#dm-root .ink-pop .ic { width: 18px; height: 18px; }
 #dm-root .dm-app.drawing .composer, #dm-root .dm-app.drawing .jump-down { visibility: hidden; }
 #dm-root .dw { position: absolute; inset: 0; z-index: 40; touch-action: none; user-select: none; -webkit-user-select: none; opacity: 0; transition: opacity .16s; }
 #dm-root .dw.in { opacity: 1; }
