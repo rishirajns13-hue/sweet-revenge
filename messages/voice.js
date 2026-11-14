@@ -59,10 +59,12 @@ const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(
 function paintEl(el, p, playing) {
   if (!el) return;
   el.classList.toggle('playing', playing);
-  const bars = el.querySelectorAll('.v-bars i'), k = Math.round(p * bars.length);
-  bars.forEach((b, i) => b.classList.toggle('on', playing || p > 0 ? i < k : true));
+  // Called every frame while playing: only touch the bars and the time when they actually change.
+  const bars = el.querySelectorAll('.v-bars i'), k = playing || p > 0 ? Math.round(p * bars.length) : -1;
+  if (el._k !== k || el._bars !== bars.length) { el._k = k; el._bars = bars.length; bars.forEach((b, i) => b.classList.toggle('on', k < 0 || i < k)); }
   const t = el.querySelector('.v-time');
-  if (t) t.textContent = playing || p > 0 ? fmt(Math.max(0, (audio.duration || 0) - audio.currentTime)) : el.dataset.dur;
+  const label = playing || p > 0 ? fmt(Math.max(0, (audio.duration || 0) - audio.currentTime)) : el.dataset.dur;
+  if (t && t.textContent !== label) t.textContent = label;
   const r = el.querySelector('.v-rate');
   if (r) r.textContent = rate + '×';
 }

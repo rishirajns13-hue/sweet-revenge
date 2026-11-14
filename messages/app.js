@@ -4,8 +4,8 @@
 import * as L from './logic.mjs?v=10';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
-import * as D from './data.js?v=11';
-import * as V from './voice.js?v=5';
+import * as D from './data.js?v=12';
+import * as V from './voice.js?v=6';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=5';
 
 const S = D.S;
@@ -220,7 +220,16 @@ function hydratePhotos() {
     const m = find(v.dataset.video);
     if (!m || !m.meta || !m.meta.path) return;
     v.setAttribute('src', '');
-    D.fileUrl(L.bucketOf(m), m.meta.path).then((url) => { if (url) v.src = url + '#t=0.1'; });
+    D.fileUrl(L.bucketOf(m), m.meta.path).then((url) => { if (url) v.src = url + '#t=0.1'; }); // first frame
+    // Pressing play swaps in the downloaded copy, which plays without stalling.
+    v.addEventListener('play', async () => {
+      if (v.dataset.local) return;
+      v.pause(); v.dataset.local = '1';
+      const bub = v.closest('.video-bub'); if (bub) bub.classList.add('loading');
+      const local = await D.mediaUrl(L.bucketOf(m), m.meta.path);
+      if (bub) bub.classList.remove('loading');
+      if (local) { v.src = local; v.play().catch(() => {}); } else { delete v.dataset.local; toast('That video didn\'t load. Check the connection.'); }
+    });
   });
   els.thread.querySelectorAll('img[data-photo-img]:not([src])').forEach((img) => {
     const m = find(img.dataset.photoImg);
@@ -572,7 +581,7 @@ function nextVoiceButton(id) {
   return el && el.querySelector('.v-play');
 }
 function playVoice(m) {
-  V.toggle(m.id, () => voiceEl(m.id), async () => m._url || find(m.id)._url || D.fileUrl(L.bucketOf(m), m.meta.path), () => nextVoiceButton(m.id))
+  V.toggle(m.id, () => voiceEl(m.id), async () => m._url || find(m.id)._url || D.mediaUrl(L.bucketOf(m), m.meta.path), () => nextVoiceButton(m.id))
     .catch(() => toast('That voice message couldn\'t play'));
 }
 
@@ -630,11 +639,13 @@ async function viewPhoto(m) {
 async function viewVideo(m) {
   if (viewing || !m.meta || !m.meta.path) return;
   viewing = { m };
-  const url = await D.fileUrl(L.bucketOf(m), m.meta.path);
-  if (!url) { viewing = null; toast('That video didn\'t open. Check the connection.'); return; }
   const v = viewer.querySelector('video');
-  v.src = url; $('#ph-note').textContent = '';
+  $('#ph-note').textContent = 'Loading…';
   showViewer('video');
+  const url = await D.mediaUrl(L.bucketOf(m), m.meta.path); // the whole file first: no stalls while playing
+  if (!viewing || viewing.m !== m) return; // closed (or another opened) while loading
+  if (!url) { closePhoto(); toast('That video didn\'t open. Check the connection.'); return; }
+  v.src = url; $('#ph-note').textContent = '';
   v.play().catch(() => {});
 }
 // A reel or post in Instagram's own player; a story (no player) opens on Instagram instead.
@@ -1123,8 +1134,11 @@ function stopMgAudio() {
 async function playMgVoice(m, btn) {
   if (mgAudio && mgAudio.id === m.id) { stopMgAudio(); return; }
   stopMgAudio();
-  const url = await D.fileUrl(L.bucketOf(m), m.meta.path);
+  btn.classList.add('loading');
+  const url = await D.mediaUrl(L.bucketOf(m), m.meta.path);
+  btn.classList.remove('loading');
   if (!url) { toast('That voice message couldn\'t play'); return; }
+  if (mgAudio) return; // another note was started while this one loaded
   const a = new Audio(url);
   mgAudio = { id: m.id, a };
   btn.classList.add('playing');

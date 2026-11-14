@@ -805,3 +805,7 @@ body.typing #dm-root .dm-nav { display: none; }
 #dm-root .mg-voice .pl { border: 0; padding: 0; cursor: pointer; }
 #dm-root .mg-goto { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--chip); color: var(--text); cursor: pointer; }
 #dm-root .mg-goto .ic { width: 16px; height: 16px; }
+/* media fetching its local copy before it plays */
+#dm-root .video-bub.loading, #dm-root .mg-voice.loading .pl { animation: dm-load-pulse 1s ease-in-out infinite; }
+@keyframes dm-load-pulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { #dm-root .video-bub.loading, #dm-root .mg-voice.loading .pl { animation: none; opacity: .7; } }

@@ -460,6 +460,36 @@ export async function fileUrl(bucket, path) {
   store.set('dm-urls', urlCache);
   return data.signedUrl;
 }
+// Videos and voice notes play from a local copy: one download (kept in the browser's Cache Storage, so a
+// replay or a later visit is instant), then no streaming at all. Streaming them straight from storage
+// stuttered: each seek or rebuffer was another round trip, and the archive files' cache header was invalid.
+const MEDIA_CACHE = 'dm-media-v1';
+const mediaUrls = new Map(); // bucket:path → Promise<blob: url>
+export function mediaUrl(bucket, path) {
+  if (!path) return Promise.resolve(null);
+  const k = bucket + ':' + path;
+  if (!mediaUrls.has(k)) {
+    const p = (async () => {
+      const key = 'https://dm-media.invalid/' + encodeURIComponent(k);
+      let cache = null;
+      try {
+        cache = await caches.open(MEDIA_CACHE);
+        const hit = await cache.match(key);
+        if (hit) return URL.createObjectURL(await hit.blob());
+      } catch (e) { cache = null; /* private mode: no Cache Storage */ }
+      const url = await fileUrl(bucket, path);
+      if (!url) return null;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      if (cache) cache.put(key, new Response(blob, { headers: { 'content-type': blob.type || 'application/octet-stream' } })).catch(() => {});
+      return URL.createObjectURL(blob);
+    })().catch(() => null);
+    mediaUrls.set(k, p);
+    p.then((u) => { if (!u) mediaUrls.delete(k); }); // a failure can be tried again
+  }
+  return mediaUrls.get(k);
+}
 export async function download(bucket, path) {
   const { data, error } = await sb.storage.from(bucket).download(path);
   if (error) throw error;
