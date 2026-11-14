@@ -16,7 +16,7 @@
     islandCentre: 18, islandHalf: 11, plateau: 3,
     sling: 24.5, slingY: 1.6,                                    // slingshot x (mirrored) and height above ground
     maxPower: 30, maxWind: 3.2, maxTurnSecs: 9,
-    critterR: 0.45, hp: 100,
+    critterR: 0.55, hp: 100,
     sea: 0,
   };
   const MATERIAL = {

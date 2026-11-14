@@ -23,3 +23,4 @@
 	http://twitter.com/KenneyNL
 
 Platformer Kit (4.1) by Kenney (www.kenney.nl), CC0 1.0: assets/3d/platformer/*.glb and Textures/colormap.png (added 14 Nov 2026 for the co-op platformer).
+Pirate Kit by Kenney (www.kenney.nl), CC0 1.0: assets/3d/pirate/*.glb and Textures/colormap.png (added 14 Nov 2026 for Island Duel).
