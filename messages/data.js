@@ -6,7 +6,7 @@
 //  2. Sending shows the bubble at once; the database write happens behind it, and failed sends wait in
 //     an outbox (kept with the cache) and are retried.
 //  3. One realtime channel brings new messages, edits, reactions, seen receipts, typing and "active now".
-import { merge, bucketOf, isIg } from './logic.mjs?v=8';
+import { merge, bucketOf, isIg } from './logic.mjs?v=9';
 
 const CACHE_MAX = 400, WINDOW = 200, PAGE = 50;
 const listeners = new Set();
@@ -348,7 +348,7 @@ function cleanupFiles(m) {
   if (m.kind === 'photo') sb.storage.from('dm-once').remove([m.meta.path]).then(() => {});
 }
 
-/* ---------------- photos: unlimited, view once or view twice; all gone after 3 days ---------------- */
+/* ---------------- photos: unlimited (kept for good), view once or view twice (deleted once seen) ---------------- */
 // Opening a photo. Unlimited ones (yours or theirs) just load. A once/twice photo from them counts a view
 // on the server; resolves { url, last, path } or null when no views are left.
 export async function openPhoto(m) {
@@ -368,7 +368,7 @@ export async function openPhoto(m) {
 }
 // After the last allowed view: the file goes for good.
 export function finishPhoto(path) { if (path) sb.storage.from('dm-once').remove([path]).then(() => {}, () => {}); }
-// Photos older than 3 days: marked gone on the server, files deleted.
+// Cleanup: files of once/twice photos whose views are used up but whose file was missed (the tab closed mid-view).
 export async function expirePhotos() {
   const { data, error } = await sb.rpc('dm_once_expire');
   if (error) throw error;

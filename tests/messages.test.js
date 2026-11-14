@@ -204,7 +204,7 @@ test('a view-once photo previews as "Photo" and is never in the chat download', 
   assert.deepEqual(data.messages.map((m) => m.id), ['t1']);
 });
 
-test('photos: unlimited ones show in the chat; once/twice count views; everything goes after 3 days', () => {
+test('photos: unlimited ones are kept for good; once/twice count views and go once seen', () => {
   const now = T0 + 3600e3;
   const p = (meta = {}, sender = 'panchara kunju') => msg({ kind: 'photo', sender, created_at: new Date(T0).toISOString(), meta: { path: 'u/x.webp', ...meta } });
   assert.deepEqual(L.photoState(p(), 'ammu', now), { state: 'show', left: Infinity });                    // unlimited
@@ -214,8 +214,8 @@ test('photos: unlimited ones show in the chat; once/twice count views; everythin
   assert.deepEqual(L.photoState(p({ views: 1 }, 'ammu'), 'ammu', now), { state: 'sent', left: 1 });       // mine, not opened yet
   assert.deepEqual(L.photoState(p({ views: 1, opens: 1 }, 'ammu'), 'ammu', now), { state: 'opened', left: 0 });
   assert.deepEqual(L.photoState(p({ gone: true }), 'ammu', now), { state: 'gone', left: 0 });
-  assert.deepEqual(L.photoState(p(), 'ammu', T0 + 3 * 864e5 + 1), { state: 'gone', left: 0 });           // 3 days: gone
-  assert.equal(L.PHOTO_MS, 3 * 864e5);
+  assert.deepEqual(L.photoState(p(), 'ammu', T0 + 400 * 864e5), { state: 'show', left: Infinity });    // no time limit
+  assert.equal(L.photoState(p({ views: 1 }), 'ammu', T0 + 400 * 864e5).state, 'ready');                // unopened ones wait
 });
 
 test('the old Instagram chat: one line above our own first message, photos kept for good, cards and calls', () => {
@@ -233,4 +233,16 @@ test('the old Instagram chat: one line above our own first message, photos kept 
   const name = () => 'Ammu';
   assert.equal(L.systemText(ig(0, { kind: 'system', meta: { ig: true, event: 'ig', text: 'started a video chat' } }), 'panchara kunju', name), 'Ammu started a video chat');
   assert.equal(L.systemText(ig(0, { kind: 'system', meta: { ig: true, event: 'ig', text: 'Video chat ended', bare: true } }), 'ammu', name), 'Video chat ended');
+});
+
+test('game-room chats copied in count as old history and say which game they were in', () => {
+  const game = (min, g = 'snakes') => msg({ created_at: at(min), meta: { game: g, imported: true } });
+  const ig = (min) => msg({ created_at: at(min), meta: { ig: true } });
+  const rows = L.buildRows([ig(0), game(1), ig(2), msg({ created_at: at(3) }), game(4, 'plusfour')]);
+  assert.deepEqual(rows.map((r) => r.type), ['divider', 'msg', 'msg', 'msg', 'igline', 'msg', 'msg']);
+  assert.equal(L.gameLabel(game(0)), 'in Snakes & Ladders');
+  assert.equal(L.gameLabel(game(0, 'plusfour')), 'in Plus Four');
+  assert.equal(L.gameLabel(msg()), '');
+  assert.equal(L.isOld(game(0)), true);
+  assert.equal(L.isIg(game(0)), false); // no archive files to keep
 });

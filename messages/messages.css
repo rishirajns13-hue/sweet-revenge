@@ -598,7 +598,7 @@ body.typing #dm-root .dm-nav { display: none; }
 /* white text on my bubbles gets a hair of shadow, so it stays crisp on the lighter gradient stops */
 #dm-root .row.mine .bub.paint { text-shadow: 0 1px 1px #0000002b; }
 
-/* ===== Photos (unlimited show in the chat; once/twice are a tap-to-view pill; all gone after 3 days) ===== */
+/* ===== Photos (unlimited show in the chat; once/twice are a tap-to-view pill, deleted once seen) ===== */
 #dm-root .field.has-text #btn-photo { display: none; }
 #dm-root .photo-bub { line-height: 0; }
 #dm-root .ph-thumb { display: block; border: 0; padding: 0; width: min(260px, 62vw); max-height: 340px; border-radius: 18px; overflow: hidden; cursor: zoom-in; background: var(--chip); box-shadow: 0 2px 10px #0000001f; }

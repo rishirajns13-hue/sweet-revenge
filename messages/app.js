@@ -1,10 +1,10 @@
 // Messages: the private chat between the two friends. This file draws the chat and handles every
 // gesture; data.js talks to the database, logic.mjs holds the tested pure parts.
 // Needs the classic scripts loaded first: shared/core.js, shared/avatars.js, shared/sound.js.
-import * as L from './logic.mjs?v=8';
+import * as L from './logic.mjs?v=9';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
-import * as D from './data.js?v=7';
+import * as D from './data.js?v=8';
 import * as V from './voice.js?v=4';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=4';
 
@@ -127,7 +127,7 @@ function render({ enter } = {}) {
 
 function paintRow(el, r) {
   if (r.type === 'divider') { el.className = 'divider'; el.textContent = L.dividerLabel(r.at); return; }
-  if (r.type === 'igline') { el.className = 'igline'; el.innerHTML = '<span>Above: our old chat from Instagram</span>'; return; }
+  if (r.type === 'igline') { el.className = 'igline'; el.innerHTML = '<span>Above: our old chats from Instagram and the games</span>'; return; }
   if (r.type === 'seen') { el.className = 'seen'; el.textContent = L.seenLabel(r.at); return; }
   if (r.type === 'system') {
     el.className = 'sysline' + (r.m.meta && r.m.meta.event === 'vanish' && r.m.meta.value ? ' vanish-on' : '');
@@ -142,7 +142,7 @@ function paintRow(el, r) {
       <button type="button" data-act="reply" aria-label="Reply">${svg('reply')}</button>
       <button type="button" data-act="react" aria-label="React">${svg('smile')}</button>
       <button type="button" data-act="more" aria-label="More">${svg('more')}</button>
-    </div></div>${reactsHTML(m)}${underHTML(m)}</div>
+    </div></div>${reactsHTML(m)}${underHTML(m, r.pos)}</div>
     <span class="swipe-hint" aria-hidden="true">${svg('reply')}</span>
     <time class="side-time" datetime="${escapeHtml(m.created_at)}">${hm(m.created_at)}</time>`;
   el.title = coarse ? '' : L.dividerLabel(Date.parse(m.created_at));
@@ -226,7 +226,9 @@ function reactsHTML(m) {
   const uniq = [...new Set(list)];
   return `<button type="button" class="reacts${popReacts.has(m.id) ? ' pop' : ''}" data-act="reacts" aria-label="Reactions">${uniq.map(escapeHtml).join('')}${list.length > 1 ? `<b>${list.length}</b>` : ''}</button>`;
 }
-function underHTML(m) {
+function underHTML(m, pos) {
+  const game = L.gameLabel(m); // once per group: under its last bubble
+  if (game && (pos === 'single' || pos === 'last')) return `<span class="under">${escapeHtml(game)}</span>`;
   if (m.failed) return '<span class="under fail" data-act="retry">Not sent. Tap to try again.</span>';
   if (m.edited_at && m.kind === 'text') return '<span class="under">Edited</span>';
   return '';
@@ -1314,6 +1316,6 @@ async function goLive(cached) {
   D.flushOutbox();
   readIfLooking();
   D.vanishSweep().catch(() => {});
-  D.expirePhotos().catch(() => {}); // anything older than 3 days goes
+  D.expirePhotos().catch(() => {}); // used-up view-once/twice photos whose file was missed
   loadTotals();
 }

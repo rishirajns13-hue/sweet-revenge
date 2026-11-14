@@ -43,8 +43,8 @@ export function buildRows(messages) {
   let prev = null, sawIg = false, igLine = false;
   for (const m of messages) {
     const at = t(m);
-    // The old Instagram chat (meta.ig) sits above one line, placed where this chat's own first message is.
-    if (isIg(m)) sawIg = true;
+    // The old chats (Instagram, meta.ig; game rooms, meta.game) sit above one line, placed where this chat's own first message is.
+    if (isOld(m)) sawIg = true;
     else if (sawIg && !igLine && !m.pending) { rows.push({ type: 'igline', key: 'igline' }); igLine = true; }
     if (!prev || at - t(prev) > DIVIDER_GAP_MS) rows.push({ type: 'divider', at, key: 'd' + m.id });
     if (m.kind === 'system') { rows.push({ type: 'system', m, key: m.id }); prev = m; continue; }
@@ -64,6 +64,11 @@ export function buildRows(messages) {
 }
 // Imported from Instagram (14 Nov 2026): its photos, videos and voice notes live in the dm-archive bucket for good.
 export const isIg = (m) => !!(m && m.meta && m.meta.ig);
+// Copied in from an older chat: Instagram, or a game room's chat (meta.game, 12-13 Nov 2026).
+export const isOld = (m) => isIg(m) || !!(m && m.meta && m.meta.imported);
+export const GAME_NAMES = { snakes: 'Snakes & Ladders', plusfour: 'Plus Four', ludo: 'Ludo', doodle: 'Doodle Duel', sticky: 'Sticky Situation', sundae: 'Sundae' };
+// "in Snakes & Ladders" under a message that was sent in a game room.
+export const gameLabel = (m) => (m && m.meta && m.meta.game ? 'in ' + (GAME_NAMES[m.meta.game] || m.meta.game) : '');
 // Which storage bucket a message's file is in.
 export const bucketOf = (m) => (m.meta && m.meta.bucket) || (m.kind === 'photo' ? 'dm-once' : 'dm-voice');
 // Stickers, GIFs, likes and big emoji stand alone instead of joining a bubble group.
@@ -170,7 +175,7 @@ export function preview(m) {
   }
 }
 
-// Photos: kept at most 3 days. Unlimited ones (views 0) show in the chat; view-once/twice ones count opens
+// Photos: unlimited ones (views 0) show in the chat and are kept for good; view-once/twice ones count opens
 // and are gone once the views are used. Returns { state: 'show'|'ready'|'sent'|'opened'|'gone', left }.
 // A shared Instagram reel/post/story: "Reel by @name".
 export function shareLabel(meta = {}) {
@@ -178,11 +183,10 @@ export function shareLabel(meta = {}) {
   return meta.owner ? `${what} by @${meta.owner}` : what;
 }
 
-export const PHOTO_MS = 3 * 864e5;
 export function photoState(m, meId, now = Date.now()) {
   const meta = m.meta || {}, views = meta.views || 0, opens = meta.opens || 0;
   if (meta.ig) return { state: 'show', left: Infinity }; // the Instagram archive is kept for good
-  if (meta.gone || now - t(m) > PHOTO_MS) return { state: 'gone', left: 0 };
+  if (meta.gone) return { state: 'gone', left: 0 };
   if (!views) return { state: 'show', left: Infinity };
   const left = Math.max(0, views - opens);
   if (m.sender === meId) return { state: opens ? 'opened' : 'sent', left };
