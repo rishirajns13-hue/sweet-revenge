@@ -119,7 +119,10 @@ const inputFor = (map) => ({
 });
 
 /* ================= a stage ================= */
+let beginSeq = 0;
 async function begin(id, resume) {
+  const my = ++beginSeq; // a newer begin() (Next pressed twice, a quick restart) wins
+  running = false;
   stageId = id;
   const def = LV.byId(id) || LV.LEVELS[0];
   world = CP.newWorld(def);
@@ -131,9 +134,12 @@ async function begin(id, resume) {
   $('#cp-loading').hidden = false;
   try { await loadView(); } catch (e) { $('#cp-loading').hidden = true; goHome('The 3D part didn\'t load. Check your internet and try again 🙏'); return; }
   if (!CoopView.getStage()) await CoopView.init($('#view'));
-  await CoopView.build({ ...def, parsed: world.L });
+  const W0 = world;
+  await CoopView.build({ ...def, parsed: W0.L });
+  if (my !== beginSeq) return;
   const looks = { a: (playerOf('a') || {}).look || myLook(), b: (playerOf('b') || {}).look || { kind: 'critter', critter: '🐼' } };
   await CoopView.setHeroes(looks, { a: nameOf('a'), b: nameOf('b') });
+  if (my !== beginSeq) return;
   $('#cp-loading').hidden = true;
   $('#cp-stage-name').textContent = `${def.id} · ${def.name}`;
   $('#cp-hint').textContent = def.hint || '';

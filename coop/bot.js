@@ -16,6 +16,8 @@
     unlocked: (W) => W.locks.some((l) => l.open), allUnlocked: (W) => W.locks.every((l) => l.open),
     aHasKey: (W) => W.a.carry >= 0, bHasKey: (W) => W.b.carry >= 0,
     aIn: (W) => W.a.inDoor, bIn: (W) => W.b.inDoor,
+    ferryLeft: (W) => W.movers[0] && W.movers[0].cx < W.movers[0].x - (W.movers[0].ax || 0) + 0.25,
+    ferryRight: (W) => W.movers[0] && W.movers[0].cx > W.movers[0].x + (W.movers[0].ax || 0) - 0.25,
   };
   function run(Phys, level, script, { maxSeconds = 120, log = false } = {}) {
     const W = Phys.newWorld(level);

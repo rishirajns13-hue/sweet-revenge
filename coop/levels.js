@@ -161,6 +161,25 @@
         b: [['until', 'said:holding'], ['go', 7.5], ['wait', 0.3], ['go', 11], ['say', 'up'], ['until', 'said:onLift'], ['go', 13.5], ['until', 'said:aTop'], ['door']],
       },
     },
+    {
+      id: '3-3', world: 3, name: 'The Ferry', hint: 'The ferry only moves while someone stands on a button. Shout STOP!',
+      map: [
+        '..........................',
+        '..........................',
+        '..........................',
+        '..........................',
+        '..........................',
+        '..........................',
+        '1.@&.................2.E..',
+        '######.........###########',
+        '######.........###########',
+      ],
+      props: [{ type: 'mover', x: 9.5, y: 1.6, w: 2, ax: 3.5, period: 6, phase: -Math.PI / 2, buttons: [1, 2] }],
+      solve: {
+        a: [['go', 1.6], ['until', 'said:bAboard'], ['go', 0.5], ['until', 'said:parked'], ['go', 6.9], ['say', 'aOn'], ['until', 'ferryRight'], ['go', 17.5], ['say', 'aOff'], ['door']],
+        b: [['go', 7.0], ['say', 'bAboard'], ['until', 'ferryRight'], ['go', 17.5], ['go', 21.5], ['until', 'ferryLeft'], ['go', 20.0], ['say', 'parked'], ['until', 'said:aOn'], ['go', 21.5], ['until', 'said:aOff'], ['door']],
+      },
+    },
   ];
   const api = { LEVELS, byId: (id) => LEVELS.find((l) => l.id === id) };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.CoopLevels = api;

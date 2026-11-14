@@ -71,7 +71,8 @@
       crates: L.crates.map((c) => ({ ...c, vx: 0, vy: 0 })),
       pressed: [false, false, false, false, false],
       lifts: L.props.filter((p) => p.type === 'lift').map((p) => ({ ...p, off: 0, dx: 0, dy: 0 })),
-      movers: L.props.filter((p) => p.type === 'mover').map((p) => ({ ...p, cx: p.x, cy: p.y, dx: 0, dy: 0 })),
+      // a mover slides along sin(ph); with `buttons` it only moves while one of them is pressed (a ferry)
+      movers: L.props.filter((p) => p.type === 'mover').map((p) => { const ph = p.phase || 0; return { ...p, ph, cx: p.x + (p.ax || 0) * Math.sin(ph), cy: p.y + (p.ay || 0) * Math.sin(ph), dx: 0, dy: 0 }; }),
       flags: L.flags.map((f) => ({ ...f, on: false })),
     };
     return W;
@@ -160,7 +161,7 @@
     W.t += dt;
     if (authority) {
       for (const l of W.lifts) { const want = W.pressed[l.button] ? l.rise : 0; const before = l.off; const sp = l.speed || 2; l.off += Math.max(-sp * dt, Math.min(sp * dt, want - l.off)); l.dy = l.off - before; }
-      for (const m of W.movers) { const k = Math.sin((2 * Math.PI * W.t) / m.period); const nx = m.x + (m.ax || 0) * k, ny = m.y + (m.ay || 0) * k; m.dx = nx - m.cx; m.dy = ny - m.cy; m.cx = nx; m.cy = ny; }
+      for (const m of W.movers) { if (!m.buttons || m.buttons.some((n) => W.pressed[n])) m.ph += (2 * Math.PI * P.dt) / m.period; const k = Math.sin(m.ph); const nx = m.x + (m.ax || 0) * k, ny = m.y + (m.ay || 0) * k; m.dx = nx - m.cx; m.dy = ny - m.cy; m.cx = nx; m.cy = ny; }
     }
     for (const k of ['a', 'b']) if (sim[k]) moveHero(W, k, inputs[k] || {}, dt);
     if (W.L.rope) rope(W, sim, dt);
@@ -319,6 +320,7 @@
       locks: W.locks.map((l) => (l.open ? 1 : 0)).join(''),
       crates: W.crates.map((c) => [+c.x.toFixed(3), +c.y.toFixed(3), +c.vx.toFixed(2)]),
       lifts: W.lifts.map((l) => +l.off.toFixed(3)),
+      movers: W.movers.map((m) => +m.ph.toFixed(4)),
       flags: W.flags.map((f) => (f.on ? 1 : 0)).join(''), cp: W.checkpoint,
       carry: { a: W.a.carry, b: W.b.carry },
     };
@@ -330,6 +332,7 @@
     s.locks.split('').forEach((c, i) => W.locks[i] && (W.locks[i].open = c === '1'));
     s.crates.forEach((c, i) => { const cr = W.crates[i]; if (!cr) return; cr.x = c[0]; cr.y = c[1]; cr.vx = c[2]; });
     s.lifts.forEach((o, i) => { const l = W.lifts[i]; if (l) { l.dy = o - l.off; l.off = o; } });
+    (s.movers || []).forEach((ph, i) => { const m = W.movers[i]; if (!m) return; m.ph = ph; const nx = m.x + (m.ax || 0) * Math.sin(ph), ny = m.y + (m.ay || 0) * Math.sin(ph); m.dx = nx - m.cx; m.dy = ny - m.cy; m.cx = nx; m.cy = ny; });
     s.flags.split('').forEach((c, i) => W.flags[i] && (W.flags[i].on = c === '1'));
     W.checkpoint = s.cp;
     W.a.carry = s.carry.a; W.b.carry = s.carry.b;

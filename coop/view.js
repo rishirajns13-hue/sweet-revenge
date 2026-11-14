@@ -179,6 +179,13 @@ export async function build(lv) {
     for (let i = 0; i < p.w; i++) { const m = new THREE.Mesh(mesh.geometry, mesh.material); m.position.set(i + 0.5, -0.3, 0); m.scale.set(1, 1, 1.4); m.castShadow = m.receiveShadow = true; g.add(m); }
     g.position.set(p.x, p.y, 0); R.add(g); g.userData.base = p.y; return g;
   }));
+  T.movers = await Promise.all((lv.props || []).filter((p) => p.type === 'mover').map(async (p) => {
+    const g = new THREE.Group();
+    const mesh = await meshOf('block-moving');
+    for (let i = 0; i < p.w; i++) { const m = new THREE.Mesh(mesh.geometry, mesh.material); m.position.set(i + 0.5, 0.1, 0); m.scale.set(1, 1, 1.4); m.castShadow = m.receiveShadow = true; g.add(m); }
+    if (p.buttons) { const flag = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.4, 8), new THREE.MeshStandardMaterial({ color: BTN_COL[p.buttons[0]], emissive: BTN_COL[p.buttons[0]], emissiveIntensity: 0.3 })); flag.position.set(p.w / 2, 0.75, -0.5); flag.rotation.z = Math.PI; g.add(flag); }
+    R.add(g); return g;
+  }));
   const door = await prop('door-large-open', { scale: 1.7 }); door.position.set(L.exit.x + 0.5, L.exit.y, -0.45); R.add(door);
   const glow = new THREE.PointLight('#ffd27a', 2.5, 4, 2); glow.position.set(L.exit.x + 0.5, L.exit.y + 1, 0.4); R.add(glow);
   T.door = door; T.doorGlow = glow;
@@ -276,6 +283,7 @@ export function render(W, dt, opts = {}) {
   });
   W.crates.forEach((c, i) => { const m = things.crates[i]; if (m) m.position.set(c.x, c.y, -0.1); });
   W.lifts.forEach((l, i) => { const m = things.lifts[i]; if (m) m.position.y = l.y + l.off; });
+  W.movers.forEach((mv, i) => { const m = things.movers && things.movers[i]; if (m) m.position.set(mv.cx, mv.cy, 0); });
   W.flags.forEach((f, i) => { const m = things.flags[i]; if (m) { const s = f.on ? 1.25 : 1; m.scale.setScalar(m.scale.x + (s - m.scale.x) * dt * 6); } });
   things.star.rotation.y = timeT * 1.4; things.star.position.y = L.exit.y + 2.1 + Math.sin(timeT * 2) * 0.08;
   things.doorGlow.intensity = 2.2 + Math.sin(timeT * 3) * 0.6 + (W.a.inDoor || W.b.inDoor ? 2 : 0);

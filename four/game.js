@@ -197,9 +197,10 @@ function handlePlayer(c) {
     }
     if (st !== 'ok' || seat.link !== c || !d) return;
     if (d.t === 'social') { if (d.m && typeof d.m === 'object') chat.receive({ ...d.m, from: seat.k }); return; }
-    if (d.t === 'drop' && g && Number.isInteger(d.c) && d.n === g.moves.length && !busy) {
-      const mv = F.drop(g, d.c, seat.k);
-      if (mv) { send({ t: 'state', g, mv }); playMove(mv); } else send({ t: 'state', g, mv: null });
+    // (accepted even while our own disc is still falling: the rules check whose turn it is)
+    if (d.t === 'drop' && g && Number.isInteger(d.c)) {
+      const mv = d.n === g.moves.length ? F.drop(g, d.c, seat.k) : null;
+      if (mv) { send({ t: 'state', g, mv }); playMove(mv); } else send({ t: 'state', g, mv: null }); // refused: resend the board so they aren't left waiting
     }
   });
   c.on('close', () => { if (!room || !seat || seat.link !== c) return; seat.link = null; if (!room.started) { room.seats.splice(room.seats.indexOf(seat), 1); sendRoom(); return; } toast(`${firstName(seat.name)} dropped out. Waiting for them to come back…`, 3500); });
