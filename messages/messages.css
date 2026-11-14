@@ -756,3 +756,5 @@ body.typing #dm-root .dm-nav { display: none; }
 
 /* Speed: rows scrolled far off screen skip layout, paint and hit-testing (the chat can hold 36k+ messages). */
 #dm-root .thread > .row { content-visibility: auto; contain-intrinsic-size: auto 46px; }
+/* Long nicknames: the inbox name wraps to a second line instead of being cut off (the header shrinks it to fit, app.js fitName). */
+#dm-root .ib-txt b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }

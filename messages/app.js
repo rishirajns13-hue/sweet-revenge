@@ -76,6 +76,19 @@ function paintFaces() {
 // makes the browser lay the chat out again, and the header and inbox redraw on every update.
 function setHTML(el, html) { if (el._html !== html) { el.innerHTML = html; el._html = html; } }
 function setText(el, text) { if (el.textContent !== text) el.textContent = text; }
+// Long nicknames ("PANCHARA KUNJUU💗🐒") shrink to fit their line instead of being cut off, down to 13px.
+function fitName(el) {
+  if (!el || !el.isConnected || !el.clientWidth) return;
+  const key = el.textContent + '|' + el.clientWidth;
+  if (el._fit === key) return;
+  el.style.fontSize = '';
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  while (el.scrollWidth > el.clientWidth + 1 && size > 13) { size -= 1; el.style.fontSize = size + 'px'; }
+  el._fit = el.textContent + '|' + el.clientWidth;
+}
+function refitNames() { fitName(document.getElementById('peer-name')); fitName(document.getElementById('inbox-name')); }
+addEventListener('resize', refitNames);
+if (document.fonts) document.fonts.ready.then(() => { document.querySelectorAll('#peer-name, #inbox-name').forEach((el) => { el._fit = ''; }); refitNames(); });
 const HM = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' });
 const hm = (ts) => HM.format(new Date(ts));
 
@@ -259,7 +272,7 @@ function renderHeader() {
   setHTML($('#peer-face'), o ? faceInner(o) : '');
   $('#typing-face').dataset.who = o || '';
   setHTML($('#typing-face'), o ? faceInner(o) : '');
-  setText($('#peer-name'), o ? nameOf(o) : 'Messages');
+  setText($('#peer-name'), o ? nameOf(o) : 'Messages'); fitName($('#peer-name'));
   $('#peer-dot').hidden = !S.online;
   const st = $('#peer-status');
   st.classList.toggle('typing', S.typing);
@@ -1171,7 +1184,7 @@ function renderInbox() {
   const fmtAgo = (t) => { const m = Math.max(0, Math.round((Date.now() - Date.parse(t)) / 60000)); return m < 1 ? 'now' : m < 60 ? m + 'm' : m < 1440 ? Math.round(m / 60) + 'h' : Math.round(m / 1440) + 'd'; };
   $('#inbox-face').dataset.who = o; setHTML($('#inbox-face'), faceInner(o));
   $('#inbox-online').hidden = !S.online;
-  setText($('#inbox-name'), nameOf(o));
+  setText($('#inbox-name'), nameOf(o)); fitName($('#inbox-name'));
   const what = !last ? 'Say hi' : last.vanish && last.sender !== me.user ? 'Sent a message' : (last.sender === me.user ? 'You: ' : '') + L.preview(last);
   setText($('#inbox-line'), S.typing ? 'typing…'
     : unread ? `${unread > 9 ? '9+' : unread} new message${unread === 1 ? '' : 's'}${last ? ' · ' + fmtAgo(last.created_at) : ''}`
@@ -1198,6 +1211,7 @@ function setView(v) {
   ROOT.dataset.view = v;
   renderInbox();
   if (v === 'inbox' && totals.total != null) loadTotals(); // unsends and vanished messages lower the count
+  requestAnimationFrame(refitNames); // a hidden header measured 0 wide
 }
 function openThread({ push = true } = {}) {
   if (view === 'thread') return;
