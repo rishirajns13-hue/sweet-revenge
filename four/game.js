@@ -74,7 +74,8 @@ async function playMove(mv) {
 function tryDrop(c) {
   if (!myTurn()) return;
   if (!F.canDrop(g, c)) { sfx.nope(); return; }
-  if (mode === 'guest') { busy = true; send({ t: 'drop', c, n: g.moves.length }); later(4000, () => { busy = false; }); return; }
+  // (the move number travels as `at`: never call a field `n`, net.js numbers messages with it)
+  if (mode === 'guest') { busy = true; send({ t: 'drop', c, at: g.moves.length }); later(4000, () => { busy = false; }); return; }
   const mv = F.drop(g, c);
   if (!mv) return;
   if (mode === 'host') send({ t: 'state', g, mv });
@@ -199,7 +200,7 @@ function handlePlayer(c) {
     if (d.t === 'social') { if (d.m && typeof d.m === 'object') chat.receive({ ...d.m, from: seat.k }); return; }
     // (accepted even while our own disc is still falling: the rules check whose turn it is)
     if (d.t === 'drop' && g && Number.isInteger(d.c)) {
-      const mv = d.n === g.moves.length ? F.drop(g, d.c, seat.k) : null;
+      const mv = d.at === g.moves.length ? F.drop(g, d.c, seat.k) : null;
       if (mv) { send({ t: 'state', g, mv }); playMove(mv); } else send({ t: 'state', g, mv: null }); // refused: resend the board so they aren't left waiting
     }
   });
