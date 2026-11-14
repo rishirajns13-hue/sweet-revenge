@@ -6,3 +6,6 @@ node_modules/
 
 # Claude Code helper worktrees
 .claude/worktrees/
+
+# Private: the exported Instagram chat (never commit, the repo is public)
+ammu chats/

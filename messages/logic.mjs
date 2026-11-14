@@ -40,9 +40,12 @@ export function linkify(escaped) {
 // ('single' | 'first' | 'middle' | 'last'), which decides the bubble's corners.
 export function buildRows(messages) {
   const rows = [];
-  let prev = null;
+  let prev = null, sawIg = false, igLine = false;
   for (const m of messages) {
     const at = t(m);
+    // The old Instagram chat (meta.ig) sits above one line, placed where this chat's own first message is.
+    if (isIg(m)) sawIg = true;
+    else if (sawIg && !igLine && !m.pending) { rows.push({ type: 'igline', key: 'igline' }); igLine = true; }
     if (!prev || at - t(prev) > DIVIDER_GAP_MS) rows.push({ type: 'divider', at, key: 'd' + m.id });
     if (m.kind === 'system') { rows.push({ type: 'system', m, key: m.id }); prev = m; continue; }
     rows.push({ type: 'msg', m, pos: 'single', key: m.id });
@@ -59,6 +62,10 @@ export function buildRows(messages) {
   }
   return rows;
 }
+// Imported from Instagram (14 Nov 2026): its photos, videos and voice notes live in the dm-archive bucket for good.
+export const isIg = (m) => !!(m && m.meta && m.meta.ig);
+// Which storage bucket a message's file is in.
+export const bucketOf = (m) => (m.meta && m.meta.bucket) || (m.kind === 'photo' ? 'dm-once' : 'dm-voice');
 // Stickers, GIFs, likes and big emoji stand alone instead of joining a bubble group.
 function big(m) { return m.kind !== 'text' && m.kind !== 'voice' ? true : m.kind === 'text' && emojiOnly(m.body) > 0; }
 
@@ -157,15 +164,24 @@ export function preview(m) {
     case 'gif': return 'GIF';
     case 'voice': return `Voice message${m.meta && m.meta.dur ? ' · ' + fmtDuration(m.meta.dur) : ''}`;
     case 'photo': return 'Photo';
+    case 'video': return `Video${m.meta && m.meta.dur ? ' · ' + fmtDuration(m.meta.dur) : ''}`;
+    case 'share': return m.body ? (m.body.length > 80 ? m.body.slice(0, 80) + '…' : m.body) : shareLabel(m.meta);
     default: return '';
   }
 }
 
 // Photos: kept at most 3 days. Unlimited ones (views 0) show in the chat; view-once/twice ones count opens
 // and are gone once the views are used. Returns { state: 'show'|'ready'|'sent'|'opened'|'gone', left }.
+// A shared Instagram reel/post/story: "Reel by @name".
+export function shareLabel(meta = {}) {
+  const what = { reel: 'Reel', post: 'Post', story: 'Story' }[meta.what] || 'Link';
+  return meta.owner ? `${what} by @${meta.owner}` : what;
+}
+
 export const PHOTO_MS = 3 * 864e5;
 export function photoState(m, meId, now = Date.now()) {
   const meta = m.meta || {}, views = meta.views || 0, opens = meta.opens || 0;
+  if (meta.ig) return { state: 'show', left: Infinity }; // the Instagram archive is kept for good
   if (meta.gone || now - t(m) > PHOTO_MS) return { state: 'gone', left: 0 };
   if (!views) return { state: 'show', left: Infinity };
   const left = Math.max(0, views - opens);
@@ -183,6 +199,7 @@ export function systemText(m, meId, name, themeName = (k) => k) {
   const e = m.meta || {};
   if (e.event === 'theme') return `${who} changed the theme to ${themeName(e.value)}`;
   if (e.event === 'wall') return e.value === 'photo' ? `${who} set a photo as the wallpaper` : `${who} changed the wallpaper to ${WALLS[e.value] || e.value}`;
+  if (e.event === 'ig') return e.bare ? e.text : `${who} ${e.text}`; // from the old Instagram chat
   if (e.event === 'vanish') return e.value ? `${who} turned on vanish mode` : `${who} turned off vanish mode`;
   if (e.event === 'nick') {
     const target = e.for === m.sender ? (m.sender === meId ? 'your' : 'their') : e.for === meId ? 'your' : `${name(e.for)}'s`;
@@ -200,13 +217,14 @@ export function exportChat({ messages, reactions, players, nicknames = {} }, now
     app: 'Sweet Revenge Messages',
     exported_at: new Date(now).toISOString(),
     people: players.map((p) => ({ id: p.id, name: p.name, nickname: nicknames[p.id] || null })),
-    messages: messages.filter((m) => !m.vanish && !m.pending && m.kind !== 'photo').map((m) => ({ // view-once photos are never kept
+    messages: messages.filter((m) => !m.vanish && !m.pending && (m.kind !== 'photo' || isIg(m))).map((m) => ({ // view-once photos are never kept
       id: m.id,
       at: new Date(t(m)).toISOString(),
       from: names[m.sender] || m.sender,
       kind: m.kind,
       ...(m.kind === 'system' ? { event: m.meta } : { text: m.body || preview(m) }),
-      ...(m.kind === 'gif' || m.kind === 'sticker' ? { media: m.meta } : {}),
+      ...(m.kind === 'gif' || m.kind === 'sticker' || m.kind === 'share' ? { media: m.meta } : {}),
+      ...((m.kind === 'photo' || m.kind === 'video') && m.meta && m.meta.path ? { file: m.meta.path } : {}),
       ...(m.kind === 'voice' ? { voice_file: m.meta && m.meta.path ? 'voice/' + m.meta.path.split('/').pop() : null, seconds: m.meta && m.meta.dur } : {}),
       ...(m.reply_to ? { reply_to: m.reply_to } : {}),
       ...(m.edited_at ? { edited_at: m.edited_at } : {}),

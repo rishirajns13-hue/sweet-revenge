@@ -1,10 +1,10 @@
 // Messages: the private chat between the two friends. This file draws the chat and handles every
 // gesture; data.js talks to the database, logic.mjs holds the tested pure parts.
 // Needs the classic scripts loaded first: shared/core.js, shared/avatars.js, shared/sound.js.
-import * as L from './logic.mjs?v=7';
+import * as L from './logic.mjs?v=8';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
-import * as D from './data.js?v=6';
+import * as D from './data.js?v=7';
 import * as V from './voice.js?v=4';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=4';
 
@@ -86,6 +86,7 @@ let painted = false;
 
 function sigOf(r) {
   if (r.type === 'divider') return 'd' + L.dividerLabel(r.at);
+  if (r.type === 'igline') return 'ig';
   if (r.type === 'seen') return 's' + L.seenLabel(r.at);
   if (r.type === 'system') return 'y' + L.systemText(r.m, me.user, realName, themeName);
   const m = r.m, q = m.reply_to ? S.messages.find((x) => x.id === m.reply_to) : null;
@@ -126,6 +127,7 @@ function render({ enter } = {}) {
 
 function paintRow(el, r) {
   if (r.type === 'divider') { el.className = 'divider'; el.textContent = L.dividerLabel(r.at); return; }
+  if (r.type === 'igline') { el.className = 'igline'; el.innerHTML = '<span>Above: our old chat from Instagram</span>'; return; }
   if (r.type === 'seen') { el.className = 'seen'; el.textContent = L.seenLabel(r.at); return; }
   if (r.type === 'system') {
     el.className = 'sysline' + (r.m.meta && r.m.meta.event === 'vanish' && r.m.meta.value ? ' vanish-on' : '');
@@ -150,6 +152,8 @@ function bubbleHTML(m) {
   switch (m.kind) {
     case 'like': return '<div class="bub like" aria-label="Heart">❤️</div>';
     case 'photo': return photoBubble(m);
+    case 'video': return videoBubble(m);
+    case 'share': return shareBubble(m);
     case 'sticker': case 'gif': return `<div class="bub media">${stickerHTML(m.meta || {})}</div>`;
     case 'voice': {
       const dur = L.fmtDuration((m.meta && m.meta.dur) || 0);
@@ -179,13 +183,31 @@ function photoBubble(m) {
     : state === 'sent' ? (m.pending ? 'Sending…' : 'Delivered') : state === 'opened' ? (left ? 'Opened once' : 'Opened') : 'No longer available';
   return `<div class="bub paint once-bub" data-state="${state}"><button type="button" class="once" data-act="photo"${state === 'ready' ? '' : ' disabled'}>${CAM}<span><b>${kindLabel}</b><small>${line}</small></span></button></div>`;
 }
+// Videos (only in the Instagram archive so far): the browser's own player, loaded once drawn.
+function videoBubble(m) {
+  const w = (m.meta && m.meta.w) || 9, h = (m.meta && m.meta.h) || 16;
+  return `<div class="bub media video-bub" style="aspect-ratio:${w} / ${h}"><video controls playsinline preload="metadata" data-video="${escapeHtml(m.id)}"></video></div>`;
+}
+// A shared reel, post or story: a card that opens it on Instagram (it works while the post is still up).
+const IG_GLYPH = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>';
+function shareBubble(m) {
+  const meta = m.meta || {}, url = /^https:\/\/(www\.)?instagram\.com\//.test(meta.url || '') ? meta.url : '';
+  const card = `<span class="sc-ic">${IG_GLYPH}</span><span class="sc-txt"><b>${escapeHtml(L.shareLabel(meta))}</b>${meta.caption ? `<small>${escapeHtml(meta.caption)}</small>` : ''}<em>${url ? 'Open on Instagram' : 'Link unavailable'}</em></span>`;
+  return `<div class="bub paint share-bub">${url ? `<a class="share-card" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${card}</a>` : `<span class="share-card">${card}</span>`}${m.body ? `<p>${L.linkify(escapeHtml(m.body))}</p>` : ''}</div>`;
+}
 // Unlimited photos load their picture after they're drawn (a private link, kept a few days).
 function hydratePhotos() {
+  els.thread.querySelectorAll('video[data-video]:not([src])').forEach((v) => {
+    const m = find(v.dataset.video);
+    if (!m || !m.meta || !m.meta.path) return;
+    v.setAttribute('src', '');
+    D.fileUrl(L.bucketOf(m), m.meta.path).then((url) => { if (url) v.src = url + '#t=0.1'; });
+  });
   els.thread.querySelectorAll('img[data-photo-img]:not([src])').forEach((img) => {
     const m = find(img.dataset.photoImg);
     if (!m || !m.meta || !m.meta.path) return;
     img.setAttribute('src', '');
-    D.fileUrl('dm-once', m.meta.path).then((url) => { if (url) img.src = url; else img.closest('.ph-thumb').classList.add('missing'); });
+    D.fileUrl(L.bucketOf(m), m.meta.path).then((url) => { if (url) img.src = url; else img.closest('.ph-thumb').classList.add('missing'); });
   });
 }
 function quoteHTML(m, mine) {
@@ -517,7 +539,7 @@ function nextVoiceButton(id) {
   return el && el.querySelector('.v-play');
 }
 function playVoice(m) {
-  V.toggle(m.id, () => voiceEl(m.id), async () => m._url || find(m.id)._url || D.fileUrl('dm-voice', m.meta.path), () => nextVoiceButton(m.id))
+  V.toggle(m.id, () => voiceEl(m.id), async () => m._url || find(m.id)._url || D.fileUrl(L.bucketOf(m), m.meta.path), () => nextVoiceButton(m.id))
     .catch(() => toast('That voice message couldn\'t play'));
 }
 
@@ -1092,7 +1114,7 @@ $('#btn-export').addEventListener('click', async (e) => {
     let n = 0;
     for (const m of voice) {
       btn.lastChild.textContent = `Voice notes ${++n}/${voice.length}…`;
-      try { zip.file('voice/' + m.meta.path.split('/').pop(), await D.download('dm-voice', m.meta.path)); } catch (err) { /* a missing file is skipped */ }
+      try { zip.file('voice/' + m.meta.path.split('/').pop(), await D.download(L.bucketOf(m), m.meta.path)); } catch (err) { /* a missing file is skipped */ }
     }
     zip.file('chat.json', JSON.stringify(data, null, 2));
     zip.file('chat.html', transcript(data));

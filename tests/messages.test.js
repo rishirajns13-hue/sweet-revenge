@@ -217,3 +217,20 @@ test('photos: unlimited ones show in the chat; once/twice count views; everythin
   assert.deepEqual(L.photoState(p(), 'ammu', T0 + 3 * 864e5 + 1), { state: 'gone', left: 0 });           // 3 days: gone
   assert.equal(L.PHOTO_MS, 3 * 864e5);
 });
+
+test('the old Instagram chat: one line above our own first message, photos kept for good, cards and calls', () => {
+  const ig = (min, o = {}) => msg({ created_at: at(min), meta: { ig: true, ...(o.meta || {}) }, ...o });
+  const rows = L.buildRows([ig(0), ig(1), msg({ created_at: at(2) }), ig(3), msg({ created_at: at(4) })]);
+  assert.deepEqual(rows.map((r) => r.type), ['divider', 'msg', 'msg', 'igline', 'msg', 'msg', 'msg']);
+  assert.equal(L.buildRows([msg(), msg()]).some((r) => r.type === 'igline'), false);             // no import, no line
+  const photo = ig(0, { kind: 'photo', meta: { ig: true, views: 0, bucket: 'dm-archive', path: 'ig/photos/1.jpg' } });
+  assert.equal(L.photoState(photo, 'ammu', T0 + 400 * 864e5).state, 'show');                   // never expires
+  assert.equal(L.bucketOf(photo), 'dm-archive');
+  assert.equal(L.bucketOf(msg({ kind: 'photo' })), 'dm-once');
+  assert.equal(L.bucketOf(msg({ kind: 'voice' })), 'dm-voice');
+  assert.equal(L.preview(ig(0, { kind: 'share', body: '', meta: { ig: true, what: 'reel', owner: 'someone' } })), 'Reel by @someone');
+  assert.equal(L.preview(ig(0, { kind: 'video', meta: { ig: true, dur: 21.2 } })), 'Video · 0:21');
+  const name = () => 'Ammu';
+  assert.equal(L.systemText(ig(0, { kind: 'system', meta: { ig: true, event: 'ig', text: 'started a video chat' } }), 'panchara kunju', name), 'Ammu started a video chat');
+  assert.equal(L.systemText(ig(0, { kind: 'system', meta: { ig: true, event: 'ig', text: 'Video chat ended', bare: true } }), 'ammu', name), 'Video chat ended');
+});

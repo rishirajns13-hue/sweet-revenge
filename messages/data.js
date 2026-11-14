@@ -6,7 +6,7 @@
 //  2. Sending shows the bubble at once; the database write happens behind it, and failed sends wait in
 //     an outbox (kept with the cache) and are retried.
 //  3. One realtime channel brings new messages, edits, reactions, seen receipts, typing and "active now".
-import { merge } from './logic.mjs?v=7';
+import { merge, bucketOf, isIg } from './logic.mjs?v=8';
 
 const CACHE_MAX = 400, WINDOW = 200, PAGE = 50;
 const listeners = new Set();
@@ -259,7 +259,7 @@ export async function unsend(id) {
   const { data: path, error } = await sb.rpc('dm_unsend', { p_id: id });
   if (error) { S.messages = merge(S.messages, [m]); emit('all'); throw error; }
   const file = path || (m.kind === 'photo' && m.meta && m.meta.path);
-  if (file) sb.storage.from(m.kind === 'photo' ? 'dm-once' : 'dm-voice').remove([file]);
+  if (file && !isIg(m)) sb.storage.from(bucketOf(m)).remove([file]); // the Instagram archive keeps its files
 }
 
 export async function react(id, emoji) {
@@ -343,7 +343,7 @@ export async function vanishSweep(mineOnly = true) {
 
 // When one of my voice notes disappears (vanished or unsent elsewhere), remove its file too.
 function cleanupFiles(m) {
-  if (m.sender !== me.user || !m.meta || !m.meta.path) return;
+  if (m.sender !== me.user || !m.meta || !m.meta.path || isIg(m)) return;
   if (m.kind === 'voice') sb.storage.from('dm-voice').remove([m.meta.path]).then(() => {});
   if (m.kind === 'photo') sb.storage.from('dm-once').remove([m.meta.path]).then(() => {});
 }
@@ -355,7 +355,7 @@ export async function openPhoto(m) {
   const views = (m.meta && m.meta.views) || 0;
   if (!views || m.sender === me.user) {
     if (m._url) return { url: m._url, last: false };
-    const url = await fileUrl('dm-once', m.meta.path);
+    const url = await fileUrl(bucketOf(m), m.meta.path);
     return url ? { url, last: false } : null;
   }
   const { data, error } = await sb.rpc('dm_photo_open', { p_id: m.id });
