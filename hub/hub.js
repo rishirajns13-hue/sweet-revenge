@@ -37,6 +37,12 @@ const sfx = {
 ['pointerdown', 'keydown'].forEach((ev) => addEventListener(ev, () => setTimeout(() => player.load(), 80), { once: true })); // after the tap has drawn
 
 /* ================= little helpers ================= */
+// The chat's code address (with its ?v= version) comes from index.html's modulepreload link, so a new
+// version only needs changing there. (A version written here too went stale: browsers kept the old hub.js.)
+function chatSrc() {
+  const link = document.querySelector('link[rel="modulepreload"][href*="messages/app.js"]');
+  return new URL(link ? link.getAttribute('href') : 'messages/app.js', document.baseURI).href;
+}
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === 'screen-' + name));
   document.body.classList.toggle('on-hub', name === 'hub'); // for CSS: a class, not :has() (that re-styled the page on every chat update)
@@ -294,7 +300,7 @@ let chatApi = null, chatLoad = null;
 function ensureChat(show) {
   if (!me) return Promise.resolve(null);
   if (!chatLoad) {
-    chatLoad = loginReady.then(() => import(new URL('messages/app.js?v=24', document.baseURI).href))
+    chatLoad = loginReady.then(() => import(chatSrc()))
       .then((mod) => mod.mountChat(undefined, { show: currentTab === 'chat' }))
       .then((api) => { chatApi = api; renderHome(); return api; })
       .catch((e) => { chatLoad = null; console.error(e); toast('The chat didn\'t load. Check the connection.'); return null; });
