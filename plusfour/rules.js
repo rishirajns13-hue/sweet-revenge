@@ -39,10 +39,11 @@
   const emit = (G, e) => G.events.push(e);
   const step = (G, n = 1) => { G.turn = (((G.turn + G.dir * n) % G.players.length) + G.players.length) % G.players.length; };
 
-  function newGame(players, seed = Date.now()) {
+  // firstSeat: the seat that plays first (picked at random by the host, so the room's creator has no edge).
+  function newGame(players, seed = Date.now(), firstSeat = 0) {
     const G = {
       players: players.map((p) => ({ k: p.k, name: p.name, avatar: p.avatar, bot: !!p.bot })),
-      hands: {}, draw: [], discard: [], color: 'r', dir: 1, turn: 0,
+      hands: {}, draw: [], discard: [], color: 'r', dir: 1, turn: Number.isInteger(firstSeat) && firstSeat >= 0 && firstSeat < players.length ? firstSeat : 0,
       pending: 0, pendingKind: null, pendingBy: null, drawn: null, ouch: null, preShout: null, winner: null,
       seed: seed | 0, events: [],
       hits: [], // bombs: a stacked pile someone had to take, credited to whoever stacked last
@@ -60,7 +61,7 @@
     if (first.v === 'skip') { emit(G, { t: 'skip', k: cur(G) }); step(G); }
     else if (first.v === 'rev') {
       if (G.players.length === 2) { emit(G, { t: 'skip', k: cur(G) }); step(G); }
-      else { G.dir = -1; G.turn = G.players.length - 1; emit(G, { t: 'reverse', dir: G.dir }); }
+      else { G.dir = -1; step(G); emit(G, { t: 'reverse', dir: G.dir }); } // play goes the other way from the first seat
     } else if (first.v === 'd2') { G.pending = 2; G.pendingKind = 'd2'; emit(G, { t: 'stack', total: 2, k: cur(G) }); }
     return G;
   }

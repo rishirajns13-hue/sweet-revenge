@@ -161,7 +161,7 @@ function startGame() {
   if (!room) return;
   const seats = room.seats.filter((s) => connected(s.k));
   if (seats.length < 2) return toast('You need at least 2 players 🙂');
-  G = R.newGame(seats.map((s) => ({ k: s.k, name: s.name, avatar: s.avatar, bot: !!s.bot })), (Math.random() * 2 ** 31) | 0);
+  G = R.newGame(seats.map((s) => ({ k: s.k, name: s.name, avatar: s.avatar, bot: !!s.bot })), SR_RNG.seed31(), SR_RNG.int(seats.length)); // fair: crypto shuffle, random starter
   G.gid = Math.random().toString(36).slice(2, 10);
   G.at = Date.now();
   G.v = 0;

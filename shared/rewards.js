@@ -20,7 +20,7 @@ function showVictory(container, g) {
   if (!g || !g.winners || !g.players || container.querySelector('.victory')) return;
   if (!g.winners.length) { // a co-op game lost together
     container.insertAdjacentHTML('afterbegin', `<div class="victory lost" aria-live="polite"><span class="v-critter me-sad" style="margin-left:0">${avatarHTML(myAvatar(), 'sulk')}<i class="cloud" aria-hidden="true">🌧️</i></span>
-      <div class="v-txt"><b>The machine wins</b><small>Covered in sundae. Together, at least.</small></div></div>`);
+      <div class="v-txt"><b>Not this time</b><small>Lost together, at least. Rematch?</small></div></div>`);
     return;
   }
   const mine = me.name, iWon = g.winners.includes(mine), solo = g.winners.length > 1 ? 'You all won' : 'You won!';

@@ -14,6 +14,8 @@
   const current = (s) => s.players[s.turn];
 
   // opts.teams with 4 players pairs seats 1+3 against 2+4 (partners sit opposite).
+  // opts.first: the seat that rolls first (picked at random by the host, so the room's creator has no edge).
+  const firstSeat = (f, n) => (Number.isInteger(f) && f >= 0 && f < n ? f : 0);
   function newGame(players, names, opts = {}) {
     const tokens = {}, stats = {};
     players.forEach((c) => { tokens[c] = [-1, -1, -1, -1]; stats[c] = { bonks: 0, sixes: 0 }; });
@@ -21,7 +23,7 @@
     return {
       gid: Math.random().toString(36).slice(2, 10),
       v: 0, players, names, tokens, teams, stats, turns: 0, hits: [], // hits: [[bonker, victim], ...]
-      turn: 0, phase: 'roll', dice: null, sixes: 0, winner: null, winners: null, events: [],
+      turn: firstSeat(opts.first, players.length), phase: 'roll', dice: null, sixes: 0, winner: null, winners: null, events: [],
     };
   }
 

@@ -168,7 +168,7 @@ const host = {
   // cfg: { players, names, avatars, bots, teams }
   start(cfg) {
     this.cfg = cfg;
-    const s = R.newGame(cfg.players, cfg.names, { teams: cfg.teams });
+    const s = R.newGame(cfg.players, cfg.names, { teams: cfg.teams, first: SR_RNG.int(cfg.players.length) }); // fair: a random seat starts
     s.avatars = cfg.avatars; s.bots = cfg.bots; s.at = Date.now();
     this.state = s;
     this.push();

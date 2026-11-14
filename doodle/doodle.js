@@ -263,7 +263,7 @@ function wordList(st) {
 function freshStats(players) { return Object.fromEntries(players.map((p) => [p.k, { fastest: 0, fastestWord: '', wrong: 0, drawPoints: 0, stumped: [], clutch: 0 }])); }
 
 function startGame() {
-  const players = room.seats.filter((s) => connected(s.k)).map((s) => ({ k: s.k, name: s.name, avatar: s.avatar }));
+  const players = SR_RNG.shuffle(room.seats.filter((s) => connected(s.k)).map((s) => ({ k: s.k, name: s.name, avatar: s.avatar }))); // random drawing order
   if (players.length < 2) return toast('You need at least 2 players 🙂');
   const st = { ...room.settings };
   G = {
@@ -283,7 +283,7 @@ function nextRound() {
   do { G.round++; } while (G.round <= G.total && !connected(G.players[(G.round - 1) % G.players.length].k));
   if (G.round > G.total) return finish();
   G.drawer = G.players[(G.round - 1) % G.players.length].k;
-  G.choices = DL.pickChoices(G.words, G.used, 3);
+  G.choices = DL.pickChoices(G.words, G.used, 3, () => SR_RNG.int(1 << 30) / (1 << 30));
   const twisty = G.settings.chaos && G.round > 1 && Math.random() < 0.45;
   G.twist = twisty ? oneOf(Object.keys(TWISTS).filter((t) => t !== G.lastTwist)) : null;
   if (G.twist) G.lastTwist = G.twist;

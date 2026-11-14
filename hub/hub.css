@@ -448,14 +448,6 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .g-state { font-size: 17px; }
 .grudge small { font: 700 12px var(--body); color: var(--muted); }
 
-/* Sundae Bomb's card */
-.game-card.sundae .art { background: radial-gradient(circle at 50% 60%, #fff3d6 0 30%, #ffd1e8 31%); display: grid; place-items: center; }
-.sb-card-art { font-size: 64px; line-height: 1; animation: sb-card-tick 1s steps(2) infinite; }
-@keyframes sb-card-tick { 50% { transform: rotate(-8deg) scale(1.05); } }
-.game-card.sundae .g.a { left: 6%; top: 10%; rotate: -8deg; background: var(--red); color: #fff; font-family: var(--title); }
-.game-card.sundae .g.c { left: auto; right: 5%; bottom: 8%; font-size: 15px; }
-@media (prefers-reduced-motion: reduce) { .sb-card-art { animation: none; } }
-.calm .sb-card-art { animation: none !important; }
 @media (min-width: 1101px) { .game-shelves .game-card { flex-basis: calc((100% - 72px) / 5); } } /* phones keep their swipeable row */
 
 /* Sticky Situation's card */

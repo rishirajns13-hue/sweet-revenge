@@ -28,12 +28,13 @@
   const emit = (G, e) => G.events.push(e);
   const blankStats = () => ({ rolls: 0, sixes: 0, snakes: 0, ladders: 0, longest: 0, bonksGiven: 0, bonksTaken: 0 });
 
-  function newGame(players, seed = Date.now()) {
+  // first: the seat that rolls first (picked at random by the host, so the room's creator has no edge).
+  function newGame(players, seed = Date.now(), first = 0) {
     return {
       players: players.map((p) => ({ k: p.k, name: p.name, avatar: p.avatar, bot: !!p.bot })),
       pos: Object.fromEntries(players.map((p) => [p.k, 1])),
       lastFoot: Object.fromEntries(players.map((p) => [p.k, 1])), // foot of the last ladder climbed
-      turn: 0, streak: 0, last: null, winner: null,
+      turn: Number.isInteger(first) && first >= 0 && first < players.length ? first : 0, streak: 0, last: null, winner: null,
       seed: seed | 0, events: [], hits: [],
       stats: Object.fromEntries(players.map((p) => [p.k, blankStats()])),
     };

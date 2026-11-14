@@ -6,7 +6,7 @@
    - Everything comes from the database (shared/records.js) and refreshes every 20 seconds.
    Needs shared/core.js, shared/records.js and shared/sound.js. */
 
-const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html', B: 'sundae.html', G: 'sticky.html' }[code[0]] || 'ludo.html');
+const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html', G: 'sticky.html' }[code[0]] || 'ludo.html');
 const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'], sundae: ['💣', 'Sundae Bomb'], sticky: ['🍬', 'Sticky Situation'] };
 const LEVEL_NAMES = ['Sprinkle', 'Single Scoop', 'Double Scoop', 'Waffle Cone', 'Sundae', 'Banana Split', 'Brain Freeze', 'Sweet Revenge Royalty'];
 const TABS = ['home', 'play', 'trophies', 'rivals', 'chat', 'me'];
@@ -206,7 +206,7 @@ function confirmLogin(early) {
 function routeAway() {
   const q = new URLSearchParams(location.search), next = q.get('next');
   if (next === 'messages.html') { q.delete('next'); history.replaceState(null, '', 'index.html' + (q.toString() ? '?' + q : '') + '#chat'); return true; }
-  if (next && /^(ludo|doodle|plusfour|snakes|sundae|sticky)\.html$/.test(next)) {
+  if (next && /^(ludo|doodle|plusfour|snakes|sticky)\.html$/.test(next)) {
     q.delete('next');
     location.replace(next + (q.toString() ? '?' + q : ''));
     return false;
