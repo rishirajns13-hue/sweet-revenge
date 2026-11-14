@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#120c14">
+  <title>Locked In · Sweet Revenge</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗝️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@500;600;700;800&family=DM+Serif+Display&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared/base.css?v=16">
+  <link rel="stylesheet" href="shared/themes.css?v=5">
+  <link rel="stylesheet" href="shared/chat.css?v=6">
+  <link rel="stylesheet" href="lockedin/lockedin.css?v=1">
+  <script type="importmap">
+    { "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body class="li">
+  <canvas id="view" tabindex="0" aria-label="The Hotel Halfway"></canvas>
+  <div class="li-vignette" aria-hidden="true"></div>
+
+  <!-- loading -->
+  <div id="loading" class="li-loading">
+    <div class="li-key" aria-hidden="true">🗝️</div>
+    <h1 class="li-title">Locked In</h1>
+    <div class="li-bar"><i id="load-bar"></i></div>
+    <p id="load-text">Unlocking the front door…</p>
+  </div>
+
+  <!-- menu -->
+  <section id="menu" class="li-screen">
+    <a class="li-back" href="index.html" aria-label="Back to Sweet Revenge" data-icon="back"></a>
+    <div class="li-menu">
+      <p class="li-kicker">Hotel Halfway · a game for two</p>
+      <h1 class="li-title">Locked In</h1>
+      <p class="li-pitch">You wake up in different wings of a very strange hotel. Each of you sees clues the other can't. Talk it through, swap things through the old dumbwaiter, and get out together before dawn.</p>
+      <div class="li-actions">
+        <button id="btn-explore" class="li-btn primary" type="button">Explore the lobby</button>
+        <button id="btn-look" class="li-btn" type="button">Your look</button>
+        <button id="btn-help" class="li-btn ghost" type="button">How to play</button>
+      </div>
+      <p class="li-soon">Co-op chapters with your partner arrive in the next part. For now, have a wander: try the bells, read the ledger, look behind the paintings.</p>
+      <div class="li-keys">
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk</span>
+        <span><kbd>Shift</kbd> run</span>
+        <span><kbd>Space</kbd> hop</span>
+        <span><kbd>E</kbd> / click use</span>
+        <span>drag / <kbd>Z</kbd><kbd>C</kbd> camera</span>
+        <span><kbd>Esc</kbd> pause</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- character creator -->
+  <section id="creator" class="li-screen">
+    <div class="cr-panel">
+      <h2>Your look</h2>
+      <div id="cr-kind" class="cr-kind"></div>
+      <div id="cr-opts" class="cr-opts"></div>
+      <div class="cr-foot">
+        <button id="cr-cancel" class="li-btn ghost" type="button">Cancel</button>
+        <button id="cr-done" class="li-btn primary" type="button">Done</button>
+      </div>
+      <p class="cr-hint">Drag on the left to turn around</p>
+    </div>
+  </section>
+
+  <!-- pause -->
+  <section id="pause-menu" class="li-screen">
+    <div class="li-menu small">
+      <h2 class="li-title sm">Paused</h2>
+      <div class="li-actions col">
+        <button id="btn-resume" class="li-btn primary" type="button">Back to the hotel</button>
+        <button id="btn-pause-help" class="li-btn" type="button">How to play</button>
+        <button id="btn-quality" class="li-btn" type="button">Graphics: Auto</button>
+        <button id="btn-pause-menu" class="li-btn ghost" type="button">Main menu</button>
+      </div>
+      <div class="li-keys">
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk</span><span><kbd>Shift</kbd> run</span><span><kbd>Space</kbd> hop</span>
+        <span><kbd>E</kbd> / click use</span><span>drag / <kbd>Z</kbd><kbd>C</kbd> camera</span><span>scroll zoom</span><span><kbd>1</kbd> <kbd>2</kbd> nod / shake</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- in-game HUD -->
+  <div id="hud" class="li-hud" hidden>
+    <div class="hud-top">
+      <button id="btn-pause" class="hud-btn" type="button" aria-label="Pause">❚❚</button>
+      <div class="hud-place"><b>The Lobby</b><small>Hotel Halfway</small></div>
+      <div class="hud-right">
+        <button id="btn-mute" class="hud-btn" type="button" aria-label="Sound on or off" data-icon="volume"></button>
+        <button id="btn-help-hud" class="hud-btn help" type="button" aria-label="How to play">?</button>
+      </div>
+    </div>
+    <div id="inv" class="hud-inv" aria-label="Your pockets"></div>
+  </div>
+  <div id="prompt" class="li-prompt" hidden></div>
+  <div id="inspect" class="li-inspect" hidden>
+    <b id="ins-title"></b><p id="ins-text"></p>
+    <small>Drag or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to turn · scroll to zoom · <kbd>E</kbd> or <kbd>Esc</kbd> to put it back</small>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+  <script src="shared/core.js?v=17"></script>
+  <script src="shared/avatars.js?v=4"></script>
+  <script src="shared/sound.js?v=3"></script>
+  <script src="shared/howto.js?v=1"></script>
+  <script src="shared/3d/controller.js?v=1"></script>
+  <script type="module" src="lockedin/game.js?v=1"></script>
+</body>
+</html>
