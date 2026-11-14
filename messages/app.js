@@ -4,7 +4,7 @@
 import * as L from './logic.mjs?v=10';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
-import * as D from './data.js?v=10';
+import * as D from './data.js?v=11';
 import * as V from './voice.js?v=5';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=5';
 
@@ -109,7 +109,7 @@ function sigOf(r) {
 
 function render({ enter } = {}) {
   const rows = L.buildRows(S.messages);
-  const seen = L.seenTarget(S.messages, me.user);
+  const seen = S.hasNewer ? null : L.seenTarget(S.messages, me.user); // a window back in time has no 'Seen'
   const want = [];
   for (const r of rows) {
     want.push(r);
@@ -292,22 +292,31 @@ setInterval(() => { renderHeader(); if (painted) render(); }, 30000);
 const sc = els.scroller;
 const nearBottom = (px = 120) => sc.scrollHeight - sc.scrollTop - sc.clientHeight < px;
 function toBottom(smooth) {
-  if (smooth && !reduced) sc.scrollTo({ top: sc.scrollHeight, behavior: 'smooth' });
-  else sc.scrollTop = sc.scrollHeight;
+  // A long way up, a smooth glide gets interrupted as rows settle (off-screen rows have estimated heights): snap,
+  // then snap again once the rows just drawn have their real size.
+  const far = sc.scrollHeight - sc.scrollTop - sc.clientHeight > sc.clientHeight * 3;
+  if (smooth && !reduced && !far) { sc.scrollTo({ top: sc.scrollHeight, behavior: 'smooth' }); return; }
+  sc.scrollTop = sc.scrollHeight;
+  if (far) requestAnimationFrame(() => requestAnimationFrame(() => { sc.scrollTop = sc.scrollHeight; }));
 }
 let missed = 0;
 const jumpCount = $('#jump-count');
 function updateJump() {
-  const show = !nearBottom(300);
+  const show = S.hasNewer || !nearBottom(300);
   if (els.jump.hidden === show) els.jump.hidden = !show;
   if (!show) missed = 0;
   if (jumpCount.hidden !== !missed) jumpCount.hidden = !missed;
   setText(jumpCount, String(missed));
 }
-els.jump.onclick = () => { missed = 0; toBottom(true); };
+els.jump.onclick = () => {
+  missed = 0;
+  if (S.hasNewer) D.backToLatest().then(() => toBottom(false)).catch(() => toast('Couldn\'t load the latest messages. Check the connection.'));
+  else toBottom(true);
+};
 sc.addEventListener('scroll', () => {
   updateJump();
   if (sc.scrollTop < 2500 && S.hasOlder && painted) loadOlder(); // early, so the next page is in before you reach the top
+  if (S.hasNewer && painted && nearBottom(2500)) D.loadNewer(); // jumped back in time: newer pages as you scroll down
   if (nearBottom(4)) { if (!atBottomSince) atBottomSince = performance.now(); } else atBottomSince = 0;
 }, { passive: true });
 async function loadOlder() {
@@ -344,6 +353,9 @@ D.onData((what, x) => {
       break;
     }
     case 'older': keepScroll(() => render()); break;
+    case 'newer': render(); updateJump(); break;
+    case 'jump': render(); updateJump(); break;
+    case 'away': if (x.sender !== me.user && x.kind !== 'system') { missed++; updateJump(); } break;
     case 'state': applyLook(); render(); renderHeader(); renderInbox(); if (els.details.classList.contains('open')) renderDetails(); break;
     case 'people': renderHeader(); paintFaces(); render(); if (els.details.classList.contains('open')) renderDetails(); break;
     case 'typing': showTyping(); renderHeader(); break;
@@ -584,18 +596,19 @@ els.thread.addEventListener('click', (e) => {
   else if (a === 'more') openMenu(row);
   else if (a === 'reacts') openReactions(row, m);
   else if (a === 'quote') jumpTo(act.dataset.to);
-  else if (a === 'photo') viewPhoto(m);
+  else if (a === 'photo') { fromGallery = false; viewPhoto(m); }
   else if (a === 'reel') { if (openReels.has(m.id)) openReels.delete(m.id); else openReels.add(m.id); render(); }
 });
 
 /* ---------------- the viewer: photos, and (from Details → Shared) videos and Instagram reels/posts ---------------- */
 const viewer = document.createElement('div');
 viewer.className = 'ph-view'; viewer.hidden = true;
-viewer.innerHTML = `<img alt=""><video controls playsinline preload="metadata"></video><iframe title="Instagram" allow="autoplay; encrypted-media; picture-in-picture; clipboard-write" allowfullscreen></iframe><div class="ph-top"><span id="ph-note"></span><button type="button" class="dm-icon" id="ph-close" aria-label="Close">${svg('x')}</button></div>`;
+viewer.innerHTML = `<img alt=""><video controls playsinline preload="metadata"></video><iframe title="Instagram" allow="autoplay; encrypted-media; picture-in-picture; clipboard-write" allowfullscreen></iframe><div class="ph-top"><span id="ph-note"></span><button type="button" class="ph-goto" id="ph-goto" hidden>Show in chat</button><button type="button" class="dm-icon" id="ph-close" aria-label="Close">${svg('x')}</button></div>`;
 ROOT.appendChild(viewer);
-let viewing = null;
+let viewing = null, fromGallery = false; // opened from Details → Shared: offer "Show in chat"
 function showViewer(kind) {
   viewer.dataset.kind = kind;
+  $('#ph-goto').hidden = !fromGallery;
   viewer.hidden = false;
   requestAnimationFrame(() => viewer.classList.add('open'));
 }
@@ -636,7 +649,7 @@ function viewShare(m) {
 }
 function closePhoto() {
   if (!viewing) return;
-  const v = viewing; viewing = null;
+  const v = viewing; viewing = null; fromGallery = false;
   viewer.classList.remove('open');
   const vid = viewer.querySelector('video'); vid.pause();
   setTimeout(() => {
@@ -648,7 +661,15 @@ function closePhoto() {
   if (v.last) D.finishPhoto(v.path); // the last allowed view: the file goes now
   render();
 }
-viewer.addEventListener('click', (e) => { if (e.target === viewer || e.target.closest('#ph-close')) closePhoto(); });
+viewer.addEventListener('click', (e) => {
+  if (e.target.closest('#ph-goto') && viewing) { const m = viewing.m; closePhoto(); showInChat(m); return; }
+  if (e.target === viewer || e.target.closest('#ph-close')) closePhoto();
+});
+// Shared → the message in the chat (a window around it is loaded if it's far back).
+function showInChat(m) {
+  stopMgAudio(); closeDetails();
+  setTimeout(() => jumpTo(m.id, m.created_at), 320);
+}
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && viewing) { e.stopPropagation(); closePhoto(); } }, true);
 
 /* ---------------- sending photos: paste, pick or drop; choose unlimited / once / twice ---------------- */
@@ -780,12 +801,16 @@ els.thread.addEventListener('pointercancel', endGesture);
 async function jumpTo(id, at) {
   if (!find(id)) {
     toast('Finding that message…', 1200);
-    const ok = await D.ensureLoaded(id, at);
+    let ok = false;
+    try { ok = await D.jumpAround(id, at); } catch (e) { /* below */ }
     if (!ok) { toast('That message isn\'t here any more'); return; }
   }
   const el = rowEls.get(id);
   if (!el) return;
-  el.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+  const r = el.getBoundingClientRect(), box = sc.getBoundingClientRect();
+  const far = Math.abs(r.top - box.top) > box.height * 2;
+  el.scrollIntoView({ block: 'center', behavior: reduced || far ? 'auto' : 'smooth' });
+  if (far) requestAnimationFrame(() => requestAnimationFrame(() => el.scrollIntoView({ block: 'center' }))); // after rows settle
   el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
 }
 
@@ -1079,7 +1104,7 @@ function mediaTile(m) {
   if (m.kind === 'video') return `<button type="button" class="mg-t vid" data-mgid="${id}" aria-label="Video"><video muted playsinline preload="metadata" data-mgsrc></video><span class="mg-badge">▶ ${mmss(meta.dur)}</span></button>`;
   if (m.kind === 'voice') {
     const wave = meta.wave || new Array(40).fill(30);
-    return `<button type="button" class="mg-voice" data-mgid="${id}" aria-label="Voice message from ${escapeHtml(firstName(m.sender))}"><span class="pl">${svg('play', 'ic-play')}${svg('pause', 'ic-pause')}</span><span class="wv">${wave.map((h) => `<i style="height:${Math.max(10, +h || 10)}%"></i>`).join('')}</span><small>${mmss(meta.dur)}</small></button>`;
+    return `<div class="mg-voice" data-mgid="${id}"><button type="button" class="pl" aria-label="Play voice message from ${escapeHtml(firstName(m.sender))}">${svg('play', 'ic-play')}${svg('pause', 'ic-pause')}</button><span class="wv">${wave.map((h) => `<i style="height:${Math.max(10, +h || 10)}%"></i>`).join('')}</span><small>${mmss(meta.dur)}</small><button type="button" class="mg-goto" data-mggoto aria-label="Show in chat">${svg('reply')}</button></div>`;
   }
   return `<button type="button" class="mg-t mg-reel" data-mgid="${id}" aria-label="${escapeHtml(L.shareLabel(meta))}"><span class="sc-ic">${IG_GLYPH}</span><b>${escapeHtml(meta.owner ? '@' + meta.owner : L.shareLabel(meta))}</b>${meta.caption || m.body ? `<small>${escapeHtml(meta.caption || m.body)}</small>` : ''}</button>`;
 }
@@ -1111,6 +1136,8 @@ $('#mg-more').addEventListener('click', () => moreMedia());
 mgGrid.addEventListener('click', (e) => {
   const b = e.target.closest('[data-mgid]'); if (!b) return;
   const m = mgItems.find((x) => x.id === b.dataset.mgid); if (!m) return;
+  if (e.target.closest('[data-mggoto]')) { showInChat(m); return; }
+  if (m.kind !== 'voice') fromGallery = true;
   if (m.kind === 'photo') viewPhoto(m);
   else if (m.kind === 'video') viewVideo(m);
   else if (m.kind === 'voice') playMgVoice(m, b);

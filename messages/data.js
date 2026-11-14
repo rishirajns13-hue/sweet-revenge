@@ -23,11 +23,13 @@ export const S = {
   typing: false,                   // the other person is typing
   live: 'connecting',              // 'connecting' | 'live' | 'offline'
   hasOlder: true,
+  hasNewer: false,                 // jumped back in time: newer messages exist past the loaded window
 };
 
 const key = () => 'dm-cache:' + me.user;
 let saveT = 0;
 function saveCache() {
+  if (S.hasNewer) return; // a window far back in time isn't 'the latest'
   clearTimeout(saveT);
   saveT = setTimeout(() => {
     const msgs = S.messages.slice(-CACHE_MAX).map(({ _url, ...m }) => m); // blob links die with the page
@@ -67,6 +69,7 @@ export async function refresh() {
   S.players = Object.fromEntries(pl.data.map((p) => [p.id, p]));
   pickPeople();
   if (st.data) S.state = st.data;
+  if (S.hasNewer) { emit('state'); return; } // viewing a window back in time: the latest would leave a gap
   const fresh = ms.data.reverse();
   // Anything cached inside the fetched window that the server no longer has was unsent or vanished.
   const from = fresh.length === WINDOW ? Date.parse(fresh[0].created_at) : 0;
@@ -162,6 +165,55 @@ export async function search(q) {
   return data;
 }
 
+// Jumping far back (Shared → Show in chat, search, a reply to an old message): load a window of messages
+// around the target instead of every page in between. Scrolling down then loads newer pages (loadNewer),
+// and backToLatest() returns to the live end. Resolves true when the message is loaded.
+const AROUND = 60;
+export async function jumpAround(id, at) {
+  if (!at) {
+    const { data } = await sb.from('dm_messages').select('created_at').eq('id', id).maybeSingle();
+    if (!data) return false;
+    at = data.created_at;
+  }
+  const [older, newer] = await Promise.all([
+    sb.from('dm_messages').select('*').lte('created_at', at).order('created_at', { ascending: false }).limit(AROUND),
+    sb.from('dm_messages').select('*').gt('created_at', at).order('created_at', { ascending: true }).limit(AROUND),
+  ]);
+  if (older.error || newer.error) throw older.error || newer.error;
+  const local = S.messages.filter((m) => m.pending || m.failed); // the outbox stays
+  S.hasOlder = older.data.length === AROUND;
+  S.hasNewer = newer.data.length === AROUND;
+  S.messages = merge(S.hasNewer ? [] : local, [...older.data, ...newer.data]);
+  await loadReactions(S.messages.filter((m) => !m.pending).map((m) => m.id), true);
+  emit('jump');
+  return S.messages.some((m) => m.id === id);
+}
+let loadingNewer = null;
+export function loadNewer() {
+  if (loadingNewer || !S.hasNewer) return loadingNewer || Promise.resolve(0);
+  const newest = [...S.messages].reverse().find((m) => !m.pending && !m.failed);
+  if (!newest) return Promise.resolve(0);
+  loadingNewer = (async () => {
+    const { data, error } = await sb.from('dm_messages').select('*').gt('created_at', newest.created_at)
+      .order('created_at', { ascending: true }).limit(PAGE);
+    if (error) return 0;
+    S.hasNewer = data.length === PAGE;
+    S.messages = merge(S.messages, data);
+    await loadReactions(data.map((m) => m.id));
+    if (!S.hasNewer) saveCache();
+    emit('newer', data.length);
+    return data.length;
+  })().finally(() => { loadingNewer = null; });
+  return loadingNewer;
+}
+export async function backToLatest() {
+  if (!S.hasNewer) return;
+  S.hasNewer = false;
+  S.messages = S.messages.filter((m) => m.pending || m.failed);
+  S.hasOlder = true;
+  await refresh();
+}
+
 // Loads older pages until the message is in memory (for jumping to a reply or a search result).
 export async function ensureLoaded(id, at) {
   for (let i = 0; i < 40 && !S.messages.some((m) => m.id === id); i++) {
@@ -183,6 +235,7 @@ export function send(kind, body = '', meta = {}, replyTo = null, blob = null, lo
     created_at: new Date().toISOString(), edited_at: null, seen_at: null, vanish: !!S.state.vanish_on, pending: true,
   };
   if (blob) blobs.set(m.id, blob);
+  if (S.hasNewer) backToLatest().catch(() => {}); // a send always lands at the live end
   S.messages = merge(S.messages, [m]);
   emit('sent', m);
   saveCache();
@@ -497,6 +550,7 @@ function onMessageChange(e) {
   const had = S.messages.find((x) => x.id === row.id);
   if (had && had.pending) return; // my own send; deliver() settles it
   const fresh = !had;
+  if (fresh && S.hasNewer) { emit('away', row); return; } // seen when they return to the latest
   if (had && had._url) row._url = had._url;
   // My local "seen" mark shouldn't flicker back while the server catches up.
   if (had && had.seen_at && !row.seen_at) row.seen_at = had.seen_at;
