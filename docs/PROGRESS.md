@@ -2,9 +2,11 @@
 
 **Sweet Revenge is one app with a few proper games inside it.** One login, one profile, one level and one trophy shelf follow you from game to game. Every game feeds the same history: who won, who bonked whom, who bombed whom.
 
-**Games now:** 🎲 Ludo (the long one) · 🃏 Plus Four (the mean one) · 🖍️ Doodle Duel (the quick one) · 🐍 Snakes & Ladders (the screamy one)
+**Games now:** 🎲 Ludo (the long one) · 🃏 Plus Four (the mean one) · 🖍️ Doodle Duel (the quick one) · 🐍 Snakes & Ladders (the screamy one) · 🚪 Two Peas (3D co-op platformer, rebuilt from Sticky Situation) · 🏝️ Island Duel (3D slingshot duel) · 🟡 Plonk! (four in a row, 3D). The last three names are working titles.
 
-**New games:** none planned. We only add games that are worth playing again and again, and we agree on each one before anything is built. Throwaway minigames are out (Sugar Rush and Scoop Stack were removed on 13 Nov 2026).
+**The lineup (decided 14 Nov 2026, at most 10 games):** the seven above, then Our Little Island (cozy 3D island, with a pixel mural), Locked In (3D escape story, last), and one more chosen at the end. Sundae Bomb was removed on 14 Nov 2026; Sugar Rush and Scoop Stack on 13 Nov. Fair play notes: docs/FAIRNESS.md.
+
+**Not saved to the history yet:** Island Duel and Plonk! need two new game kinds in the database (supabase/pending/add_duel_four_kinds.sql, waiting for approval).
 
 ## Levels
 You earn XP in every game, and it all adds up to one Sweet Revenge level. The level shows next to your avatar everywhere.
@@ -32,8 +34,8 @@ The code that works all this out is `shared/progress.mjs`; the numbers there are
 | 🧠 | Mind Reader | Guess a Doodle in under 5 seconds |
 | 🐍 | Slippery Slope | Slide down 3 snakes in one game |
 | 🪜 | Sky High | Climb a ladder 30+ squares long |
-| 🎂 | Cherry on Top | Climb the cake in Sticky Situation without a single fall |
-| 🍬 | Glued Together | Reach the cherry in Sticky Situation 5 times |
+| ⭐ | Not a Scratch | Clear a stage of Two Peas without anyone going splat |
+| 🫛 | Two Peas in a Pod | Clear 5 stages of Two Peas together |
 | 🥊 | Grudge Champ | Win a best-of-5 grudge series against a friend (first to 3, across all games) |
 
 ## Still to decide
