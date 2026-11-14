@@ -268,6 +268,7 @@ async function deliver(m) {
       const local = S.messages.find((x) => x.id === m.id);
       if (local && local._url) data._url = local._url; // keep playing the local copy of a voice note
       replace(m.id, { ...data, pending: false, failed: false });
+      fastPath(data);
     }
     blobs.delete(m.id);
   } catch (e) {
@@ -536,6 +537,13 @@ export function connect() {
       S.players[e.new.id] = { ...S.players[e.new.id], ...pickFields(e.new) };
       pickPeople(); emit('people'); saveCache();
     })
+    // Fast path: the sender also hands the saved row straight to the other person (see fastPath),
+    // so it shows without waiting for the database-change stream. The database copy then merges in.
+    .on('broadcast', { event: 'msg' }, ({ payload }) => {
+      if (!usePrivate || !payload || !payload.id || payload.sender === me.user) return;
+      if (S.messages.some((x) => x.id === payload.id)) return;
+      onMessageChange({ eventType: 'INSERT', new: payload });
+    })
     .on('broadcast', { event: 'typing' }, ({ payload }) => {
       if (!payload || payload.who === me.user) return;
       S.typing = !!payload.on;
@@ -602,6 +610,11 @@ function onReactionChange(e) {
   saveCache();
 }
 
+// Only over the private channel (members-only), and only rows the database has already saved.
+function fastPath(row) {
+  if (!channel || !usePrivate || S.live !== 'live' || !row || !row.id) return;
+  try { channel.send({ type: 'broadcast', event: 'msg', payload: row }); } catch (e) { /* the database stream still delivers it */ }
+}
 export function sendTyping(on) {
   if (!channel || S.live !== 'live') return;
   const now = Date.now();

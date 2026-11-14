@@ -4,7 +4,7 @@
 import * as L from './logic.mjs?v=10';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
-import * as D from './data.js?v=12';
+import * as D from './data.js?v=13';
 import * as V from './voice.js?v=6';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=5';
 
