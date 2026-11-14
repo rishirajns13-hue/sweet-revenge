@@ -177,6 +177,12 @@ export function preview(m) {
 
 // Photos: unlimited ones (views 0) show in the chat and are kept for good; view-once/twice ones count opens
 // and are gone once the views are used. Returns { state: 'show'|'ready'|'sent'|'opened'|'gone', left }.
+// Instagram's own player for a shared reel or post (stories can't be embedded): null when there is none.
+export function igEmbed(url) {
+  const m = /^https:\/\/(?:www\.)?instagram\.com\/(reels?|p|tv)\/([A-Za-z0-9_-]+)/.exec(String(url || ''));
+  if (!m) return null;
+  return `https://www.instagram.com/${m[1] === 'p' ? 'p' : m[1] === 'tv' ? 'tv' : 'reel'}/${m[2]}/embed/`;
+}
 // A shared Instagram reel/post/story: "Reel by @name".
 export function shareLabel(meta = {}) {
   const what = { reel: 'Reel', post: 'Post', story: 'Story' }[meta.what] || 'Link';

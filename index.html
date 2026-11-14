@@ -14,12 +14,12 @@
   <link rel="stylesheet" href="shared/base.css?v=16">
   <link rel="stylesheet" href="hub/hub.css?v=28">
   <link rel="stylesheet" href="shared/themes.css?v=5">
-  <link rel="stylesheet" href="messages/messages.css?v=19">
+  <link rel="stylesheet" href="messages/messages.css?v=20">
   <link rel="stylesheet" href="hub/shell.css?v=7">
   <link rel="stylesheet" href="hub/home.css?v=7">
-  <link rel="modulepreload" href="messages/app.js?v=23">
-  <link rel="modulepreload" href="messages/data.js?v=9">
-  <link rel="modulepreload" href="messages/logic.mjs?v=9">
+  <link rel="modulepreload" href="messages/app.js?v=24">
+  <link rel="modulepreload" href="messages/data.js?v=10">
+  <link rel="modulepreload" href="messages/logic.mjs?v=10">
   <link rel="modulepreload" href="messages/themes.js?v=5">
   <link rel="modulepreload" href="messages/picker.js?v=5">
   <link rel="modulepreload" href="messages/voice.js?v=4">
@@ -486,6 +486,14 @@
       </header>
       <div class="details-body">
         <div class="d-hero"><span class="face xl" id="d-face"></span><b id="d-name"></b><small id="d-real"></small></div>
+
+        <section class="d-sec mg" id="mg" aria-label="Shared photos, videos, voice messages, reels and posts">
+          <h3>Shared</h3>
+          <div class="mg-tabs" id="mg-tabs"></div>
+          <div class="mg-grid" id="mg-grid"></div>
+          <p class="d-note mg-empty" id="mg-empty" hidden>Nothing here yet.</p>
+          <button type="button" class="d-btn mg-more" id="mg-more" hidden>Show more</button>
+        </section>
 
         <section class="d-sec">
           <h3>Theme</h3>

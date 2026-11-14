@@ -246,3 +246,12 @@ test('game-room chats copied in count as old history and say which game they wer
   assert.equal(L.isOld(game(0)), true);
   assert.equal(L.isIg(game(0)), false); // no archive files to keep
 });
+
+test('shared reels and posts play in Instagram\'s own player; stories cannot', () => {
+  assert.equal(L.igEmbed('https://www.instagram.com/reel/DctH0mbz6TA/?id=397_452'), 'https://www.instagram.com/reel/DctH0mbz6TA/embed/');
+  assert.equal(L.igEmbed('https://www.instagram.com/reels/DctH0mbz6TA/'), 'https://www.instagram.com/reel/DctH0mbz6TA/embed/');
+  assert.equal(L.igEmbed('https://www.instagram.com/p/AbC-12_x/'), 'https://www.instagram.com/p/AbC-12_x/embed/');
+  assert.equal(L.igEmbed('https://www.instagram.com/stories/someone/3761346430255705517'), null);
+  assert.equal(L.igEmbed('https://evil.example/reel/x'), null);
+  assert.equal(L.igEmbed(''), null);
+});

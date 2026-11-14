@@ -1,10 +1,10 @@
 // Messages: the private chat between the two friends. This file draws the chat and handles every
 // gesture; data.js talks to the database, logic.mjs holds the tested pure parts.
 // Needs the classic scripts loaded first: shared/core.js, shared/avatars.js, shared/sound.js.
-import * as L from './logic.mjs?v=9';
+import * as L from './logic.mjs?v=10';
 const { WALLS, wallKind } = L;
 import { THEMES, THEME_ORDER, themeName, applyTheme } from './themes.js?v=5';
-import * as D from './data.js?v=9';
+import * as D from './data.js?v=10';
 import * as V from './voice.js?v=4';
 import { mountPicker, openPicker, closePicker, pickerOpen, stickerHTML } from './picker.js?v=5';
 
@@ -104,7 +104,7 @@ function sigOf(r) {
   if (r.type === 'system') return 'y' + L.systemText(r.m, me.user, realName, themeName);
   const m = r.m, q = m.reply_to ? S.messages.find((x) => x.id === m.reply_to) : null;
   return JSON.stringify([r.pos, m.kind, m.body, m.edited_at, !!m.pending, !!m.failed, m.vanish, m.meta, m.reply_to && (q ? L.preview(q) + q.sender : '?'),
-    S.reactions[m.id], nameOf(m.sender), nameOf(otherId())]);
+    S.reactions[m.id], nameOf(m.sender), nameOf(otherId()), openReels.has(m.id)]);
 }
 
 function render({ enter } = {}) {
@@ -203,10 +203,16 @@ function videoBubble(m) {
 }
 // A shared reel, post or story: a card that opens it on Instagram (it works while the post is still up).
 const IG_GLYPH = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>';
+const openReels = new Set(); // reels/posts playing inline (tap the card again to close)
 function shareBubble(m) {
   const meta = m.meta || {}, url = /^https:\/\/(www\.)?instagram\.com\//.test(meta.url || '') ? meta.url : '';
-  const card = `<span class="sc-ic">${IG_GLYPH}</span><span class="sc-txt"><b>${escapeHtml(L.shareLabel(meta))}</b>${meta.caption ? `<small>${escapeHtml(meta.caption)}</small>` : ''}<em>${url ? 'Open on Instagram' : 'Link unavailable'}</em></span>`;
-  return `<div class="bub paint share-bub">${url ? `<a class="share-card" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${card}</a>` : `<span class="share-card">${card}</span>`}${m.body ? `<p>${L.linkify(escapeHtml(m.body))}</p>` : ''}</div>`;
+  const embed = L.igEmbed(url), open = !!embed && openReels.has(m.id);
+  const hint = embed ? (open ? 'Tap to close' : '▶ Tap to play here') : url ? 'Open on Instagram' : 'Link unavailable';
+  const card = `<span class="sc-ic">${IG_GLYPH}</span><span class="sc-txt"><b>${escapeHtml(L.shareLabel(meta))}</b>${meta.caption && !open ? `<small>${escapeHtml(meta.caption)}</small>` : ''}<em>${hint}</em></span>`;
+  const head = embed ? `<button type="button" class="share-card" data-act="reel" aria-expanded="${open}">${card}</button>`
+    : url ? `<a class="share-card" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${card}</a>` : `<span class="share-card">${card}</span>`;
+  const player = open ? `<div class="reel-embed${meta.what === 'post' ? ' post' : ''}"><iframe src="${escapeHtml(embed)}" title="${escapeHtml(L.shareLabel(meta))}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; clipboard-write" allowfullscreen></iframe><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Open on Instagram ↗</a></div>` : '';
+  return `<div class="bub paint share-bub${open ? ' open' : ''}">${head}${player}${m.body ? `<p>${L.linkify(escapeHtml(m.body))}</p>` : ''}</div>`;
 }
 // Unlimited photos load their picture after they're drawn (a private link, kept a few days).
 function hydratePhotos() {
@@ -579,14 +585,20 @@ els.thread.addEventListener('click', (e) => {
   else if (a === 'reacts') openReactions(row, m);
   else if (a === 'quote') jumpTo(act.dataset.to);
   else if (a === 'photo') viewPhoto(m);
+  else if (a === 'reel') { if (openReels.has(m.id)) openReels.delete(m.id); else openReels.add(m.id); render(); }
 });
 
-/* ---------------- the photo viewer ---------------- */
+/* ---------------- the viewer: photos, and (from Details → Shared) videos and Instagram reels/posts ---------------- */
 const viewer = document.createElement('div');
 viewer.className = 'ph-view'; viewer.hidden = true;
-viewer.innerHTML = `<img alt=""><div class="ph-top"><span id="ph-note"></span><button type="button" class="dm-icon" id="ph-close" aria-label="Close photo">${svg('x')}</button></div>`;
+viewer.innerHTML = `<img alt=""><video controls playsinline preload="metadata"></video><iframe title="Instagram" allow="autoplay; encrypted-media; picture-in-picture; clipboard-write" allowfullscreen></iframe><div class="ph-top"><span id="ph-note"></span><button type="button" class="dm-icon" id="ph-close" aria-label="Close">${svg('x')}</button></div>`;
 ROOT.appendChild(viewer);
 let viewing = null;
+function showViewer(kind) {
+  viewer.dataset.kind = kind;
+  viewer.hidden = false;
+  requestAnimationFrame(() => viewer.classList.add('open'));
+}
 async function viewPhoto(m) {
   if (viewing) return;
   const st = L.photoState(m, me.user).state;
@@ -599,15 +611,40 @@ async function viewPhoto(m) {
     viewer.querySelector('img').src = got.url;
     const views = (m.meta && m.meta.views) || 0;
     $('#ph-note').textContent = !views || m.sender === me.user ? '' : got.last ? 'Last view. It disappears when you close it.' : '1 view left after this';
-    viewer.hidden = false;
-    requestAnimationFrame(() => viewer.classList.add('open'));
+    showViewer('photo');
   } catch (e) { viewing = null; toast('The photo didn\'t open. Check the connection.'); }
+}
+async function viewVideo(m) {
+  if (viewing || !m.meta || !m.meta.path) return;
+  viewing = { m };
+  const url = await D.fileUrl(L.bucketOf(m), m.meta.path);
+  if (!url) { viewing = null; toast('That video didn\'t open. Check the connection.'); return; }
+  const v = viewer.querySelector('video');
+  v.src = url; $('#ph-note').textContent = '';
+  showViewer('video');
+  v.play().catch(() => {});
+}
+// A reel or post in Instagram's own player; a story (no player) opens on Instagram instead.
+function viewShare(m) {
+  if (viewing) return;
+  const embed = L.igEmbed(m.meta && m.meta.url);
+  if (!embed) { if (m.meta && /^https:\/\//.test(m.meta.url || '')) window.open(m.meta.url, '_blank', 'noopener'); return; }
+  viewing = { m };
+  viewer.querySelector('iframe').src = embed;
+  $('#ph-note').textContent = L.shareLabel(m.meta);
+  showViewer('share');
 }
 function closePhoto() {
   if (!viewing) return;
   const v = viewing; viewing = null;
   viewer.classList.remove('open');
-  setTimeout(() => { viewer.hidden = true; viewer.querySelector('img').removeAttribute('src'); if (v.url && v.url.startsWith('blob:') && v.url !== v.m._url) URL.revokeObjectURL(v.url); }, 220);
+  const vid = viewer.querySelector('video'); vid.pause();
+  setTimeout(() => {
+    viewer.hidden = true;
+    viewer.querySelector('img').removeAttribute('src'); vid.removeAttribute('src'); vid.load();
+    viewer.querySelector('iframe').removeAttribute('src');
+    if (v.url && v.url.startsWith('blob:') && v.url !== v.m._url) URL.revokeObjectURL(v.url);
+  }, 220);
   if (v.last) D.finishPhoto(v.path); // the last allowed view: the file goes now
   render();
 }
@@ -991,6 +1028,7 @@ $('#seg-size').addEventListener('click', (e) => { const b = e.target.closest('[d
 const det = els.details;
 function openDetails() {
   renderDetails();
+  openMedia(mgKind); // Shared: fresh each time Details opens
   det.hidden = false; ROOT.classList.add('details-open'); // a class, not :has(): :has() re-styled the whole chat on every change
   requestAnimationFrame(() => det.classList.add('open'));
 }
@@ -1005,7 +1043,80 @@ function syncLayers() {
 new MutationObserver((list) => list.forEach((m) => m.addedNodes.forEach((n) => {
   if (n.classList && n.classList.contains('picker')) layerWatch.observe(n, { attributes: true, attributeFilter: ['class'] });
 }))).observe(ROOT, { childList: true });
-function closeDetails() { det.classList.remove('open'); setTimeout(() => { det.hidden = true; ROOT.classList.remove('details-open'); }, 300); }
+/* ---------------- Details → Shared: every photo, video, voice message, reel and post, newest first ---------------- */
+const MG_KINDS = [['photo', 'Photos'], ['video', 'Videos'], ['voice', 'Voice'], ['share', 'Reels & posts']];
+const MG_FIRST = 9, MG_PAGE = 30;
+let mgKind = 'photo', mgItems = [], mgDone = false, mgCounts = null, mgBusy = 0, mgAudio = null;
+const mgGrid = $('#mg-grid');
+function renderMediaTabs() {
+  $('#mg-tabs').innerHTML = MG_KINDS.map(([k, label]) => `<button type="button" data-mg="${k}" aria-pressed="${k === mgKind}">${label}${mgCounts && mgCounts[k] != null ? `<b>${mgCounts[k].toLocaleString()}</b>` : ''}</button>`).join('');
+}
+function openMedia(kind) {
+  mgKind = kind; mgItems = []; mgDone = false; stopMgAudio();
+  mgGrid.innerHTML = ''; mgGrid.classList.toggle('list', kind === 'voice');
+  renderMediaTabs();
+  D.mediaCounts().then((c) => { mgCounts = c; renderMediaTabs(); }).catch(() => {});
+  moreMedia(MG_FIRST);
+}
+async function moreMedia(n = MG_PAGE) {
+  if (mgDone) return;
+  const ticket = ++mgBusy, kind = mgKind;
+  $('#mg-more').disabled = true;
+  try {
+    const rows = await D.media(kind, mgItems.length, n);
+    if (ticket !== mgBusy || kind !== mgKind) return; // a tab changed meanwhile
+    if (rows.length < n) mgDone = true;
+    mgItems.push(...rows);
+    mgGrid.insertAdjacentHTML('beforeend', rows.map(mediaTile).join(''));
+    hydrateMedia();
+  } catch (e) { if (ticket === mgBusy) toast('Couldn\'t load the shared media. Check the connection.'); }
+  finally { if (ticket === mgBusy) { $('#mg-more').disabled = false; $('#mg-more').hidden = mgDone; $('#mg-empty').hidden = mgItems.length > 0 || !mgDone; } }
+}
+const mmss = (sec) => L.fmtDuration(sec || 0);
+function mediaTile(m) {
+  const id = escapeHtml(m.id), meta = m.meta || {};
+  if (m.kind === 'photo') return `<button type="button" class="mg-t" data-mgid="${id}" aria-label="Photo"><img alt="" data-mgsrc></button>`;
+  if (m.kind === 'video') return `<button type="button" class="mg-t vid" data-mgid="${id}" aria-label="Video"><video muted playsinline preload="metadata" data-mgsrc></video><span class="mg-badge">▶ ${mmss(meta.dur)}</span></button>`;
+  if (m.kind === 'voice') {
+    const wave = meta.wave || new Array(40).fill(30);
+    return `<button type="button" class="mg-voice" data-mgid="${id}" aria-label="Voice message from ${escapeHtml(firstName(m.sender))}"><span class="pl">${svg('play', 'ic-play')}${svg('pause', 'ic-pause')}</span><span class="wv">${wave.map((h) => `<i style="height:${Math.max(10, +h || 10)}%"></i>`).join('')}</span><small>${mmss(meta.dur)}</small></button>`;
+  }
+  return `<button type="button" class="mg-t mg-reel" data-mgid="${id}" aria-label="${escapeHtml(L.shareLabel(meta))}"><span class="sc-ic">${IG_GLYPH}</span><b>${escapeHtml(meta.owner ? '@' + meta.owner : L.shareLabel(meta))}</b>${meta.caption || m.body ? `<small>${escapeHtml(meta.caption || m.body)}</small>` : ''}</button>`;
+}
+function hydrateMedia() {
+  mgGrid.querySelectorAll('[data-mgsrc]').forEach((el) => {
+    el.removeAttribute('data-mgsrc');
+    const m = mgItems.find((x) => x.id === el.closest('[data-mgid]').dataset.mgid);
+    if (!m || !m.meta || !m.meta.path) return;
+    D.fileUrl(L.bucketOf(m), m.meta.path).then((url) => { if (url) el.src = el.tagName === 'VIDEO' ? url + '#t=0.5' : url; });
+  });
+}
+function stopMgAudio() {
+  if (mgAudio) { mgAudio.a.pause(); mgAudio = null; }
+  mgGrid.querySelectorAll('.mg-voice.playing').forEach((b) => b.classList.remove('playing'));
+}
+async function playMgVoice(m, btn) {
+  if (mgAudio && mgAudio.id === m.id) { stopMgAudio(); return; }
+  stopMgAudio();
+  const url = await D.fileUrl(L.bucketOf(m), m.meta.path);
+  if (!url) { toast('That voice message couldn\'t play'); return; }
+  const a = new Audio(url);
+  mgAudio = { id: m.id, a };
+  btn.classList.add('playing');
+  a.onended = () => { if (mgAudio && mgAudio.a === a) stopMgAudio(); };
+  a.play().catch(() => { stopMgAudio(); toast('That voice message couldn\'t play'); });
+}
+$('#mg-tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-mg]'); if (b && b.dataset.mg !== mgKind) openMedia(b.dataset.mg); });
+$('#mg-more').addEventListener('click', () => moreMedia());
+mgGrid.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mgid]'); if (!b) return;
+  const m = mgItems.find((x) => x.id === b.dataset.mgid); if (!m) return;
+  if (m.kind === 'photo') viewPhoto(m);
+  else if (m.kind === 'video') viewVideo(m);
+  else if (m.kind === 'voice') playMgVoice(m, b);
+  else viewShare(m);
+});
+function closeDetails() { stopMgAudio(); det.classList.remove('open'); setTimeout(() => { det.hidden = true; ROOT.classList.remove('details-open'); }, 300); }
 $('#btn-info').onclick = openDetails;
 $('#btn-peer').onclick = openDetails;
 det.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeDetails(); });

@@ -6,7 +6,7 @@
 //  2. Sending shows the bubble at once; the database write happens behind it, and failed sends wait in
 //     an outbox (kept with the cache) and are retried.
 //  3. One realtime channel brings new messages, edits, reactions, seen receipts, typing and "active now".
-import { merge, bucketOf, isIg } from './logic.mjs?v=9';
+import { merge, bucketOf, isIg } from './logic.mjs?v=10';
 
 const CACHE_MAX = 400, WINDOW = 200, PAGE = 150;
 const listeners = new Set();
@@ -134,6 +134,24 @@ export async function fetchAll() {
     if (data.length < 1000) break;
   }
   return { messages: out, reactions };
+}
+
+// Shared media for Details → Shared: newest first, one page of one kind ('photo' | 'video' | 'voice' | 'share').
+// Photos are only the ones that stay in the chat (not view once / view twice).
+const mediaQuery = (kind, q) => {
+  q = q.eq('kind', kind).eq('vanish', false);
+  return kind === 'photo' ? q.or('meta->>views.is.null,meta->>views.eq.0') : q;
+};
+export async function media(kind, from, n) {
+  const { data, error } = await mediaQuery(kind, sb.from('dm_messages').select('id, sender, kind, body, meta, created_at'))
+    .order('created_at', { ascending: false }).range(from, from + n - 1);
+  if (error) throw error;
+  return data;
+}
+export async function mediaCounts() {
+  const kinds = ['photo', 'video', 'voice', 'share'];
+  const got = await Promise.all(kinds.map((k) => mediaQuery(k, sb.from('dm_messages').select('id', { count: 'exact', head: true }))));
+  return Object.fromEntries(kinds.map((k, i) => [k, got[i].error ? null : got[i].count]));
 }
 
 export async function search(q) {
