@@ -6,8 +6,8 @@
    - Everything comes from the database (shared/records.js) and refreshes every 20 seconds.
    Needs shared/core.js, shared/records.js and shared/sound.js. */
 
-const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html', G: 'coop.html', I: 'duel.html' }[code[0]] || 'ludo.html');
-const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'], sundae: ['💣', 'Sundae Bomb'], sticky: ['🚪', 'Two Peas'], duel: ['🏝️', 'Island Duel'] };
+const GAME_FOR_CODE = (code) => ({ D: 'doodle.html', P: 'plusfour.html', S: 'snakes.html', G: 'coop.html', I: 'duel.html', F: 'four.html' }[code[0]] || 'ludo.html');
+const GAMES = { ludo: ['🎲', 'Ludo'], plusfour: ['🃏', 'Plus Four'], doodle: ['🖍️', 'Doodle Duel'], snakes: ['🐍', 'Snakes & Ladders'], sundae: ['💣', 'Sundae Bomb'], sticky: ['🚪', 'Two Peas'], duel: ['🏝️', 'Island Duel'], four: ['🟡', 'Plonk!'] };
 const LEVEL_NAMES = ['Sprinkle', 'Single Scoop', 'Double Scoop', 'Waffle Cone', 'Sundae', 'Banana Split', 'Brain Freeze', 'Sweet Revenge Royalty'];
 const TABS = ['home', 'play', 'trophies', 'rivals', 'chat', 'me'];
 const POLL_MS = 60000; // a safety net: new games and trophies arrive instantly through records.onChange
@@ -206,7 +206,7 @@ function confirmLogin(early) {
 function routeAway() {
   const q = new URLSearchParams(location.search), next = q.get('next');
   if (next === 'messages.html') { q.delete('next'); history.replaceState(null, '', 'index.html' + (q.toString() ? '?' + q : '') + '#chat'); return true; }
-  if (next && /^(ludo|doodle|plusfour|snakes|sticky|coop|duel)\.html$/.test(next)) {
+  if (next && /^(ludo|doodle|plusfour|snakes|sticky|coop|duel|four)\.html$/.test(next)) {
     q.delete('next');
     location.replace(next + (q.toString() ? '?' + q : ''));
     return false;

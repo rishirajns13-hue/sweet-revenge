@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#2a1f4f">
+  <title>Plonk! · Sweet Revenge</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🟡</text></svg>">
+  <link rel="preload" href="assets/fonts/baloo-2.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/fredoka.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/lilita-one.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/fonts/fonts.css?v=1">
+  <link rel="stylesheet" href="shared/base.css?v=16">
+  <link rel="stylesheet" href="shared/themes.css?v=5">
+  <link rel="stylesheet" href="shared/chat.css?v=6">
+  <link rel="stylesheet" href="four/four.css?v=1">
+  <script type="importmap">
+    { "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    } }
+  </script>
+</head>
+<body class="pal-sunset">
+  <div id="scene" aria-hidden="true"><i class="a up"></i><i class="b up"></i></div>
+  <main>
+    <section id="screen-home" class="screen active">
+      <header class="topbar">
+        <a class="icon-btn" href="index.html" aria-label="Back to Sweet Revenge" data-icon="back"></a>
+        <h1 class="fo-logo">Plonk<span>!</span></h1>
+        <button id="btn-me" class="avatar-btn" type="button" aria-label="Your profile and colours"><span id="me-avatar"></span></button>
+      </header>
+      <div class="card fo-hero">
+        <div class="fo-hero-art" aria-hidden="true"><i class="p"></i><i class="b"></i><i class="p"></i><i class="b"></i></div>
+        <p class="fo-pitch">Drop your discs, get <b>four in a row</b> before they do: across, up or slanted. Two minutes a game, and the room keeps score.</p>
+      </div>
+      <button id="btn-resume" class="btn big resume" type="button" data-icon="play" hidden>Back to your room · <span id="resume-code"></span></button>
+      <button id="btn-create" class="btn big cta" type="button" data-icon="plus">Play online</button>
+      <div class="join-row">
+        <input id="join-code" placeholder="Got a code?" aria-label="Room code" maxlength="6" autocomplete="off" spellcheck="false">
+        <button id="btn-join" class="btn" type="button">Join</button>
+      </div>
+      <div class="fo-more">
+        <span class="fo-practice"><button id="btn-practice" class="link" type="button">🤖 Practice vs bot</button>
+          <select id="fo-level" aria-label="Bot level"><option value="1">relaxed</option><option value="2" selected>tricky</option><option value="3">sharp</option></select></span>
+        <button id="btn-couch" class="link" type="button">🛋️ Two on this laptop</button>
+      </div>
+      <p id="home-error" class="error light" role="alert"></p>
+      <div class="card fo-keys"><div><b>Play</b><span>Click a column, or press <kbd>1</kbd>–<kbd>7</kbd> · <kbd>←</kbd><kbd>→</kbd> then <kbd>↓</kbd> works too · <kbd>8</kbd> <kbd>9</kbd> stickers</span></div></div>
+    </section>
+
+    <section id="screen-room" class="screen">
+      <header class="topbar">
+        <button id="btn-room-back" class="icon-btn" type="button" aria-label="Leave room" data-icon="back"></button>
+        <h2 id="room-title" class="title">Your room</h2>
+      </header>
+      <div id="code-card" class="card code-card">
+        <p id="code-hint">Send this code to your partner</p>
+        <div class="code-row"><div id="room-code" class="code"></div><button id="btn-share" class="icon-btn" type="button" aria-label="Share invite link" data-icon="share"></button></div>
+      </div>
+      <div id="seats" class="seats" aria-live="polite"></div>
+      <button id="btn-start" class="btn big cta" type="button">Start</button>
+      <p id="room-wait" class="room-wait" hidden></p>
+    </section>
+
+    <section id="screen-play" class="screen">
+      <div id="stage" class="fo-stage">
+        <canvas id="view" aria-label="The board"></canvas>
+        <header class="fo-hud">
+          <button id="btn-leave" class="icon-btn" type="button" aria-label="Leave" data-icon="x"></button>
+          <div id="fo-players" class="fo-players"></div>
+          <div id="chat-tools" class="fo-tools"></div>
+          <button id="btn-mute" class="icon-btn" type="button" aria-label="Sound on or off" data-icon="volume"></button>
+        </header>
+        <p id="fo-status" class="fo-status"></p>
+        <div id="fo-end" class="fo-end card" hidden>
+          <h2 id="fo-end-title">You win!</h2>
+          <p id="fo-end-score" class="fo-end-score"></p>
+          <button id="btn-again" class="btn big cta" type="button">Again!</button>
+          <button id="btn-end-home" class="btn ghost" type="button">Done</button>
+          <p id="fo-end-wait" class="room-wait" hidden>Waiting for the host to start the next one…</p>
+        </div>
+        <div id="fo-loading" class="fo-loading" hidden><span>Setting up the board…</span></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="me-sheet" class="sheet small" hidden>
+    <div class="grab" aria-hidden="true"></div>
+    <header><b>You</b><button id="btn-me-close" class="icon-btn sm" type="button" aria-label="Close" data-icon="x"></button></header>
+    <div class="me-body">
+      <h3>Avatar</h3>
+      <div id="avatars" class="avatars" role="group" aria-label="Avatar"></div>
+      <h3>Colours</h3>
+      <div id="palettes" class="palettes" role="group" aria-label="Colours"></div>
+      <button id="btn-logout" class="btn ghost" type="button">Log out</button>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status"></div>
+  <div id="fx"></div>
+
+  <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+  <script src="shared/core.js?v=17"></script>
+  <script src="shared/rng.js?v=1"></script>
+  <script src="shared/avatars.js?v=4"></script>
+  <script src="shared/net.js?v=9"></script>
+  <script src="shared/sound.js?v=3"></script>
+  <script src="shared/records.js?v=14"></script>
+  <script src="shared/rewards.js?v=8"></script>
+  <script src="shared/chat.js?v=9"></script>
+  <script src="four/rules.js?v=1"></script>
+  <script src="four/game.js?v=1"></script>
+</body>
+</html>

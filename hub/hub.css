@@ -448,7 +448,7 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .g-state { font-size: 17px; }
 .grudge small { font: 700 12px var(--body); color: var(--muted); }
 
-@media (min-width: 1101px) { .game-shelves .game-card { flex-basis: calc((100% - 36px) / 3); max-width: calc((100% - 36px) / 3); } } /* 6 games: two rows of three on laptops; phones keep their swipeable row */
+@media (min-width: 1101px) { .game-shelves .game-card { flex-basis: calc((100% - 54px) / 4); max-width: calc((100% - 54px) / 4); } } /* 7 games: rows of four on laptops; phones keep their swipeable row */
 
 /* Two Peas' card (the co-op platformer; history kind 'sticky') */
 .game-card.sticky .art { background: linear-gradient(#7cc8ff, #d9f2ff 70%, #8fdc8a 70%); display: grid; place-items: center; }
@@ -470,6 +470,17 @@ svg.defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .game-card.duel .g.c { left: auto; right: 5%; bottom: 8%; font-size: 15px; }
 @media (prefers-reduced-motion: reduce) { .du-card-art b { animation: none; } }
 .calm .du-card-art b { animation: none !important; }
+/* Plonk!'s card */
+.game-card.four .art { background: radial-gradient(circle at 50% 40%, #7b5cff, #2a1f4f); display: grid; place-items: center; }
+.fo-card-art { display: flex; gap: 6px; padding: 8px 10px; border: 3px solid var(--ink); border-radius: 12px; background: #ffc233; }
+.fo-card-art i { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid var(--ink); animation: fo-card-drop 2.4s cubic-bezier(.3, 1.6, .5, 1) infinite; }
+.fo-card-art i.p { background: #ff5fa8; } .fo-card-art i.b { background: #3f9bff; }
+.fo-card-art i:nth-child(2) { animation-delay: .3s; } .fo-card-art i:nth-child(3) { animation-delay: .6s; } .fo-card-art i:nth-child(4) { animation-delay: .9s; }
+@keyframes fo-card-drop { 0% { transform: translateY(-22px); opacity: 0; } 20%, 100% { transform: translateY(0); opacity: 1; } }
+.game-card.four .g.a { left: 6%; top: 10%; rotate: -6deg; background: #ffc233; font-family: var(--title); }
+.game-card.four .g.c { left: auto; right: 5%; bottom: 8%; font-size: 15px; }
+@media (prefers-reduced-motion: reduce) { .fo-card-art i { animation: none; } }
+.calm .fo-card-art i { animation: none !important; }
 /* the 💬 Messages button */
 .dm-link.boing { animation: boing .45s var(--spring); }
 
